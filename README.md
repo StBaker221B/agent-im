@@ -55,14 +55,16 @@
 - [06 待确认问题](docs/06-open-questions.md)
 - [09 Agent 协议](docs/09-agent-protocol.md)
 - [10 开发环境与复现](docs/10-dev-setup.md)
-- [本地协议 spike](spike/) — 调度器/floor/静默收敛/共识 + 测试
+- [11 本地部署与无公网 IP 组网](docs/11-local-networking.md)
+- [本地协议 spike](spike/) — 调度器/floor/静默收敛/共识 + Claude adapter + 测试
 - [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-01-session-notes.md)
 - [2026-11-15 需求澄清（过程记录，含批注）](docs/records/2026-11-15-02-clarifications.md)
 - [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
 - [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
+- [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
 - [NEXT-SESSION 新会话入口](NEXT-SESSION.md)
 - [Sources](research/sources.md)
 
 ## 下一步
 
-先读 [00 需求合同](docs/00-requirements-contract.md)、[09 Agent 协议](docs/09-agent-protocol.md)、[10 开发环境](docs/10-dev-setup.md)。协议 spike 已跑通（`agent-im/spike`，12 个测试）；下一步是本机 WSL2+Docker → Matrix 骨架 → Claude adapter。新会话直接读 [NEXT-SESSION](NEXT-SESSION.md)。
+先读 [00 需求合同](docs/00-requirements-contract.md)、[09 Agent 协议](docs/09-agent-protocol.md)、[10 开发环境](docs/10-dev-setup.md)、[11 组网](docs/11-local-networking.md)。Milestone A 已跑通：`agent-im/spike` 14 个测试 + 真实 Claude adapter 三阶段 demo（总成本约 $0.043918，resume 保持 session）。下一步是 Matrix transport / 跨机组网 / 工具审批。新会话直接读 [NEXT-SESSION](NEXT-SESSION.md)。

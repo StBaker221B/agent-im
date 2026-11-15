@@ -332,7 +332,25 @@ type RuntimeCapabilities = {
 9. 人类 `!interrupt` 抢占 floor；普通人类消息不自动 preempt。
 10. 角色/`can_invite` 权限被 gateway 强制执行。
 
-## 14. 待确认
+## 14. 实现状态（2026-11-16）
+
+- `spike/src/claude-adapter.mjs` 已实现 AgentRuntime：
+  - 启动参数：`--bare --disable-slash-commands --strict-mcp-config --system-prompt-file`
+  - 一个 room/thread 一个长活 CLI 进程；同一进程可连续多轮。
+  - `interrupt` = kill 进程；下次自动 `--resume <session_id>`。
+  - 解析 `system/init`（session_id）、`assistant`（text / tool_use）、`user`（tool_result）、`result`（usage / cost）。
+- 实测：
+  - 14 个测试通过（12 引擎 + 2 adapter 解析）。
+  - 3 阶段 demo：首轮回复 → 同进程连续对话 → kill + `--resume`；resume 保持同一 session id。
+  - 总用量 in=1843 out=319，成本约 **$0.043918**；线程最终 quiescent。
+  - 精简参数把一句“收到”从 24,702 tokens / $0.132 降到 942 tokens / $0.0048。
+- `capabilities`：`streaming=false`（v0 收完整 turn 再 yield）、`interrupt=true`、`resume=true`、`approval=false`、`tools=true`、`multi_session=true`。
+- 已知问题：
+  - CLI 冷启动约 1–2s；首轮会加载少量系统提示。
+  - stderr 有 `[claude-code:unrecognized_model]` 警告，不影响运行。
+  - 工具审批、真正的流式输出、Matrix transport 还没接。
+
+## 15. 待确认
 
 - `quietWindowMs` / `maxTurnMs` / 硬上限的具体默认值。
 - Lazy consensus 的 T 和 quorum。

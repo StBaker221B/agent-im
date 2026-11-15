@@ -28,3 +28,4 @@
 | 02 | [2026-11-15 需求澄清（含用户批注）](2026-11-15-02-clarifications.md) | 私有/商业、平权、agent 用户 vs 实体、群聊规则 |
 | 03 | [2026-11-15 第二轮答复](2026-11-15-03-answers-round2.md) | 逐条回答、发言规则重设计、漏洞清单 |
 | 04 | [2026-11-15 第三轮答复](2026-11-15-04-answers-round3.md) | runtime 常驻/多 worker、投递 vs 唤醒、角色/升级链、Matrix 备选 |
+| 05 | [2026-11-16 Milestone A](2026-11-16-01-milestone-a.md) | 真实 Claude adapter、三阶段 demo、成本、无公网 IP 组网调研 |

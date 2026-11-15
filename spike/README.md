@@ -3,8 +3,9 @@
 纯 Node ESM，无第三方依赖；验证 [09 协议](../docs/09-agent-protocol.md) 的核心规则。
 
 ```bash
-node --test      # 12 个测试
-npm run demo     # 人类 + PM/dev/reviewer 的确定性演示
+node --test          # 14 个测试（12 引擎 + 2 adapter 解析）
+npm run demo         # 人类 + PM/dev/reviewer 的确定性演示
+npm run claude-demo  # 真实 Claude Code：首轮 / 连续 / kill+resume
 ```
 
 ## 覆盖
@@ -20,9 +21,17 @@ npm run demo     # 人类 + PM/dev/reviewer 的确定性演示
 - interrupt 抢占 floor；turn timeout。
 - `whoCanHelp` 按 roles/domains。
 
+## Claude adapter
+
+`src/claude-adapter.mjs` 把本机 `claude` CLI 当成 runtime：
+
+- 一个 room/thread 一个长活进程；`--bare --disable-slash-commands --strict-mcp-config --system-prompt-file`。
+- 解析 stream-json：session_id、assistant text/tool_use、tool_result、usage/cost。
+- `interrupt` = kill；下次 `--resume`；2026-11-16 实测 resume 保持同一 session。
+- 3 阶段 demo 总成本约 $0.043918；审计写 `spike/.tmp/audit.jsonl`。
+
 ## 限制（下一步）
 
 - 内存态，无持久化；重启/恢复用真实 DB 实现。
-- 脚本 agent，不是真实 Claude runtime；下一步接 Agent SDK / CLI。
-- 没有 Matrix；下一步用 `ImTransport` 适配 Matrix。
+- v0 不流式输出；无工具审批；没有 Matrix；下一步用 `ImTransport` 适配 Matrix。
 - 没有真实计时器；`tick(now)` 由调用方驱动，便于测试。

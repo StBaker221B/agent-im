@@ -3,6 +3,14 @@
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
 > **Milestone A 已完成：真实 Claude adapter + 假总线跑通。下一步是 Matrix transport / 跨机组网 / 工具审批。不要跳过 00 合同和 09 协议。**
 
+## 暂停点（2026-11-16-02，明天继续）
+
+- 最近功能提交：`90722be`；暂停记录：[2026-11-16-02-pause](docs/records/2026-11-16-02-pause.md)。
+- 已完成：14 tests、真实 Claude adapter、三阶段 demo（首轮/连续/kill+resume）、总成本 ~$0.043918。
+- 明天新会话说：`继续 agent-im。先读 NEXT-SESSION.md 和 docs/records/2026-11-16-02-pause.md。`
+- 开机后先跑：`cd d:/Git/learn && git pull && cd agent-im/spike && node --test`。
+- WSL 两个功能已启用但**需重启生效**；没有导入 Linux、没有装 Docker；`D:\Install\WSL` 里的 tarball 未使用，可删。
+
 ## 读什么
 
 按顺序：

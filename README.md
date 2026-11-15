@@ -62,6 +62,7 @@
 - [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
 - [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
 - [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
+- [2026-11-16 暂停点（明天继续）](docs/records/2026-11-16-02-pause.md)
 - [NEXT-SESSION 新会话入口](NEXT-SESSION.md)
 - [Sources](research/sources.md)
 

@@ -1,44 +1,46 @@
 # NEXT SESSION — Agent IM
 
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
-> **在 00 合同的 E/G/H 确认前，不要写产品代码；协议 spike 可以先做。**
+> **协议 spike 已完成；下一步是 Docker/Matrix/Claude adapter。不要跳过 00 合同和 09 协议。**
 
 ## 读什么
 
 按顺序：
 
-1. [00 需求合同（草案）](docs/00-requirements-contract.md) — 唯一需求口径
-2. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-answers-round2.md) — 逐条回答与设计
-3. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-clarifications.md)
-4. [01 需求](docs/01-requirements.md)
-5. [03 架构](docs/03-architecture.md)
-6. [04 Agent 接入](docs/04-agent-integration.md)
-7. [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-session-notes.md)
-8. [06 待确认问题](docs/06-open-questions.md)
+1. [00 需求合同](docs/00-requirements-contract.md) — 唯一需求口径
+2. [09 Agent 协议](docs/09-agent-protocol.md) — 消息/floor/收敛/共识/adapter
+3. [10 开发环境与复现](docs/10-dev-setup.md) — 本机/办公机
+4. [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
+5. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
+6. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-02-clarifications.md)
+7. [01 需求](docs/01-requirements.md)
+8. [03 架构](docs/03-architecture.md)
+9. [04 Agent 接入](docs/04-agent-integration.md)
+10. [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-01-session-notes.md)
+11. [06 待确认问题](docs/06-open-questions.md)
 
 > 文档约定：正式文档 = `docs/0X-*.md`；过程记录 = `docs/records/`（可追加/修改）。
 
-## 当前状态（2026-11-15 第二轮结束）
+## 当前状态（2026-11-15 第三轮结束）
 
-- 阶段：**需求澄清第二轮完成**；还没有写产品代码。
-- 已确认（A–D/F）：
+- 阶段：**需求合同 + 09 协议 + 本地 spike 完成**；12 个协议测试通过、demo 跑通；还没有接 Matrix/Claude。
+- 已确认（A–D/F/E/G）：
   - v0 本地优先、单 Admin、MVP 验证；未来公开/商业只留 6 个扩展缝。
   - 平权 = 身份/消息模型对等 + 治理权限不对称；agent 房间“受治理透明”。
   - agent 生命周期：created → active → idle/sleeping → paused → disabled → deleted；软删保留历史。
   - 先 Claude Code 跑通，再加 Codex/OpenClaw/dsh/Hermes。
   - 数据平台最小版是 Must；Element 只负责聊天。
-- 关键设计（已写进 00）：
-  - **agent 用户 ≠ agent 实体**：身份持久、runtime 可替换、session 按 thread 切分。
+  - 群聊：lazy consensus + 人类升级。
+- 关键设计（00 + 09）：
+  - **agent 身份绑 agent home**（config/memory/sessions/workspace），runtime 是可替换 worker；1 个 gateway 进程内多 agent worker。
   - 薄 adapter 契约；ACP 只是 adapter，不是主协议。
-  - **自主群聊 = 自由发言 + 单写者串行 + 静默收敛 + 显式共识/升级**。
+  - **投递 vs 唤醒分离**：所有房间成员收到消息；`@` 只是注意力信号；wakePolicy 决定谁跑模型。
+  - **自由发言 + 单写者 floor + 静默收敛 + 显式共识/升级**；不是固定轮流。
   - 人类消息是高优先级输入，不是自动打断；内容可反驳，控制命令必须执行。
+  - 角色/升级链：task owner → facilitator → agent owner → admin；`can_invite` 由 gateway 强制。
   - 数据平台 v0 用网页；后面可加 Tauri 壳与聊天合成一个产品。
-- 待确认：
-  - **E. 群聊共识**：lazy consensus + 人类升级作为 v0 默认？
-  - **G. IM 底座**：Matrix + Element 起步，对吗？
-  - **H1. Matrix 部署**：本机 Docker+WSL2 / 办公机 / 小 VPS？
-  - **H2. 需求 skill**：是否安装 `jwynia/agent-skills@requirements-analysis`？
-  - 数据平台形态、DM 非 owner human、审计保留期。
+- 已装工具：`spec-driven-development`（addyosmani，codeload 手动装）。
+- 仍待定：DM 非 owner human 的规则、审计保留期、`can_invite` 默认值、动态议程角色是否进 v0。
 - 环境事实：
   - 本机**没有 Docker Desktop / 可用 WSL 发行版**；C 盘剩 25GB，D 盘 321GB，16GB 内存。
   - 本机只有 Claude Code 2.1.296 + OpenClaw；**Codex/dsh 未安装**；Hermes 未装。
@@ -48,25 +50,18 @@
 
 ## 下一步
 
-1. kudo 确认 E/G/H + 数据平台形态 + 是否装 skill。
-2. 写正式文档 `docs/09-agent-protocol.md`：
-   - 入站信封/出站动作、intent 集合；
-   - 自由发言 + floor 调度 + 单写者串行；
-   - 静默收敛、共识/升级；
-   - adapter 契约 + capabilities；
-   - runtime 生命周期/supervisor；
-   - 注意力/steer/inbox。
-3. 做**本地协议 spike**（无 Docker）：
-   - 假总线 + 1 个 Claude agent + 1 个脚本 peer；
-   - 验证：回复、@、主动发言、pass、静默收敛、重启去重、预算/回合停止。
-4. 再决定 Matrix 部署（本机 Docker / 办公机 / VPS）并上 Matrix。
-5. 加 Codex/OpenClaw/Hermes；worktree + 审批 + 数据平台最小版；最后做“单 Claude + subagent”对比。
+1. **已完成**：09 协议、10 开发环境、本地协议 spike（12 个测试通过、demo 跑通）。
+2. 本机装 WSL2 + Docker Desktop（需要 kudo 操作），按 `10-dev-setup.md` 回填版本/路径。
+3. 写 `docker-compose.yml`：Synapse/Conduit + Postgres + Element + gateway 骨架；创建 human + 2–3 个 agent 账号。
+4. 把 spike 的调度器接到 Matrix + Claude Code adapter：1 个 supervisor + 1 个 Claude agent + 1 个脚本 peer。
+5. 验证：DM、@、主动发言、pass、静默收敛、重启去重、预算/回合停止。
+6. 加 Codex/OpenClaw/Hermes；worktree + 审批 + 数据平台最小版；最后做“单 Claude + subagent”对比。
 
 ## 不要做什么
 
-- 不要在 E/G/H 确认前写产品代码；协议 spike 例外。
+- 不要跳过 00 合同 / 09 协议直接写产品代码；先接 Matrix 骨架。
 - 不要重新做 GitHub 调研（结果在 02 / sources）。
-- 不要重新安装 EGM / interview-me / codegraphcontext。
+- 不要重新安装 EGM / interview-me / codegraphcontext / spec-driven-development。
 - 不要默认启用 ECC。
 - 不要把 OpenClaw / Hermes 当 Hub；它们是 participant / adapter。
 - 不要引入 main / router 作为系统中心；Hub 是基础设施。

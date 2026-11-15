@@ -53,12 +53,16 @@
 - [04 Agent 接入](docs/04-agent-integration.md)
 - [05 路线图](docs/05-roadmap.md)
 - [06 待确认问题](docs/06-open-questions.md)
-- [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-session-notes.md)
-- [2026-11-15 需求澄清（过程记录，含批注）](docs/records/2026-11-15-clarifications.md)
-- [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-answers-round2.md)
+- [09 Agent 协议](docs/09-agent-protocol.md)
+- [10 开发环境与复现](docs/10-dev-setup.md)
+- [本地协议 spike](spike/) — 调度器/floor/静默收敛/共识 + 测试
+- [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-01-session-notes.md)
+- [2026-11-15 需求澄清（过程记录，含批注）](docs/records/2026-11-15-02-clarifications.md)
+- [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
+- [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
 - [NEXT-SESSION 新会话入口](NEXT-SESSION.md)
 - [Sources](research/sources.md)
 
 ## 下一步
 
-先读 [00 需求合同](docs/00-requirements-contract.md) 和 [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-answers-round2.md)。E/G/H 确认前不写产品代码；协议 spike 可以先做。确认后写 `docs/09-agent-protocol.md`，再做本地假总线 spike，最后上 Matrix。新会话直接读 [NEXT-SESSION](NEXT-SESSION.md)。
+先读 [00 需求合同](docs/00-requirements-contract.md)、[09 Agent 协议](docs/09-agent-protocol.md)、[10 开发环境](docs/10-dev-setup.md)。协议 spike 已跑通（`agent-im/spike`，12 个测试）；下一步是本机 WSL2+Docker → Matrix 骨架 → Claude adapter。新会话直接读 [NEXT-SESSION](NEXT-SESSION.md)。

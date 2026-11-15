@@ -217,7 +217,7 @@ claude plugin enable ecc@ecc
 ### 9.2 本轮产出
 
 - [00 需求合同（草案）](../00-requirements-contract.md)：唯一需求口径，含角色/权限、隐私矩阵、生命周期、adapter 契约、群聊协议、数据平台、MoSCoW、验收、扩展缝。
-- [2026-11-15 需求澄清](2026-11-15-clarifications.md)：逐条回答 + 术语表 + 8 个待批注问题（A–H）。
+- [2026-11-15 需求澄清](2026-11-15-02-clarifications.md)：逐条回答 + 术语表 + 8 个待批注问题（A–H）。
 - 更新 [NEXT-SESSION](../../NEXT-SESSION.md)：先读 00 + 记录；合同确认前不写代码。
 
 ### 9.3 关键结论（待用户确认）

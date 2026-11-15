@@ -1,0 +1,14 @@
+{
+  "name": "agent-im-spike",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Local protocol spike for Agent IM: delivery/wake, floor, quiescence, consensus.",
+  "scripts": {
+    "test": "node --test",
+    "demo": "node src/demo.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,7 +1,7 @@
 // Wires the control-plane state to the protocol engine, Matrix clients and
 // runtimes. One process hosts every agent worker.
 
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Engine } from "../spike/src/scheduler.mjs";
 import { ClaudeAdapter } from "../spike/src/claude-adapter.mjs";
@@ -87,16 +87,59 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     runtimes.set(agent.id, createRuntime(agent, { dataDir, log }));
   }
 
+  const spendToday = new Map();
+  let spendDay = new Date().toISOString().slice(0, 10);
+  const ensureSpendDay = () => {
+    const day = new Date().toISOString().slice(0, 10);
+    if (day !== spendDay) {
+      spendDay = day;
+      spendToday.clear();
+    }
+  };
+  const auditPath = join(dataDir, "audit.jsonl");
+  if (existsSync(auditPath)) {
+    try {
+      for (const line of readFileSync(auditPath, "utf8").split("\n")) {
+        if (!line.trim()) continue;
+        let entry;
+        try {
+          entry = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (entry.kind !== "usage" || !entry.agentId) continue;
+        if (String(entry.ts ?? "").slice(0, 10) !== spendDay) continue;
+        spendToday.set(entry.agentId, (spendToday.get(entry.agentId) ?? 0) + (Number(entry.costUsd) || 0));
+      }
+    } catch {
+      // ignore unreadable audit
+    }
+  }
+  const budgetCheck = (agentId) => {
+    ensureSpendDay();
+    const agent = store.agent(agentId);
+    const cap = Number(agent?.dailyBudgetUsd) || 0;
+    if (cap <= 0) return null;
+    const spent = spendToday.get(agentId) ?? 0;
+    return spent >= cap ? { exceeded: true, spent, cap } : null;
+  };
+  const onUsage = (agentId, costUsd) => {
+    ensureSpendDay();
+    spendToday.set(agentId, (spendToday.get(agentId) ?? 0) + costUsd);
+  };
+
   const gateway = new Gateway({
     engine,
     clients,
     runtimes,
     rooms: store.rooms.map((r) => r.id),
     statePath: join(dataDir, "gateway-state.json"),
-    auditPath: join(dataDir, "audit.jsonl"),
+    auditPath,
     syncTimeoutMs: 30_000,
     tickMs: 1000,
     mediaDir: join(dataDir, "media"),
+    budgetCheck,
+    onUsage,
     log,
   });
 

@@ -332,6 +332,7 @@ async function createAgent(body) {
     wakePolicy: runtime === "script" ? "mention_only" : (template.defaultWakePolicy ?? "human_all"),
     toolsMode,
     toolsEnabled,
+    dailyBudgetUsd: Math.max(0, Number(body.dailyBudgetUsd) || 0),
     extraArgs: toolArgsFor(template, toolsMode, runtime),
     status: "active",
     agentHome: join(dataDir, "agents", username),
@@ -352,6 +353,7 @@ async function createAgent(body) {
     roles: agent.roles,
     toolsMode: agent.toolsMode,
     toolsEnabled: agent.toolsEnabled,
+    dailyBudgetUsd: Number(agent.dailyBudgetUsd ?? 0),
     status: "idle",
   };
 }
@@ -409,6 +411,12 @@ async function updateAgent(agentId, body) {
 
   const promptChanged = typeof body.systemPrompt === "string" && body.systemPrompt !== agent.systemPrompt;
   if (typeof body.systemPrompt === "string") patch.systemPrompt = body.systemPrompt;
+  if (body.dailyBudgetUsd !== undefined) {
+    const value = Number(body.dailyBudgetUsd);
+    if (!Number.isFinite(value) || value < 0)
+      throw Object.assign(new Error("bad dailyBudgetUsd"), { status: 400 });
+    patch.dailyBudgetUsd = value;
+  }
   Object.assign(agent, patch);
   if (patch.displayName) {
     for (const room of store.rooms) {
@@ -438,6 +446,7 @@ async function updateAgent(agentId, body) {
     roles: agent.roles,
     toolsMode: agent.toolsMode,
     toolsEnabled: Boolean(agent.toolsEnabled),
+    dailyBudgetUsd: Number(agent.dailyBudgetUsd ?? 0),
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),
   };

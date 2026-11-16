@@ -19,6 +19,7 @@ function AgentSettings({ agent, templates, onSave }) {
   const [roles, setRoles] = useState((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
   const [wakePolicy, setWakePolicy] = useState(agent.wakePolicy ?? "human_all");
   const [toolsMode, setToolsMode] = useState(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
+  const [dailyBudgetUsd, setDailyBudgetUsd] = useState(Number(agent.dailyBudgetUsd ?? 0));
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -30,6 +31,7 @@ function AgentSettings({ agent, templates, onSave }) {
     setRoles((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
     setWakePolicy(agent.wakePolicy ?? "human_all");
     setToolsMode(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
+    setDailyBudgetUsd(Number(agent.dailyBudgetUsd ?? 0));
     setSystemPrompt(agent.systemPrompt ?? "");
   }, [agent]);
 
@@ -44,6 +46,7 @@ function AgentSettings({ agent, templates, onSave }) {
         roles,
         wakePolicy,
         toolsMode,
+        dailyBudgetUsd,
         systemPrompt,
       });
       if (ok) {
@@ -123,14 +126,27 @@ function AgentSettings({ agent, templates, onSave }) {
         </div>
       )}
 
-      <label className="field">
-        <span>工具权限</span>
-        <select name="toolsMode" value={toolsMode} onChange={(e) => setToolsMode(e.target.value)}>
-          <option value="template">按模板（推荐）</option>
-          <option value="full">完整工具（可写；需要时再放开）</option>
-          <option value="off">关闭工具</option>
-        </select>
-      </label>
+      <div className="field-row">
+        <label className="field">
+          <span>工具权限</span>
+          <select name="toolsMode" value={toolsMode} onChange={(e) => setToolsMode(e.target.value)}>
+            <option value="template">按模板（推荐）</option>
+            <option value="full">完整工具（可写；需要时再放开）</option>
+            <option value="off">关闭工具</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>每日预算 USD（0 = 不限）</span>
+          <input
+            type="number"
+            name="dailyBudgetUsd"
+            min="0"
+            step="0.5"
+            value={dailyBudgetUsd}
+            onChange={(e) => setDailyBudgetUsd(e.target.value)}
+          />
+        </label>
+      </div>
 
       <p className="form-note">
         私有知识：<code>app/data/agents/{agent.name}/knowledge/*.md</code>；角色知识包在

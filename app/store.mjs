@@ -187,6 +187,7 @@ export class Store {
       if (!agent.role) agent.role = template.role;
       if (agent.toolsEnabled === undefined) agent.toolsEnabled = Boolean(agent.extraArgs?.length);
       if (!agent.toolsMode) agent.toolsMode = agent.toolsEnabled ? "template" : "off";
+      if (agent.dailyBudgetUsd === undefined) agent.dailyBudgetUsd = 0;
       mkdirSync(join(agent.agentHome ?? join(dataDir, "agents", agent.name), "knowledge"), {
         recursive: true,
       });
@@ -293,6 +294,7 @@ export class Store {
         systemPrompt: a.systemPrompt,
         toolsMode: a.toolsMode,
         toolsEnabled: Boolean(a.toolsEnabled),
+        dailyBudgetUsd: Number(a.dailyBudgetUsd ?? 0),
         status: a.status,
       };
     });

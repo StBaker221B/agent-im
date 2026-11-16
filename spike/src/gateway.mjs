@@ -50,6 +50,8 @@ export class Gateway {
     maxQueued = 5000,
     mediaDir = null,
     triage = {},
+    budgetCheck = null,
+    onUsage = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -69,6 +71,8 @@ export class Gateway {
     // Cheap, rule-based triage before a full model turn. Direct mentions and
     // replies always run; ambient wakes can be skipped by ack/cooldown/cap.
     this.triage = { cooldownMs: 15_000, maxTurnsPerHour: 30, skipAcks: true, ...triage };
+    this.budgetCheck = budgetCheck;
+    this.onUsage = onUsage;
     this.lastTurnAt = new Map();
     this.turnTimes = new Map();
 
@@ -459,6 +463,23 @@ export class Gateway {
 
   async #runTurn(agentId, runtime, envelope) {
     const { roomId, threadId = envelope.message.threadId ?? "main", id: triggerId } = envelope.message;
+    const budget = this.budgetCheck?.(agentId);
+    if (budget?.exceeded) {
+      this.audit.write({
+        kind: "budget_skip",
+        agentId,
+        roomId,
+        threadId,
+        spent: budget.spent,
+        cap: budget.cap,
+      });
+      this.log(`[gateway] budget skip: ${agentId} spent=${budget.spent.toFixed(3)} cap=${budget.cap}`);
+      const res = this.engine.agentAct(roomId, threadId, agentId, {
+        id: `budget-${fnv1a(agentId + ":" + triggerId)}`,
+        type: "pass",
+      });
+      return res.granted ?? null;
+    }
     this.#recordTurn(agentId);
     const client = this.clients.get(agentId);
     let session;
@@ -477,7 +498,10 @@ export class Gateway {
       for await (const ev of runtime.send(session, envelope)) {
         if (ev.type === "message") collected.push(ev.text);
         else if (ev.type === "turn_end") finalText = ev.text ?? collected.join("");
-        else if (ev.type === "usage") this.audit.write({ kind: "usage", agentId, usage: ev.usage, costUsd: ev.costUsd, sessionId: ev.sessionId });
+        else if (ev.type === "usage") {
+          this.audit.write({ kind: "usage", agentId, usage: ev.usage, costUsd: ev.costUsd, sessionId: ev.sessionId });
+          this.onUsage?.(agentId, Number(ev.costUsd) || 0);
+        }
         else if (ev.type === "tool_use") this.audit.write({ kind: "tool_use", agentId, name: ev.name, input: ev.input });
         else if (ev.type === "tool_result") this.audit.write({ kind: "tool_result", agentId, toolUseId: ev.toolUseId, isError: ev.isError });
       }

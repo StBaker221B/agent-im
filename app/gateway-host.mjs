@@ -64,7 +64,8 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     quietWindowMs: 30_000,
     maxTurnMs: 300_000,
     lazyConsensusMs: 60_000,
-    maxAgentChain: 3,
+    // High enough for organic back-and-forth; still a runaway-loop guard.
+    maxAgentChain: 10,
   });
   engine.addHuman({ id: humanId });
 

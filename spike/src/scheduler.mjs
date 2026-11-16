@@ -251,7 +251,7 @@ export class Engine {
     }
 
     const wake = [];
-    const chainCapped = message.senderKind === "agent" && thread.agentChainDepth >= this.#chainCap(message.roomId);
+    const chainCapped = message.senderKind === "agent" && thread.agentChainDepth >= this.maxAgentChain;
     for (const memberId of deliveredTo) {
       const agent = this.agents.get(memberId);
       if (agent?.kind !== "agent") continue;
@@ -456,12 +456,6 @@ export class Engine {
     return "ambient";
   }
 
-  /** Discussion rooms allow a longer agent-to-agent chain than the default. */
-  #chainCap(roomId) {
-    const mode = this.rooms.get(roomId)?.mode;
-    return mode === "discussion" ? Math.max(this.maxAgentChain, 6) : this.maxAgentChain;
-  }
-
   #shouldWake(agent, message) {
     if (agent.id === message.sender) return false;
     const attention = this.attentionFor(agent.id, message);
@@ -526,7 +520,7 @@ export class Engine {
   #enqueueCandidates(message, thread, deliveredTo) {
     // A human message starts a fresh chain. Agent messages may wake others by
     // mention, but only until the chain cap is reached.
-    if (message.senderKind === "agent" && thread.agentChainDepth >= this.#chainCap(message.roomId)) return;
+    if (message.senderKind === "agent" && thread.agentChainDepth >= this.maxAgentChain) return;
     for (const memberId of deliveredTo) {
       const agent = this.agents.get(memberId);
       if (agent?.kind !== "agent") continue;
@@ -606,7 +600,6 @@ export class Engine {
       message: trigger,
       attention: trigger ? this.attentionFor(agentId, trigger) : "ambient",
       directMention: Boolean(trigger?.mentions?.includes(agentId)),
-      roomMode: this.rooms.get(thread.roomId)?.mode ?? "brief",
       recentMessages: recent,
       floor: { holder: thread.floor.holder, version: thread.floor.version },
       policy: {

@@ -216,17 +216,6 @@ export default function App() {
     setFocusMessageId(messageId);
   }
 
-  async function toggleDiscussion() {
-    if (!activeRoom) return;
-    const mode = activeRoom.mode === "discussion" ? "brief" : "discussion";
-    try {
-      await api.updateRoom(activeRoom.id, { mode });
-      await loadBootstrap();
-    } catch (err) {
-      notify(err.message);
-    }
-  }
-
   async function saveAgent(agentId, payload) {
     try {
       await api.updateAgent(agentId, payload);
@@ -391,7 +380,6 @@ export default function App() {
             onSend={handleSend}
             onUpload={handleUpload}
             onInvite={() => openModal("invite")}
-            onToggleDiscussion={toggleDiscussion}
             onDelete={() => deleteRoomById(activeRoom.id)}
             onProfile={openProfile}
             onBack={() => setMobilePane("list")}

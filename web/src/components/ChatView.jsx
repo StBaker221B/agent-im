@@ -80,7 +80,6 @@ export default function ChatView({
   onSend,
   onUpload,
   onInvite,
-  onToggleDiscussion,
   onDelete,
   onProfile,
   onBack,
@@ -273,17 +272,6 @@ export default function ChatView({
           </p>
         </div>
         <div className="chat-head-right">
-          {room.kind === "group" && (
-            <button
-              type="button"
-              className={`head-action${room.mode === "discussion" ? " on" : ""}`}
-              onClick={onToggleDiscussion}
-              title="讨论模式：允许 agent 互相 @ 继续（最多 6 条 agent 消息），成本更高"
-            >
-              <Icon name="agent" size={15} />
-              <span className="head-action-label">{room.mode === "discussion" ? "讨论中" : "讨论模式"}</span>
-            </button>
-          )}
           {room.kind === "group" && (
             <button type="button" className="head-action" onClick={onInvite} title="邀请成员">
               <Icon name="users" size={15} />

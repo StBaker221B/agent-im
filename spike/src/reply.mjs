@@ -16,11 +16,8 @@ Newest message from ${m.sender} (${m.senderKind}); mentions=${JSON.stringify(m.m
 Reply as yourself, in one message max. Do not prefix with your name.
 If you have nothing to add, reply exactly: PASS
 If you need a human decision, reply exactly: ASK_HUMAN: <question>
-If you are done, reply exactly: DONE: <summary>${
-    envelope.roomMode === "discussion"
-      ? "\nDiscussion mode: if another agent's point needs a concrete question, objection or addition, @ that agent and continue. Do not repeat or exchange pleasantries. PASS when you have nothing new."
-      : ""
-  }`;
+If you are done, reply exactly: DONE: <summary>
+If another agent's point needs a concrete question, objection or addition, @ that agent and continue. Do not repeat or exchange pleasantries. PASS when you have nothing new.`;
 }
 
 export function parseReply(text) {

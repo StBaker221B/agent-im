@@ -132,7 +132,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
 | `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
-| `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime |
+| `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
@@ -194,7 +194,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **PASS**：agent 判断没有补充就只输出 PASS，不产生 Matrix 消息，只释放 floor。
 - **quiescence**：30s 无活动后线程静默。
 - **UI 的"正在思考"来自 Engine**：bootstrap 的房间 `activity` 给出当前 floor holder 和排队 agent；不是前端按发送时间猜的。PASS 后 floor 释放，提示自动消失。
-- **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；同一 agent 15s 冷却；每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。它是分诊/初筛，不是“剪枝”，也不调用模型。
+- **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
+- **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；设置页/Agents 页可见。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
 - **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；设置页展示每 agent 今天/累计 turns 和 USD，并可设 `dailyBudgetUsd`（0=不限）。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
 - **成本**：`human_all` 意味着群里一条人类消息会触发 N 个 Claude turn。MVP 实测 4 个 turn 约 **$0.146**（长上下文时单 turn 可达 $0.05+）。下一轮应加：廉价 triage、每 agent 冷却、每 thread 预算。
@@ -242,7 +243,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 没有流式输出、工具审批；支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。
 - 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
-- triage 参数暂时固定（15s 冷却、30 turn/h、ack skip），没有 UI；每日 USD 预算可设，但按 UTC 日、内存恢复，没有全局总额。
+- triage 参数可按 agent 配，但默认值写死在 Gateway；每日 USD 预算按 UTC 日、内存恢复，没有全局总额。
 - 工具权限仍是弱隔离；`full` 模式可写，reviewer 的只读靠 prompt，不是强沙箱。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
@@ -298,3 +299,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **规则 triage PASS**：群里发“谢谢”，人类消息 +1，两个 agent 都没有跑；audit 里 `triage_skip: ack`。没有额外模型调用。
 - **toolsMode PASS**：`PATCH /api/agents/@pm` `{toolsMode:"full"}` / `{"template"}` 都成功；`GET /api/usage` 返回每 agent 今天/累计 turns + USD。
 - **预算 PASS**：claude-dev 今日已花 $0.8376，预算设 $0.01 后 DM 发消息没有 agent turn，audit `budget_skip spent=0.8376 cap=0.01`；恢复 0 后正常。
+- **暂停/triage 配置 PASS**：pm 暂停后 DM 发消息只有人类消息，`paused_skip @pm`；`PATCH triage` 参数成功；恢复 active。

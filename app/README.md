@@ -80,7 +80,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `GET /api/role-templates` — 13 个角色卡
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`
-- `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,roles,wakePolicy,systemPrompt}`
+- `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`
 - `GET /api/search?q=` — 每个房间最近 100 条
 - `GET /api/health`
 

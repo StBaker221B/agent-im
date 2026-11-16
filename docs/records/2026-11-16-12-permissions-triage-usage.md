@@ -48,6 +48,13 @@
 - 设置页新增“用量（今天 / 累计）”表，每 5s 刷新。
 - 这是观察成本的基础，后续做 USD 预算/冷却配置。
 
+## triage 参数 UI + 暂停 agent
+
+- 设置页每个 agent 可改：triage 冷却秒、每小时上限（0=不限）、是否跳过纯 ack；对应 `agent.triage`。
+- `status: active | paused`：暂停后 Gateway 在 turn 前直接 PASS，写 `paused_skip`；Agents/资料页显示“已暂停”。
+- 实测：pm 暂停后 DM 发消息，只有人类消息 +1，`paused_skip @pm`；恢复 active 正常。
+- `PATCH /api/agents/:id` 支持 `status`、`triage`。
+
 ## triage / human_all / kill criterion
 
 - **triage 中文**：分诊 / 初筛 / 分流；“剪枝”更像裁剪分支，不是这里的含义。可以规则，也可以小模型；当前用规则。

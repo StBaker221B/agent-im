@@ -35,6 +35,11 @@ function formatSize(n) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function toolFromRequest(text) {
+  const match = /申请工具：([^\s（(]+)/.exec(text ?? "");
+  return match?.[1] ?? "工具";
+}
+
 function renderContent(message, pattern) {
   if (message.msgtype === "m.image" && message.url) {
     const width = message.fileInfo?.w;
@@ -74,12 +79,14 @@ export default function ChatView({
   human,
   agentsById,
   activity,
+  live,
   sending,
   uploading,
   focusId,
   onSend,
   onUpload,
   onInvite,
+  onApproveTool,
   onDelete,
   onProfile,
   onBack,
@@ -106,6 +113,9 @@ export default function ChatView({
     return names.length ? new RegExp(`@(?:${names.join("|")})`, "gu") : null;
   }, [members]);
   const agentMembers = useMemo(() => members.filter((m) => m.kind === "agent"), [members]);
+  const liveAgents = Object.values(live ?? {}).filter(
+    (item) => item.roomId === room?.id && (item.text || item.tools?.length),
+  );
 
   const lastId = messages.at(-1)?.id;
   useEffect(() => {
@@ -364,7 +374,54 @@ export default function ChatView({
                     >
                       {renderContent(message, mentionPattern)}
                     </div>
+                    {!mine &&
+                      message.intent === "tool_request" &&
+                      agentsById.get(message.sender)?.toolsMode !== "full" && (
+                        <button
+                          type="button"
+                          className="approve-tool"
+                          onClick={() =>
+                            onApproveTool(message.sender, message.tool ?? toolFromRequest(message.text))
+                          }
+                        >
+                          批准 {message.tool ?? toolFromRequest(message.text)} 并继续（开启完整工具）
+                        </button>
+                      )}
                   </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {liveAgents.map((item) => {
+            const member = memberById.get(item.agentId);
+            const name = member?.displayName || String(item.agentId).replace(/^@/, "").split(":")[0];
+            const lastTool = item.tools?.at(-1);
+            const detail = lastTool?.input?.file_path || lastTool?.input?.command || "";
+            return (
+              <div className="msg-row live-row" key={item.agentId}>
+                <div className="avatar-slot">
+                  <Avatar name={member?.name ?? name} size={34} />
+                </div>
+                <div className="msg-body">
+                  <div className="msg-meta">
+                    <span className="msg-name" style={{ color: colorFor(member?.name ?? name) }}>
+                      {name}
+                    </span>
+                    <span className="msg-time">实时</span>
+                  </div>
+                  {item.text ? (
+                    <div className="bubble live-bubble">
+                      {item.text}
+                      <span className="live-cursor" aria-hidden="true" />
+                    </div>
+                  ) : null}
+                  {lastTool && (
+                    <div className="live-tools">
+                      正在使用 {lastTool.name}
+                      {detail ? ` · ${String(detail).slice(0, 90)}` : ""}
+                    </div>
+                  )}
                 </div>
               </div>
             );

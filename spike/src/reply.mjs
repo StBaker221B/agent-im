@@ -24,6 +24,11 @@ export function parseReply(text) {
   const t = (text ?? "").trim();
   if (/^PASS\b/i.test(t) || t === "PASS") return { type: "pass" };
   if (/^ASK_HUMAN\s*:/i.test(t)) return { type: "ask_human", question: t.replace(/^ASK_HUMAN\s*:/i, "").trim() };
+  if (/^REQUEST_TOOL\s*:/i.test(t)) {
+    const body = t.replace(/^REQUEST_TOOL\s*:/i, "").trim();
+    const [tool, ...rest] = body.split(/\s+/);
+    return { type: "tool_request", tool: tool ?? "", reason: rest.join(" ") };
+  }
   if (/^DONE\s*:/i.test(t)) return { type: "done", reason: t.replace(/^DONE\s*:/i, "").trim() };
   return { type: "message", text: t };
 }

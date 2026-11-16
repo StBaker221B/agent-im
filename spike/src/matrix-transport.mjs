@@ -164,6 +164,7 @@ export class MatrixClient {
     if (payload.taskId) content["com.agentim.task_id"] = payload.taskId;
     if (payload.taskOwner) content["com.agentim.task_owner"] = payload.taskOwner;
     if (payload.artifact) content["com.agentim.artifact"] = payload.artifact;
+    if (payload.tool) content["com.agentim.tool"] = payload.tool;
     if (payload.threadId && payload.threadId !== "main") {
       content["m.relates_to"] = { rel_type: "m.thread", event_id: payload.threadId };
       if (payload.replyTo) content["m.relates_to"]["m.in_reply_to"] = { event_id: payload.replyTo };
@@ -254,6 +255,7 @@ export class MatrixClient {
       taskId: content["com.agentim.task_id"],
       taskOwner: content["com.agentim.task_owner"],
       artifact: content["com.agentim.artifact"],
+      tool: content["com.agentim.tool"] ?? null,
       createdAt: ev.origin_server_ts ?? Date.now(),
       raw: ev,
     };

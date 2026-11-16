@@ -37,6 +37,7 @@ export default function App() {
   const [data, setData] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [live, setLive] = useState({});
   const [connected, setConnected] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [view, setView] = useState("chat");
@@ -89,6 +90,47 @@ export default function App() {
       .teamTemplates()
       .then((res) => setTeams(res.teams ?? []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const source = new EventSource("/api/events");
+    source.onmessage = (e) => {
+      let event;
+      try {
+        event = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      if (!event?.agentId || !event?.roomId) return;
+      const key = `${event.roomId}:${event.agentId}`;
+      setLive((prev) => {
+        const current = prev[key] ?? {
+          agentId: event.agentId,
+          roomId: event.roomId,
+          text: "",
+          tools: [],
+          active: false,
+        };
+        const next = { ...current };
+        if (event.type === "turn_start") {
+          next.text = "";
+          next.tools = [];
+          next.active = true;
+        } else if (event.type === "text_delta") {
+          next.text = (next.text ?? "") + event.text;
+          next.active = true;
+        } else if (event.type === "tool_use") {
+          next.tools = [...(next.tools ?? []), { name: event.name, input: event.input }];
+          next.active = true;
+        } else if (event.type === "turn_end" || event.type === "skip") {
+          const copy = { ...prev };
+          delete copy[key];
+          return copy;
+        }
+        return { ...prev, [key]: next };
+      });
+    };
+    return () => source.close();
   }, []);
 
   useEffect(() => {
@@ -223,6 +265,16 @@ export default function App() {
     const peer = room.members?.find((m) => m.kind === "agent");
     const label = room.kind === "dm" ? peer?.displayName || room.name : room.name;
     if (window.confirm(`删除「${label}」？会离开这个房间并从列表移除。`)) await deleteRoomById(room.id);
+  }
+
+  async function approveTool(agentId, tool) {
+    if (!activeRoomId) return;
+    try {
+      await api.approveTool(agentId, tool, activeRoomId);
+      await loadBootstrap();
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   function openSearchResult(roomId, messageId) {
@@ -404,12 +456,14 @@ export default function App() {
             human={data.human}
             agentsById={agentsById}
             activity={activeRoom.activity}
+            live={live}
             sending={busy || uploading}
             uploading={uploading}
             focusId={focusMessageId}
             onSend={handleSend}
             onUpload={handleUpload}
             onInvite={() => openModal("invite")}
+            onApproveTool={approveTool}
             onDelete={() => deleteRoomById(activeRoom.id)}
             onProfile={openProfile}
             onBack={() => setMobilePane("list")}

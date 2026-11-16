@@ -163,6 +163,7 @@ export class ClaudeAdapter {
       "--input-format", "stream-json",
       "--output-format", "stream-json",
       "--verbose",
+      "--include-partial-messages",
       "--bare",
       "--disable-slash-commands",
       "--strict-mcp-config",
@@ -281,6 +282,14 @@ export class ClaudeAdapter {
 
     const turn = session.pending;
     if (!turn) return;
+
+    if (ev.type === "stream_event") {
+      const inner = ev.event;
+      if (inner?.type === "content_block_delta" && inner.delta?.type === "text_delta" && inner.delta.text) {
+        turn.queue.push({ type: "text_delta", text: inner.delta.text });
+      }
+      return;
+    }
 
     if (ev.type === "assistant") {
       const blocks = ev.message?.content ?? [];

@@ -9,6 +9,8 @@ import { ScriptPeer, scripts } from "../spike/src/script-peer.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
 import { Gateway } from "../spike/src/gateway.mjs";
 import { composeSystemPrompt } from "./store.mjs";
+import { getTemplate } from "./role-templates.mjs";
+import { mergeToolArgs, toolArgsFor } from "./tool-policy.mjs";
 
 function engineProfile(agent, humanId) {
   return {
@@ -33,6 +35,8 @@ function createRuntime(agent, { dataDir, log }) {
   mkdirSync(join(home, "sessions"), { recursive: true });
   mkdirSync(join(home, "knowledge"), { recursive: true });
   if (agent.runtime === "claude") {
+    const template = getTemplate(agent.templateId) ?? getTemplate(agent.role);
+    const mode = agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off");
     return new ClaudeAdapter({
       command: "claude",
       cwd: agent.cwd ? resolve(agent.cwd) : join(home, "workspace"),
@@ -43,7 +47,8 @@ function createRuntime(agent, { dataDir, log }) {
       // Same person across rooms: one Claude session per agent, not per room.
       sessionScope: agent.sessionScope ?? "agent",
       sessionStorePath: join(home, "sessions", "claude.json"),
-      extraArgs: agent.extraArgs ?? [],
+      // Re-apply the current policy even if state has stale tool flags.
+      extraArgs: mergeToolArgs(agent.extraArgs ?? [], toolArgsFor(template, mode, agent.runtime)),
       log: (msg) => log(`[claude:${agent.name}] ${msg}`),
     });
   }
@@ -54,7 +59,13 @@ function createRuntime(agent, { dataDir, log }) {
   throw new Error(`unknown runtime: ${agent.runtime}`);
 }
 
-export async function createHost({ store, dataDir, kinds: sharedKinds = null, log = console.log }) {
+export async function createHost({
+  store,
+  dataDir,
+  kinds: sharedKinds = null,
+  onEvent = null,
+  log = console.log,
+}) {
   const humanId = store.human.id;
   const kinds = sharedKinds ?? new Map();
   kinds.set(humanId, "human");
@@ -141,6 +152,7 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     mediaDir: join(dataDir, "media"),
     budgetCheck,
     onUsage,
+    onEvent,
     log,
   });
 

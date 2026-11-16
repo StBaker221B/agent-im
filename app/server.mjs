@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
+import { toolArgsFor } from "./tool-policy.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -85,7 +86,19 @@ async function reconcileRooms() {
 
 await reconcileRooms();
 
-const host = await createHost({ store, dataDir, kinds, log });
+const liveClients = new Set();
+function broadcastLive(event) {
+  const data = JSON.stringify(event);
+  for (const client of liveClients) {
+    try {
+      client.write(`data: ${data}\n\n`);
+    } catch {
+      liveClients.delete(client);
+    }
+  }
+}
+
+const host = await createHost({ store, dataDir, kinds, onEvent: broadcastLive, log });
 await host.start();
 
 function json(res, status, body) {
@@ -160,6 +173,8 @@ function messageView(m) {
     text: m.text,
     url: m.url ?? null,
     fileInfo: m.fileInfo ?? null,
+    intent: m.intent ?? "chat",
+    tool: m.tool ?? null,
     mentions: m.mentions,
     createdAt: m.createdAt,
   };
@@ -269,14 +284,6 @@ function validateUsername(username) {
 }
 
 const TOOL_MODES = new Set(["template", "full", "off"]);
-const FULL_TOOLS = ["Read", "Glob", "Grep", "PowerShell", "Edit", "Write"];
-
-function toolArgsFor(template, mode, runtime) {
-  if (runtime !== "claude" || mode === "off") return [];
-  const allow = mode === "full" ? FULL_TOOLS : (template?.tools?.allow ?? []);
-  if (!allow.length) return [];
-  return ["--permission-mode", "dontAsk", "--allowedTools", allow.join(",")];
-}
 
 function normalizeTriage(input = {}) {
   const out = {};
@@ -483,6 +490,28 @@ async function updateAgent(agentId, body) {
   };
 }
 
+async function approveTool(agentId, body) {
+  const agent = store.agent(agentId);
+  if (!agent) throw Object.assign(new Error("agent not found"), { status: 404 });
+  const room = store.room(String(body.roomId ?? ""));
+  if (!room) throw Object.assign(new Error("room not found"), { status: 404 });
+  const tool = String(body.tool ?? "").trim() || "工具";
+  const template = getTemplate(agent.templateId);
+  agent.toolsMode = "full";
+  agent.toolsEnabled = true;
+  agent.extraArgs = toolArgsFor(template, "full", agent.runtime);
+  store.save();
+  await host.updateAgent(agent);
+  store.markRead(room.id, Date.now());
+  const sent = await human.send(room.id, {
+    threadId: "main",
+    text: `已批准使用 ${tool}，请继续完成刚才的任务。`,
+    mentions: [agent.id],
+  });
+  log(`[app] tool approved ${agent.id} ${tool}`);
+  return { ok: true, eventId: sent.eventId, toolsMode: "full" };
+}
+
 async function createTeam(teamId, body) {
   const team = getTeamTemplate(teamId);
   if (!team) throw Object.assign(new Error("team template not found"), { status: 404 });
@@ -628,6 +657,29 @@ async function deleteRoom(roomId) {
 
 async function handleApi(req, res, url) {
   const parts = url.pathname.split("/").filter(Boolean); // ["api", ...]
+
+  if (req.method === "GET" && url.pathname === "/api/events") {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.write(": connected\n\n");
+    liveClients.add(res);
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": ping\n\n");
+      } catch {
+        // closed
+      }
+    }, 20_000);
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      liveClients.delete(res);
+    });
+    return;
+  }
 
   if (req.method === "GET" && url.pathname === "/api/bootstrap") {
     return json(res, 200, await bootstrap());
@@ -806,6 +858,12 @@ async function handleApi(req, res, url) {
     const agentId = decodeURIComponent(parts[2]);
     const body = await readBody(req);
     return json(res, 200, await updateAgent(agentId, body));
+  }
+
+  if (req.method === "POST" && parts[1] === "agents" && parts[3] === "approve-tool" && parts.length === 4) {
+    const agentId = decodeURIComponent(parts[2]);
+    const body = await readBody(req);
+    return json(res, 200, await approveTool(agentId, body));
   }
 
   return json(res, 404, { error: "not found" });

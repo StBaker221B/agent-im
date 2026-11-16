@@ -36,6 +36,11 @@ export const api = {
   createAgent: (payload) => request("/api/agents", { method: "POST", body: payload }),
   updateAgent: (agentId, payload) =>
     request(`/api/agents/${encodeURIComponent(agentId)}`, { method: "PATCH", body: payload }),
+  approveTool: (agentId, tool, roomId) =>
+    request(`/api/agents/${encodeURIComponent(agentId)}/approve-tool`, {
+      method: "POST",
+      body: { tool, roomId },
+    }),
   search: (q) => request(`/api/search?q=${encodeURIComponent(q)}`),
   invite: (roomId, agentIds) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/members`, {

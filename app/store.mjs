@@ -10,7 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getTemplate, readRoleKnowledge, renderRoleCard } from "./role-templates.mjs";
+import { FULL_TOOL_LIST, getTemplate, readRoleKnowledge, renderRoleCard } from "./role-templates.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = here;
@@ -63,10 +63,21 @@ export function composeSystemPrompt(agent) {
   const roleCard = renderRoleCard(template);
   const roleKnowledge = readRoleKnowledge(template.id);
   const knowledge = readKnowledge(agent.agentHome);
+  const tools =
+    agent.runtime === "script" || agent.toolsMode === "off"
+      ? []
+      : agent.toolsMode === "full"
+        ? FULL_TOOL_LIST
+        : (template.tools?.allow ?? []);
+  const toolLine =
+    tools.length > 0
+      ? `当前可用工具：${tools.join(", ")}。如果任务需要写文件/执行命令但不在列表里，不要假装完成；回复 exactly: REQUEST_TOOL: <工具名> <原因>。`
+      : "当前没有工具权限。如果任务需要工具，不要假装完成；回复 exactly: REQUEST_TOOL: <工具名> <原因>。";
   return [
     agent.systemPrompt,
     roleCard,
     roleKnowledge ? `# 角色知识包（${template.name}）\n${roleKnowledge}` : "",
+    toolLine,
     knowledge ? `你的私有知识（只在这个 agent 的 home 里）：\n${knowledge}` : "",
   ]
     .filter(Boolean)

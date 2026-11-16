@@ -52,6 +52,7 @@ export class Gateway {
     triage = {},
     budgetCheck = null,
     onUsage = null,
+    onEvent = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -73,6 +74,7 @@ export class Gateway {
     this.triage = { cooldownMs: 15_000, maxTurnsPerHour: 30, skipAcks: true, ...triage };
     this.budgetCheck = budgetCheck;
     this.onUsage = onUsage;
+    this.onEvent = onEvent;
     this.lastTurnAt = new Map();
     this.turnTimes = new Map();
 
@@ -422,6 +424,7 @@ export class Gateway {
       const skip = agent ? this.#triageSkip(agent, result.message, attention) : null;
       if (skip) {
         this.audit.write({ kind: "triage_skip", agentId, roomId: ev.roomId, reason: skip, text: ev.text });
+        this.onEvent?.({ type: "skip", agentId, roomId: ev.roomId, threadId: ev.threadId ?? "main", reason: skip });
         continue;
       }
       const req = this.engine.requestFloor(ev.roomId, ev.threadId ?? "main", agentId, {
@@ -466,6 +469,7 @@ export class Gateway {
     const profile = this.engine.agents.get(agentId);
     if (profile?.paused) {
       this.audit.write({ kind: "paused_skip", agentId, roomId, threadId });
+      this.onEvent?.({ type: "skip", agentId, roomId, threadId, reason: "paused" });
       const res = this.engine.agentAct(roomId, threadId, agentId, {
         id: `paused-${fnv1a(agentId + ":" + triggerId)}`,
         type: "pass",
@@ -483,6 +487,7 @@ export class Gateway {
         cap: budget.cap,
       });
       this.log(`[gateway] budget skip: ${agentId} spent=${budget.spent.toFixed(3)} cap=${budget.cap}`);
+      this.onEvent?.({ type: "skip", agentId, roomId, threadId, reason: "budget" });
       const res = this.engine.agentAct(roomId, threadId, agentId, {
         id: `budget-${fnv1a(agentId + ":" + triggerId)}`,
         type: "pass",
@@ -490,6 +495,7 @@ export class Gateway {
       return res.granted ?? null;
     }
     this.#recordTurn(agentId);
+    this.onEvent?.({ type: "turn_start", agentId, roomId, threadId });
     const client = this.clients.get(agentId);
     let session;
     try {
@@ -506,13 +512,19 @@ export class Gateway {
       await client?.setTyping?.(roomId, true);
       for await (const ev of runtime.send(session, envelope)) {
         if (ev.type === "message") collected.push(ev.text);
-        else if (ev.type === "turn_end") finalText = ev.text ?? collected.join("");
+        else if (ev.type === "text_delta") {
+          this.onEvent?.({ type: "text_delta", agentId, roomId, threadId, text: ev.text });
+        } else if (ev.type === "turn_end") finalText = ev.text ?? collected.join("");
         else if (ev.type === "usage") {
           this.audit.write({ kind: "usage", agentId, usage: ev.usage, costUsd: ev.costUsd, sessionId: ev.sessionId });
           this.onUsage?.(agentId, Number(ev.costUsd) || 0);
+        } else if (ev.type === "tool_use") {
+          this.audit.write({ kind: "tool_use", agentId, name: ev.name, input: ev.input });
+          this.onEvent?.({ type: "tool_use", agentId, roomId, threadId, name: ev.name, input: ev.input });
+        } else if (ev.type === "tool_result") {
+          this.audit.write({ kind: "tool_result", agentId, toolUseId: ev.toolUseId, isError: ev.isError });
+          this.onEvent?.({ type: "tool_result", agentId, roomId, threadId, toolUseId: ev.toolUseId, isError: ev.isError });
         }
-        else if (ev.type === "tool_use") this.audit.write({ kind: "tool_use", agentId, name: ev.name, input: ev.input });
-        else if (ev.type === "tool_result") this.audit.write({ kind: "tool_result", agentId, toolUseId: ev.toolUseId, isError: ev.isError });
       }
     } catch (err) {
       this.audit.write({ kind: "turn_error", agentId, error: String(err) });
@@ -528,6 +540,13 @@ export class Gateway {
       outbound = { type: "pass" };
     } else if (action.type === "ask_human") {
       outbound = { type: "ask_human", question: action.question, text: action.question, intent: "ask_human" };
+    } else if (action.type === "tool_request") {
+      outbound = {
+        type: "tool_request",
+        text: `申请工具：${action.tool}${action.reason ? `（${action.reason}）` : ""}`,
+        intent: "tool_request",
+        tool: action.tool,
+      };
     } else if (action.type === "done") {
       outbound = { type: "done", reason: action.reason, text: action.reason, intent: "done" };
     } else {
@@ -548,6 +567,7 @@ export class Gateway {
           threadId,
           text: outbound.text,
           intent: outbound.intent,
+          tool: outbound.tool,
           mentions,
           txnId,
         });
@@ -577,6 +597,15 @@ export class Gateway {
       text: outbound.text,
       mentions,
       intent: outbound.intent,
+    });
+    this.onEvent?.({
+      type: "turn_end",
+      agentId,
+      roomId,
+      threadId,
+      text: outbound.text ?? "",
+      pass: outbound.type === "pass",
+      messageId,
     });
     return act.granted ?? null;
   }

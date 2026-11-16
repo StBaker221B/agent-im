@@ -719,6 +719,54 @@ button {
   color: var(--own-ink);
 }
 
+.live-row {
+  margin-top: 12px;
+}
+
+.live-bubble {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+}
+
+.live-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--own);
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.live-tools {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.approve-tool {
+  margin-top: 6px;
+  align-self: flex-start;
+  border: 1px solid var(--own);
+  background: var(--own);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.approve-tool:hover {
+  background: color-mix(in srgb, var(--own) 86%, black);
+}
+
 .msg-row.cont .bubble {
   border-top-left-radius: 10px;
 }

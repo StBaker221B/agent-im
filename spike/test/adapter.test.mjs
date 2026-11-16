@@ -2,9 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildAgentPrompt, parseReply } from "../src/claude-adapter.mjs";
 
-test("parseReply recognizes PASS / ASK_HUMAN / DONE", () => {
+test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
   assert.deepEqual(parseReply("PASS"), { type: "pass" });
   assert.deepEqual(parseReply("ASK_HUMAN: 需要人决定"), { type: "ask_human", question: "需要人决定" });
+  assert.deepEqual(parseReply("REQUEST_TOOL: Write 需要保存文件"), {
+    type: "tool_request",
+    tool: "Write",
+    reason: "需要保存文件",
+  });
   assert.deepEqual(parseReply("DONE: 已完成"), { type: "done", reason: "已完成" });
   assert.deepEqual(parseReply("普通回复"), { type: "message", text: "普通回复" });
 });

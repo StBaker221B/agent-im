@@ -305,6 +305,7 @@ export const ROLE_TEMPLATES = {
 
 export const TEMPLATE_LIST = Object.values(ROLE_TEMPLATES);
 export const TEMPLATE_IDS = TEMPLATE_LIST.map((t) => t.id);
+export const FULL_TOOL_LIST = ["Read", "Glob", "Grep", "PowerShell", "Edit", "Write"];
 
 export function getTemplate(id) {
   return ROLE_TEMPLATES[id] ?? null;

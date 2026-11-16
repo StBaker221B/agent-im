@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)、[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)、[09 角色模板](docs/records/2026-11-16-09-role-templates.md)、[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)。
+- 记录：[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)、[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)、[09 角色模板](docs/records/2026-11-16-09-role-templates.md)。
 - 已完成：
   - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -17,6 +17,7 @@
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
   - **自由讨论**：链上限 10（防死循环），prompt 允许 agent 互相 @ 接话；旧讨论模式 toggle 已移除；`#dispatch` 去重避免重复 PASS。
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/设置页可选模板、预览、工具开关。
+  - **团队模板（2 个）**：software-squad（PM/architect/coder/reviewer/qa）、review-squad（researcher/reviewer/security）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
   - **成本护栏**：规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient，参数可在设置页按 agent 调）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`；每 agent `dailyBudgetUsd`（超预算 PASS + `budget_skip`）；`status=paused`（`paused_skip`）。
@@ -84,7 +85,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
   - 群聊默认自由讨论：agent 可以互相 @ 继续，链上限 10 只是防死循环。
-  - 13 个角色模板 + 角色知识包 + 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选模板、预览、工具权限三档。
+  - 13 个角色模板 + 角色知识包 + 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选模板、预览、工具权限三档；Agents 页可创建小队（2 个团队模板）。
   - 规则 triage + 用量视图；不额外调用模型。
   - agent 可按需配 `cwd` + `extraArgs`（工具白名单）；目前是本地 state，没有产品 UI，也不是强沙箱。
   - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。

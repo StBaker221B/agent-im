@@ -61,6 +61,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - 成本护栏：Gateway 规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient），agent.triage 可按 agent 覆盖；跳过写 `triage_skip`；`GET /api/usage` 聚合 audit，设置页有用量表。
 - 每日预算：`agent.dailyBudgetUsd`（0=不限）；Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS + `budget_skip`；UTC 日切换清空内存累计。
 - 暂停：`agent.status=paused` 时 turn 前直接 PASS + `paused_skip`；engine agent 的 `paused` 由 store 同步。
+- 团队模板：`POST /api/team-templates/:id/create {prefix,groupName}` 注册 N 个 `<prefix>-<shortRole>` 用户、建 agent、建群；失败不回滚，prefix 冲突先检查。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 沙箱实验：`app/data/experiments/bugfix`；`@fix-coder`/`@fix-reviewer` 的 cwd 指向它（本地 state，不提交）。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
@@ -87,6 +88,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 跨房间记忆/session 作用域 | `spike/src/claude-adapter.mjs`（`sessionScope`） |
 | 数据/导入/默认提示/拼装 | `app/store.mjs`（`composeSystemPrompt`） |
 | 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
+| 团队模板 | `app/team-templates.mjs`（software-squad / review-squad）+ `/api/team-templates` |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 工具/workspace | state 里 agent 的 `cwd` + `extraArgs`（如 `--permission-mode dontAsk --allowedTools ...`） |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |

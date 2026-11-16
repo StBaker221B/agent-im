@@ -1,6 +1,6 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算**；自定义模板、团队模板、O*NET/ESCO 导入、triage 参数 UI 待做。
+- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 2 个团队模板**；自定义角色/团队模板、O*NET/ESCO 导入待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -112,7 +112,13 @@
 6. 资料页/Agents 页显示模板名和 mission。
 7. 现有 agent 迁移 `templateId`；`composeSystemPrompt` = base + 角色卡 + 角色知识包 + agent 私有 knowledge。
 
-待做：自定义模板另存、团队模板（一次建一组角色）、O*NET/ESCO 自动生成。
+团队模板（已实现）：
+
+- `app/team-templates.mjs`：`software-squad`（PM/architect/coder/reviewer/qa）、`review-squad`（researcher/reviewer/security）。
+- `GET /api/team-templates`；`POST /api/team-templates/:id/create {prefix,groupName}`：注册 N 个用户、创建 N 个 agent、建群并拉入；ID 形如 `squad-pm`。
+- Agents 页「创建小队」→ 选模板、ID 前缀、群名 → 创建后打开群。实测 `demo` review-squad 成功。
+
+待做：自定义角色/团队模板另存、O*NET/ESCO 自动生成、删除/归档实验 agent。
 
 ## 5. 剩余工作与开发计划
 

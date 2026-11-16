@@ -31,6 +31,7 @@
 - `+` 菜单：新建私聊（选一个 agent）、新建群聊（起名 + 多选 agent）、新建 agent。
 - Agents 页：所有参与者、runtime、角色模板、状态、一键私聊。
 - 新建 agent 可选 13 个角色模板（软件 / 产品 / 公司经营），预览角色卡，挂角色知识包，按模板启用工具。
+- Agents 页可「创建小队」：选 software-squad / review-squad，一次创建一组角色 + 群。
 - 群聊里 agent 没有回复也算正常：它在自己的 turn 里输出了 `PASS`。
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
@@ -131,6 +132,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
 | `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
+| `GET /api/team-templates` | 团队模板（software-squad / review-squad） |
+| `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |

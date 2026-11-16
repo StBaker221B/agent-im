@@ -35,3 +35,4 @@
 | 09 | [2026-11-16 MVP](2026-11-16-05-mvp.md) | 控制面 + React 产品 UI、创建 agent/DM/群、human_all、成本与坑 |
 | 10 | [2026-11-16 MVP 第二轮](2026-11-16-06-mvp-round2.md) | 跨房间记忆、邀请成员、新建入口拆分、删除会话、图片/文件 |
 | 11 | [2026-11-16 MVP 第三轮](2026-11-16-07-mvp-round3.md) | agent 读图、列表删除、头像资料、历史搜索、设置页、researcher 回复规则 |
+| 12 | [2026-11-16 讨论模式](2026-11-16-08-discussion-mode.md) | 每房间 brief/discussion、agent 链上限 6、dispatch 去重 |

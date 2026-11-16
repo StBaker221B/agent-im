@@ -399,7 +399,8 @@ type RuntimeCapabilities = {
   - `@` 同时解析 localpart 和 displayName（含中文）；直接提问/私聊必须回应，修复 researcher 过度 PASS。
   - 历史搜索（每房间最近 100 条）、设置页 PATCH agent、列表右键/⋯删除、头像资料。
   - "正在思考/排队中"改为 Engine `room.activity`（floor/queue），PASS 后自动消失。
-- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md)。
+  - **讨论模式**（`room.mode=discussion`）：agent 链上限 3→6；prompt 要求对另一个 agent 的具体观点 @ 对方继续；群聊头部可切换。`#dispatch` 记录已跑过的 agent，避免同一条消息里重复 PASS。
+- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md)。
 
 ## 15. 待确认
 

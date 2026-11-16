@@ -41,6 +41,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 未读用 `lastReadTs` 在服务端算；打开房间即标记已读（移动端在列表页时不标记）。
 - 深链：`#/room/<encoded room id>`、`#/agents`。
 - 群聊和私聊在同一个列表；DM 标题取 peer 的 displayName。
+- 群聊头部「讨论模式 / 讨论中」切换 `room.mode`：discussion 允许 agent 互相 @ 继续，链上限 6，成本更高。
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
 
 ## 设计

@@ -35,6 +35,7 @@
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
 - 顶部搜索框回车搜历史消息；侧栏「设置」页管理 agent 显示名/角色/唤醒策略/系统提示。
+- 群聊头部可切换「讨论模式」：允许 agent 互相 @ 继续，链上限 6；默认 brief 模式更像"每人各答一次"。
 
 ## 2. 组件
 
@@ -122,6 +123,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/rooms/:id/messages` | `{text}`；人类身份发送；解析 `@name` 为 `m.mentions`；返回 eventId |
 | `POST /api/rooms/:id/read` | `{ts}`；更新 human 的 lastReadTs |
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
+| `PATCH /api/rooms/:id` | `{mode:"brief"|"discussion"}`；讨论模式放宽 agent 链上限并改 prompt |
 | `POST /api/rooms/:id/members` | `{agentIds[]}`；邀请 agent 加入群聊（DM 不允许） |
 | `DELETE /api/rooms/:id` | human 和所有 agent 离开房间，从 store/engine 移除 |
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
@@ -183,7 +185,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 - **DM**：2 人房间自动视为 direct，不用 @。
 - **单写者 floor**：同一 thread 同一时刻只有一个 agent 在跑；其他人排队。
-- **agent 链上限**：`maxAgentChain=3`。一条人类消息之后最多连续 3 条 agent 消息；第 3 条不能再 @ 醒别人。人类再发消息重置。
+- **agent 链上限**：brief 模式 `maxAgentChain=3`；discussion 模式放宽到 6。一条人类消息之后最多连续这么多条 agent 消息；人类再发消息重置。
+- **讨论模式**：`room.mode="discussion"` 时，prompt 要求 agent 对另一个 agent 的具体疑问/反驳/补充直接 @ 对方继续；不是固定轮流，也不强制每个 agent 每轮都说话。人类消息仍唤醒所有 `human_all` agent。
 - **PASS**：agent 判断没有补充就只输出 PASS，不产生 Matrix 消息，只释放 floor。
 - **quiescence**：30s 无活动后线程静默。
 - **UI 的"正在思考"来自 Engine**：bootstrap 的房间 `activity` 给出当前 floor holder 和排队 agent；不是前端按发送时间猜的。PASS 后 floor 释放，提示自动消失。
@@ -218,6 +221,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 没有流式输出、工具审批；支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。
+- 讨论模式一条人类消息最多 6 条 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 是各自的空 workspace，不是项目仓库；要让它改代码需要另配 worktree。
@@ -258,3 +262,5 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - UI 新增：列表右键/⋯删除、头像资料弹窗、搜索页、设置页。
 - **思考指示修正**：bootstrap 房间 `activity` 暴露 floor/queue；实测群里发一条依次 `claude-dev` → `researcher` → 空，提示随 floor 消失；不再用 75s 本地计时器。
 - 侧栏 `⋯` 改为预留列 + 垂直居中，不再压住预览文字。
+- **讨论模式 PASS**：讨论组问 session vs JWT，claude-dev 主动 `@researcher` 问判据，researcher 接话并收敛；2 条 agent 消息、1 次 agent→agent mention；activity 依次 `claude-dev` → `researcher` → 空。
+- **dispatch 去重**：同一条人类消息里，A 通过 @ 触发了 B 的链路 turn 后，外层 wake 不再把 B 跑第二遍（少一个 PASS turn/成本）。

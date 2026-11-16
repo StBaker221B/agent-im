@@ -52,7 +52,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 
 - **一个 agent token 只能有一个 gateway 在 sync**。启动 `app` 前停掉旧 `spike` gateway，否则重复回复。
 - **同一 thread 单写者**：floor 串行；PASS 释放；quiescence 30s。
-- **唤醒**：Claude agent 默认 `human_all`（人类消息全员判断）；agent 消息只唤醒被 @/回复的；`maxAgentChain=3`；DM 自动 direct。
+- **唤醒**：Claude agent 默认 `human_all`（人类消息全员判断）；agent 消息只唤醒被 @/回复的；DM 自动 direct。
+- **房间模式**：`room.mode=brief`（默认，链上限 3）或 `discussion`（链上限 6 + prompt 鼓励 agent 互相 @ 接话）。群聊头部可切；`PATCH /api/rooms/:id {mode}`。
+- **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
 - **回复先落 Matrix 再 `agentAct`**；txn id 由 `(agent, trigger)` 派生，重试幂等。
 - **同一个 agent = 同一个 session**：`ClaudeAdapter` 默认 `sessionScope: "agent"`，跨房间共享 transcript；隐私靠系统提示，不是硬隔离。要每房间独立就设 `"room"`。

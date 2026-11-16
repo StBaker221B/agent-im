@@ -50,7 +50,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 
 ### Agent workspace / tools（本地实验）
 
-`toolsMode` 三档：`template`（按角色推荐，默认）、`full`（全部本地工具，含 Edit/Write，手动放开）、`off`。规则 triage 会跳过 ack/冷却/超频的 ambient turn，并写 `triage_skip` 审计；`dailyBudgetUsd`（0=不限）超预算时 turn 前直接 PASS，写 `budget_skip`；用量在 `GET /api/usage`。
+`toolsMode` 三档：`template`（按角色推荐，默认）、`full`（全部本地工具，含 Edit/Write，手动放开）、`off`（硬拒绝，仍传 `--permission-mode dontAsk`）。规则 triage 会跳过 ack/冷却/超频的 ambient turn，并写 `triage_skip` 审计；`dailyBudgetUsd`（0=不限）超预算时 turn 前直接 PASS，写 `budget_skip`；用量在 `GET /api/usage`。工具申请走 `REQUEST_TOOL` → `tool_request` 消息 → `approve-tool`；流式活动在 `/api/events`。
 
 `state.json` 的 agent 可选带 `cwd` 和 `extraArgs`，用于把 agent 指到共享沙箱并限制工具：
 
@@ -83,6 +83,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`
 - `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`
+- `POST /api/agents/:id/approve-tool` `{tool,roomId}` — 切 full、重建 runtime、人类消息 @ agent 继续
+- `GET /api/events` — SSE：turn/text_delta/tool_use/tool_result/turn_end/skip
 - `GET /api/search?q=` — 每个房间最近 100 条
 - `GET /api/health`
 

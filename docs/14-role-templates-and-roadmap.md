@@ -1,6 +1,6 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 2 个团队模板**；自定义角色/团队模板、O*NET/ESCO 导入待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 2 个团队模板 + token 流 + 合作式工具审批**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -130,7 +130,7 @@
 | 产品 UI（会话/群/私聊/媒体/搜索/设置/资料） | ✅ 可用 | 细节、键盘/移动端打磨 | 1–2d |
 | 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
-| 工具审批/沙箱/流式 | ⚠️ 部分 | 审批 UI、流式输出、真正沙箱（现在只有 dontAsk + prompt） | 3–5d |
+| 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 批准后 full、off 硬拒绝；执行前审批、单工具 grant、worktree/容器沙箱待做 | 2–4d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停已完成；删除/改名 agent、移除成员、邀请第二个人类待做 | 2–3d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台最小版 | ⏳ 未做 | 审计/用量/会话检索/治理视图 | 2–4d |
@@ -152,8 +152,8 @@
 
 **第 2 周：工具与治理**
 
-4. 工具审批 + 真正沙箱（reviewer 只读、coder worktree）。
-5. 流式输出（先文本流，再 tool_use 事件）。
+4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/批准已做；执行前审批、单工具 grant、coder worktree/reviewer 只读沙箱待做。
+5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
 6. Agent/房间生命周期：暂停已完成（`paused_skip`）；删除/改名 agent、移除成员待做。
 7. 数据平台最小版：审计/用量/会话检索。
 
@@ -172,7 +172,7 @@
 ### 5.3 风险
 
 - **成本**：角色越多、工具越活，turn 越贵；修测试实验 5 turn $2.16。没有 triage/预算前不适合放开多 agent。
-- **权限**：现在 `dontAsk + allowedTools` 不是沙箱；reviewer 的只读靠 prompt。真正的工具隔离要 worktree/容器/审批。
+- **权限**：`dontAsk + allowedTools` 不是沙箱；off 现为硬拒绝，reviewer 的只读仍靠 prompt。真正的工具隔离要 worktree/容器/执行前审批。工具审批 v1 是 turn 后的合作式申请，批准等于 full。
 - **角色泛滥**：模板太多会像“扮演”；先把 8 个软件团队角色打磨好，再扩。
 - **多用户**：Matrix 账号/权限模型要重做，不能靠单一 human token。
 

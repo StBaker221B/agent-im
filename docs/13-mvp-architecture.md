@@ -67,16 +67,17 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | 路径 | 职责 |
 |---|---|
 | `spike/src/scheduler.mjs` | 协议引擎：投递/唤醒、floor、quiescence、consensus、`human_all`、agent 链上限 |
-| `spike/src/gateway.mjs` | Matrix ↔ Engine ↔ runtime；动态 `addAgent` / `addRoom` |
+| `spike/src/gateway.mjs` | Matrix ↔ Engine ↔ runtime；动态 `addAgent` / `addRoom`；`onEvent` 实时活动/工具申请 |
 | `spike/src/matrix-transport.mjs` | client-server API：sync/send/thread/mention/txn id |
-| `spike/src/claude-adapter.mjs` | Claude Code CLI 作为一个 runtime；session 持久化 |
+| `spike/src/claude-adapter.mjs` | Claude Code CLI 作为一个 runtime；session 持久化；partial `text_delta` |
 | `spike/src/script-peer.mjs` | 确定性测试 participant（产品里只用于测试） |
-| `app/server.mjs` | HTTP API、静态文件、human Matrix 会话、房间摘要/未读 |
-| `app/store.mjs` | state.json；首次运行从 `spike/.tmp` 导入；默认系统提示 |
+| `app/server.mjs` | HTTP API、SSE `/api/events`、静态文件、human Matrix 会话、房间摘要/未读、工具批准 |
+| `app/store.mjs` | state.json；首次运行从 `spike/.tmp` 导入；系统提示拼装 |
+| `app/tool-policy.mjs` | `toolsMode → --permission-mode/--allowedTools`；off 硬拒绝 |
 | `app/matrix-admin.mjs` | 注册/登录/建房/邀请/join/members |
 | `app/gateway-host.mjs` | 装配 Engine/Gateway/clients/runtimes；动态加 agent/room |
-| `web/src/App.jsx` | 页面状态、轮询、发送、创建、hash 深链 |
-| `web/src/components/` | Sidebar / ChatView / AgentsView / NewChatModal / Avatar / Icon |
+| `web/src/App.jsx` | 页面状态、轮询、SSE 订阅、发送、创建、hash 深链 |
+| `web/src/components/` | Sidebar / ChatView（实时气泡/批准）/ AgentsView / NewChatModal / TeamModal / SettingsView / Avatar / Icon |
 | `app/data/` | **gitignored**：state.json、gateway-state.json、audit.jsonl、agents/* |
 
 ## 4. 数据模型（`app/data/state.json`）
@@ -136,6 +137,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
+| `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；切 `toolsMode=full`、重建 runtime，并以人类身份 @ agent 让它继续 |
+| `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
@@ -220,12 +223,18 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 每张角色卡包含 mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria。
 - 每个模板对应一份角色知识包 `app/role-knowledge/<id>.md`（工作方法、检查清单、权责、使用者预期、常见失败）。
 - agent 有 `templateId` 和宽泛的 `role`；runtime 的 system prompt = base `systemPrompt` + 角色卡 + 角色知识包 + agent 私有 `knowledge/*.md`（≤12KB）。
-- `GET /api/role-templates` 返回模板；`POST/PATCH /api/agents` 接受 `templateId`、`toolsEnabled`；设置页/新建 agent 都有模板选择、预览和工具开关；资料页显示模板名/mission。
-- 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`toolsEnabled` 开启时用 `--permission-mode dontAsk --allowedTools ...`；默认 cwd 是 agent 自己的 workspace。这是**弱隔离**，reviewer 的只读仍靠 prompt。
+- `GET /api/role-templates` 返回模板；`POST/PATCH /api/agents` 接受 `templateId`、`toolsMode`；设置页/新建 agent 都有模板选择、预览和工具权限；资料页显示模板名/mission。
+- 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`toolsMode` 决定 `--permission-mode dontAsk --allowedTools ...`；off 也强制 `dontAsk`（无 allowedTools = 全拒）；默认 cwd 是 agent 自己的 workspace。这是**弱隔离**，reviewer 的只读仍靠 prompt。
 - 改 template/工具/systemPrompt 会重建 runtime，下一轮生效。
 - 注意：角色模板是**行为约束**，不是能力隔离；真正的异构要靠不同工具/权限/模型。agent 也可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`。
 - 假设验证：只有角色标签不够；角色义务 + 私有信息 + 工具/环境反馈才可能产生"提问→补充→指正→结论"。实测见 §11。
 - 角色模板库、知识分层、来源和后续计划见 [14 角色模板与开发计划](14-role-templates-and-roadmap.md)。
+
+### 7.3 流式与工具申请
+
+- **流式**：ClaudeAdapter 用 `--include-partial-messages` 取 `text_delta`，Gateway `onEvent` 发 `turn_start / text_delta / tool_use / tool_result / turn_end / skip`；Server 用 SSE `GET /api/events`；UI 在消息末尾显示实时气泡和正在使用的工具，`turn_end` 后移除，等 Matrix 最终消息。
+- **工具申请**：系统提示列出当前可用工具；需要不可用工具时 agent 回复 `REQUEST_TOOL: <tool> <原因>`。Gateway 发一条 intent=`tool_request` 的消息（`com.agentim.tool` 带工具名）；UI 显示「批准并继续」；`POST /api/agents/:id/approve-tool` 切 `toolsMode=full`、重建 runtime，并以人类身份 @ 该 agent 让它继续。
+- **边界**：审批是 turn 后合作式，不是执行前拦截；批准等于 full 工具，不是单工具 grant；流式只流最终文本 delta，不流工具参数/思考。
 
 ## 8. 安全边界
 
@@ -240,10 +249,11 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 全局串行队列：不同 thread 不并行。
 - turn 中间崩溃会丢该轮回复（入站先标记已消费），不重复。
 - 未读只按最近 100 条算；消息更多时可能低估。
-- 轮询，不是 push/SSE。
-- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；设置页能改显示名/模板/工具权限/wakePolicy/系统提示，但不能删除/暂停 agent、不能改 runtime、不能移除成员。
+- 消息仍是 1.5s 轮询；SSE 只推实时活动，不替代消息落库。
+- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，但不能删除 agent、不能改 runtime、不能移除成员。
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
-- 没有流式输出、工具审批；支持图片/文件，但没有语音/视频、缩略图和断点续传。
+- 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
+- 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准等于 full 工具，不是单工具、也不是执行前拦截。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。
 - 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - triage 参数可按 agent 配，但默认值写死在 Gateway；每日 USD 预算按 UTC 日、内存恢复，没有全局总额。
@@ -254,12 +264,12 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 ## 10. 下一步
 
-1. 成本控制：triage/冷却/预算；agent 只在被叫到时用完整模型。
-2. 流式输出 + 工具审批（`tool_use` 已能抓到）。
-3. 房间/agent 管理：删除、暂停、改名、邀请人类。
+1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
+2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
+3. 房间/agent 管理：暂停已完成；待做删除/改名 agent、移除成员、邀请人类。
 4. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 5. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
-6. 测试：给 `human_all`、链上限、API、store 加自动化；现在只有 spike 的 27 个测试。
+6. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 27 个测试。
 
 ## 11. 验证记录（2026-11-16）
 
@@ -303,3 +313,6 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **toolsMode PASS**：`PATCH /api/agents/@pm` `{toolsMode:"full"}` / `{"template"}` 都成功；`GET /api/usage` 返回每 agent 今天/累计 turns + USD。
 - **预算 PASS**：claude-dev 今日已花 $0.8376，预算设 $0.01 后 DM 发消息没有 agent turn，audit `budget_skip spent=0.8376 cap=0.01`；恢复 0 后正常。
 - **暂停/triage 配置 PASS**：pm 暂停后 DM 发消息只有人类消息，`paused_skip @pm`；`PATCH triage` 参数成功；恢复 active。
+- **流式 PASS（2026-11-17）**：SSE `/api/events` 返回 `text/event-stream`；pm 一条消息收到 13 个 `text_delta` + `turn_start/turn_end`，文本逐字出现。
+- **工具审批 PASS**：pm `toolsMode=off` 时创建 hello3 被拒，回复 `REQUEST_TOOL: PowerShell ...`（intent=`tool_request`、tool=PowerShell）；`approve-tool` 后 agent 继续并创建 `hello3.txt`，内容正确。
+- **off 漏洞修复**：修复前 off 没传 `dontAsk`，pm 直接创建了 hello/hello2；修复后 off 强制 `dontAsk`，同样的创建请求被硬拒。

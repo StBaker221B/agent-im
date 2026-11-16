@@ -63,6 +63,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - 暂停：`agent.status=paused` 时 turn 前直接 PASS + `paused_skip`；engine agent 的 `paused` 由 store 同步。
 - 团队模板：`POST /api/team-templates/:id/create {prefix,groupName}` 注册 N 个 `<prefix>-<shortRole>` 用户、建 agent、建群；失败不回滚，prefix 冲突先检查。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
+- 工具策略集中在 `app/tool-policy.mjs`：`toolsMode=off` 也必须传 `--permission-mode dontAsk`（没有 allow-list = 全拒），不能落回 CLI 默认 auto；Gateway 建 runtime 时用 `mergeToolArgs` 重新应用，清理 state 里过期的工具 flag。
+- 流式：ClaudeAdapter `--include-partial-messages` 产出 `text_delta`；Gateway `onEvent` → Server SSE `GET /api/events` → UI 实时气泡。消息本身仍靠 Matrix + 轮询落库。
+- 工具申请：系统提示列可用工具；需要不可用工具时回复 `REQUEST_TOOL: <tool> <原因>`；Gateway 发 intent=`tool_request` 消息；UI「批准」→ `POST /api/agents/:id/approve-tool` 切 full + 人类 @ 它继续。审批是 turn 后合作式，不是执行前拦截。
 - 沙箱实验：`app/data/experiments/bugfix`；`@fix-coder`/`@fix-reviewer` 的 cwd 指向它（本地 state，不提交）。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
 - **回复先落 Matrix 再 `agentAct`**；txn id 由 `(agent, trigger)` 派生，重试幂等。
@@ -90,7 +93,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
 | 团队模板 | `app/team-templates.mjs`（software-squad / review-squad）+ `/api/team-templates` |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
-| 工具/workspace | state 里 agent 的 `cwd` + `extraArgs`（如 `--permission-mode dontAsk --allowedTools ...`） |
+| 工具/workspace | `app/tool-policy.mjs` + state 里 agent 的 `cwd`/`extraArgs` |
+| 流式/SSE | `spike/src/claude-adapter.mjs` + `spike/src/gateway.mjs`（onEvent）+ `app/server.mjs` `/api/events` + `web/src/App.jsx` |
+| 工具申请/批准 | `spike/src/reply.mjs` + `spike/src/gateway.mjs` + `app/server.mjs` `/approve-tool` + `ChatView.jsx` |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |
 | agent/room 动态装配 | `app/gateway-host.mjs` |
 | 产品 UI | `web/src/` |

@@ -2,9 +2,17 @@ import { useState } from "react";
 import Icon from "./Icon";
 import { useDialogFocus } from "../useDialogFocus";
 
+const ROLE_OPTIONS = [
+  { value: "generic", label: "通用" },
+  { value: "coder", label: "coder（实现）" },
+  { value: "reviewer", label: "reviewer（评审）" },
+  { value: "researcher", label: "researcher（研究）" },
+];
+
 export default function NewAgentModal({ busy, error, onClose, onCreateAgent }) {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [role, setRole] = useState("generic");
   const [roles, setRoles] = useState("");
   const [runtime, setRuntime] = useState("claude");
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -39,6 +47,7 @@ export default function NewAgentModal({ busy, error, onClose, onCreateAgent }) {
                 onCreateAgent({
                   username: username.trim().toLowerCase(),
                   displayName: displayName.trim(),
+                  role,
                   roles,
                   runtime,
                   systemPrompt,
@@ -76,14 +85,14 @@ export default function NewAgentModal({ busy, error, onClose, onCreateAgent }) {
 
             <div className="field-row">
               <label className="field">
-                <span>角色（逗号分隔）</span>
-                <input
-                  name="roles"
-                  autoComplete="off"
-                  value={roles}
-                  onChange={(e) => setRoles(e.target.value)}
-                  placeholder="coder, reviewer"
-                />
+                <span>角色模板（行为）</span>
+                <select name="role" value={role} onChange={(e) => setRole(e.target.value)}>
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="field">
                 <span>Runtime</span>
@@ -93,6 +102,17 @@ export default function NewAgentModal({ busy, error, onClose, onCreateAgent }) {
                 </select>
               </label>
             </div>
+
+            <label className="field">
+              <span>标签（逗号分隔，仅展示）</span>
+              <input
+                name="roles"
+                autoComplete="off"
+                value={roles}
+                onChange={(e) => setRoles(e.target.value)}
+                placeholder="coder, reviewer"
+              />
+            </label>
 
             <label className="field">
               <span>系统提示（留空用默认）</span>

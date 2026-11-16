@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
 
+const ROLE_OPTIONS = [
+  { value: "generic", label: "通用" },
+  { value: "coder", label: "coder（实现）" },
+  { value: "reviewer", label: "reviewer（评审）" },
+  { value: "researcher", label: "researcher（研究）" },
+];
+
 const WAKE_OPTIONS = [
   { value: "human_all", label: "人类消息全部判断（默认）" },
   { value: "mention_only", label: "只在被 @ 时回复" },
@@ -12,6 +19,7 @@ const WAKE_OPTIONS = [
 
 function AgentSettings({ agent, onSave }) {
   const [displayName, setDisplayName] = useState(agent.displayName ?? "");
+  const [role, setRole] = useState(agent.role ?? "generic");
   const [roles, setRoles] = useState((agent.roles ?? []).join(", "));
   const [wakePolicy, setWakePolicy] = useState(agent.wakePolicy ?? "human_all");
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
@@ -20,6 +28,7 @@ function AgentSettings({ agent, onSave }) {
 
   useEffect(() => {
     setDisplayName(agent.displayName ?? "");
+    setRole(agent.role ?? "generic");
     setRoles((agent.roles ?? []).join(", "));
     setWakePolicy(agent.wakePolicy ?? "human_all");
     setSystemPrompt(agent.systemPrompt ?? "");
@@ -30,7 +39,7 @@ function AgentSettings({ agent, onSave }) {
     setSaving(true);
     setSaved(false);
     try {
-      const ok = await onSave(agent.id, { displayName, roles, wakePolicy, systemPrompt });
+      const ok = await onSave(agent.id, { displayName, role, roles, wakePolicy, systemPrompt });
       if (ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
@@ -66,21 +75,37 @@ function AgentSettings({ agent, onSave }) {
           />
         </label>
         <label className="field">
-          <span>角色（逗号分隔）</span>
+          <span>标签（逗号分隔）</span>
           <input name="roles" autoComplete="off" value={roles} onChange={(e) => setRoles(e.target.value)} />
         </label>
       </div>
 
-      <label className="field">
-        <span>唤醒策略</span>
-        <select name="wakePolicy" value={wakePolicy} onChange={(e) => setWakePolicy(e.target.value)}>
-          {WAKE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="field-row">
+        <label className="field">
+          <span>角色模板</span>
+          <select name="role" value={role} onChange={(e) => setRole(e.target.value)}>
+            {ROLE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>唤醒策略</span>
+          <select name="wakePolicy" value={wakePolicy} onChange={(e) => setWakePolicy(e.target.value)}>
+            {WAKE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <p className="form-note">
+        私有知识：<code>app/data/agents/{agent.name}/knowledge/*.md</code>，改完保存或重启后重建 runtime。
+      </p>
 
       {agent.runtime !== "script" && (
         <label className="field">

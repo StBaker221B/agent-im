@@ -16,7 +16,7 @@ import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
+import { ROLE_NAMES, Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -118,10 +118,21 @@ function displayOf(id) {
 function mentionIdsIn(text, room) {
   const members = new Set(room.memberIds ?? []);
   const byName = new Map();
+  const roleCounts = new Map();
+  for (const id of members) {
+    const agent = store.agent(id);
+    for (const alias of [agent?.role, ...(agent?.roles ?? [])].filter(Boolean)) {
+      roleCounts.set(alias, (roleCounts.get(alias) ?? 0) + 1);
+    }
+  }
   for (const id of members) {
     byName.set(localpart(id), id);
     const display = displayOf(id);
     if (display && !byName.has(display)) byName.set(display, id);
+    const agent = store.agent(id);
+    for (const alias of [agent?.role, ...(agent?.roles ?? [])].filter(Boolean)) {
+      if (roleCounts.get(alias) === 1 && !byName.has(alias)) byName.set(alias, id);
+    }
   }
   const out = [];
   for (const m of String(text).matchAll(/@([\p{L}\p{N}._=-]+)(?::([A-Za-z0-9.-]+))?/gu)) {
@@ -170,6 +181,7 @@ async function roomSummary(room) {
       name: nameOf.get(id) ?? localpart(id),
       displayName: displayOf(id),
       kind: id === store.human.id ? "human" : "agent",
+      role: store.agent(id)?.role ?? null,
     })),
     lastMessage: last ? messageView(last) : null,
     unread,
@@ -208,6 +220,7 @@ async function createAgent(body) {
     .toLowerCase();
   const displayName = String(body.displayName ?? "").trim() || username;
   const runtime = body.runtime === "script" ? "script" : "claude";
+  const role = ROLE_NAMES.includes(body.role) ? body.role : "generic";
   const roles = Array.isArray(body.roles)
     ? body.roles.map(String).filter(Boolean)
     : String(body.roles ?? "")
@@ -228,6 +241,7 @@ async function createAgent(body) {
     password,
     accessToken: account.accessToken,
     runtime,
+    role,
     script: runtime === "script" ? "reviewer" : undefined,
     roles,
     domains: [],
@@ -246,6 +260,7 @@ async function createAgent(body) {
     name: agent.name,
     displayName: agent.displayName,
     runtime: agent.runtime,
+    role: agent.role,
     roles: agent.roles,
     status: "idle",
   };
@@ -272,6 +287,11 @@ async function updateAgent(agentId, body) {
       throw Object.assign(new Error("bad wakePolicy"), { status: 400 });
     patch.wakePolicy = body.wakePolicy;
   }
+  if (body.role !== undefined) {
+    if (!ROLE_NAMES.includes(body.role)) throw Object.assign(new Error("bad role"), { status: 400 });
+    patch.role = body.role;
+  }
+  const roleChanged = patch.role !== undefined && patch.role !== agent.role;
   const promptChanged = typeof body.systemPrompt === "string" && body.systemPrompt !== agent.systemPrompt;
   if (typeof body.systemPrompt === "string") patch.systemPrompt = body.systemPrompt;
   Object.assign(agent, patch);
@@ -288,13 +308,14 @@ async function updateAgent(agentId, body) {
     if (patch.roles) engineAgent.roles = patch.roles;
     if (patch.wakePolicy) engineAgent.wakePolicy = patch.wakePolicy;
   }
-  if (promptChanged) await host.updateAgent(agent);
+  if (promptChanged || roleChanged) await host.updateAgent(agent);
   log(`[app] agent updated ${agent.id}`);
   return {
     id: agent.id,
     name: agent.name,
     displayName: agent.displayName,
     runtime: agent.runtime,
+    role: agent.role,
     roles: agent.roles,
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),

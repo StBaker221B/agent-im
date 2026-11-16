@@ -3,6 +3,12 @@ import Icon from "./Icon";
 import { useDialogFocus } from "../useDialogFocus";
 
 const STATUS = { idle: "空闲", working: "思考中", offline: "离线" };
+const ROLE_LABEL = {
+  generic: "通用",
+  coder: "coder（实现）",
+  reviewer: "reviewer（评审）",
+  researcher: "researcher（研究）",
+};
 const WAKE = {
   human_all: "每条人类消息都会判断",
   mention_only: "只被 @ 时回复",
@@ -48,6 +54,12 @@ export default function ProfileModal({ profile, onClose, onDm }) {
               <div>
                 <dt>Runtime</dt>
                 <dd>{profile.runtime === "script" ? "测试脚本" : "Claude"}</dd>
+              </div>
+            )}
+            {isAgent && (
+              <div>
+                <dt>角色模板</dt>
+                <dd>{ROLE_LABEL[profile.role] ?? profile.role ?? "通用"}</dd>
               </div>
             )}
             {isAgent && (

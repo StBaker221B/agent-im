@@ -7,7 +7,7 @@
 // and rooms keep working: users from spike/.tmp/matrix-users.json, tokens from
 // spike/.tmp/matrix-config.json, registration token from spike/.tmp.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,6 +35,59 @@ export function defaultSystemPrompt({ displayName, name, roles = [] }) {
 - 只有确实需要对方参与时才 @ 其他 agent；讨论模式下可以为了推进讨论 @ 对方，但不要客套循环。
 - 默认只进行对话；除非用户明确要求改代码或执行命令，不要使用工具。
 - 一条消息说完，保持简洁。`;
+}
+
+export const ROLE_TEMPLATES = {
+  generic: "",
+  coder: `职责（coder）：
+- 负责给出最小可执行实现方案：涉及的文件/接口/数据流/验证方式。
+- 需要 review 时主动 @ 负责 review 的 agent，用对方的真实 @用户名（例如 @arch-reviewer），不要写 @reviewer 这种泛称；并说明要 review 的点。
+- 收到 objection 必须回应：接受并修改，或给出具体理由；不要只客套。
+- 完成时用 DONE: <一句话> 结束。`,
+  reviewer: `职责（reviewer）：
+- 你的任务是找出具体问题：失败场景、遗漏、反例、安全/并发/兼容风险。
+- 必须给出可操作的修正建议，并 @ 提案人的真实 @用户名；最后请提案人确认。
+- 如果没有具体风险，才输出 PASS。
+- 不要替提案人写完整实现；只指出问题和边界。`,
+  researcher: `职责（researcher）：
+- 负责查证事实、对比方案、给出依据和适用边界。
+- 区分事实/推断；给出验证方法或来源。
+- 发现方案前提不成立时，明确 @ 提案人的真实 @用户名 指出。
+- 不要只表态或复述。`,
+};
+
+export const ROLE_NAMES = Object.keys(ROLE_TEMPLATES);
+
+/** Read optional private notes from app/data/agents/<name>/knowledge/*.md. */
+export function readKnowledge(agentHome) {
+  const dir = join(agentHome ?? "", "knowledge");
+  if (!agentHome || !existsSync(dir)) return "";
+  let text = "";
+  try {
+    for (const file of readdirSync(dir).sort()) {
+      if (!/\.(md|txt)$/i.test(file)) continue;
+      const part = readFileSync(join(dir, file), "utf8").trim();
+      if (!part) continue;
+      text += `\n\n## ${file}\n${part}`;
+      if (text.length >= 12_000) break;
+    }
+  } catch {
+    return "";
+  }
+  return text.trim();
+}
+
+/** Base prompt + role obligations + private knowledge. */
+export function composeSystemPrompt(agent) {
+  const role = ROLE_TEMPLATES[agent.role] ?? "";
+  const knowledge = readKnowledge(agent.agentHome);
+  return [
+    agent.systemPrompt,
+    role,
+    knowledge ? `你的私有知识（只在这个 agent 的 home 里）：\n${knowledge}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function readJson(path, fallback = null) {
@@ -133,6 +186,13 @@ export class Store {
         "no state and no importable spike setup. Run agent-im/spike setup-matrix first (docs/12), then start the app.",
       );
     }
+    const roleByName = { "claude-dev": "coder", researcher: "researcher" };
+    for (const agent of this.state.agents) {
+      if (!agent.role) agent.role = roleByName[agent.name] ?? "generic";
+      mkdirSync(join(agent.agentHome ?? join(dataDir, "agents", agent.name), "knowledge"), {
+        recursive: true,
+      });
+    }
     for (const room of this.state.rooms) {
       if (!room.mode) room.mode = "brief";
     }
@@ -223,6 +283,7 @@ export class Store {
       name: a.name,
       displayName: a.displayName,
       runtime: a.runtime,
+      role: a.role,
       roles: a.roles,
       domains: a.domains,
       wakePolicy: a.wakePolicy,

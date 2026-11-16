@@ -8,12 +8,14 @@ import { ClaudeAdapter } from "../spike/src/claude-adapter.mjs";
 import { ScriptPeer, scripts } from "../spike/src/script-peer.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
 import { Gateway } from "../spike/src/gateway.mjs";
+import { composeSystemPrompt } from "./store.mjs";
 
 function engineProfile(agent, humanId) {
   return {
     id: agent.id,
     name: agent.name,
     displayName: agent.displayName,
+    role: agent.role,
     owner: humanId,
     roles: agent.roles ?? [],
     domains: agent.domains ?? [],
@@ -28,13 +30,14 @@ function createRuntime(agent, { dataDir, log }) {
   const home = agent.agentHome ?? join(dataDir, "agents", agent.name);
   mkdirSync(join(home, "workspace"), { recursive: true });
   mkdirSync(join(home, "sessions"), { recursive: true });
+  mkdirSync(join(home, "knowledge"), { recursive: true });
   if (agent.runtime === "claude") {
     return new ClaudeAdapter({
       command: "claude",
       cwd: join(home, "workspace"),
       agentId: agent.id,
       model: agent.model,
-      systemPrompt: agent.systemPrompt,
+      systemPrompt: composeSystemPrompt(agent),
       turnTimeoutMs: 300_000,
       // Same person across rooms: one Claude session per agent, not per room.
       sessionScope: agent.sessionScope ?? "agent",

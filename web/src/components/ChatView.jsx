@@ -100,7 +100,7 @@ export default function ChatView({
   const queuedMembers = (activity?.queued ?? []).map((id) => memberById.get(id)).filter(Boolean);
   const mentionPattern = useMemo(() => {
     const names = members
-      .flatMap((m) => [m.name, m.displayName])
+      .flatMap((m) => [m.name, m.displayName, m.role === "generic" ? null : m.role])
       .filter(Boolean)
       .map(escapeRegExp)
       .sort((a, b) => b.length - a.length);
@@ -136,7 +136,12 @@ export default function ChatView({
     if (!mention || dismissed) return [];
     const q = mention.query;
     return agentMembers
-      .filter((m) => m.name.toLowerCase().startsWith(q) || (m.displayName ?? "").toLowerCase().startsWith(q))
+      .filter(
+        (m) =>
+          m.name.toLowerCase().startsWith(q) ||
+          (m.displayName ?? "").toLowerCase().startsWith(q) ||
+          (m.role ?? "").toLowerCase().startsWith(q),
+      )
       .slice(0, 6);
   }, [mention, dismissed, agentMembers]);
 

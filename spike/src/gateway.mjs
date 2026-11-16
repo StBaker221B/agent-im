@@ -559,9 +559,19 @@ export class Gateway {
 
   #resolveMentions(text, selfId) {
     const byLocalpart = new Map();
+    const roleCounts = new Map();
+    for (const [, agent] of this.engine.agents) {
+      const aliases = [agent.role, ...(agent.roles ?? [])].filter(Boolean);
+      for (const alias of aliases) roleCounts.set(alias, (roleCounts.get(alias) ?? 0) + 1);
+    }
     for (const [id, agent] of this.engine.agents) {
       byLocalpart.set(String(id).replace(/^@/, "").split(":")[0], id);
       if (agent.displayName && !byLocalpart.has(agent.displayName)) byLocalpart.set(agent.displayName, id);
+      // @reviewer / @coder resolves only when that role is unique.
+      const aliases = [agent.role, ...(agent.roles ?? [])].filter(Boolean);
+      for (const alias of aliases) {
+        if (roleCounts.get(alias) === 1 && !byLocalpart.has(alias)) byLocalpart.set(alias, id);
+      }
     }
     const out = new Set();
     for (const m of String(text ?? "").matchAll(/@([\p{L}\p{N}._=-]+)(?::([A-Za-z0-9.-]+))?/gu)) {

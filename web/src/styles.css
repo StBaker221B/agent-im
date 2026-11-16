@@ -566,6 +566,12 @@ button {
   background: var(--hover);
 }
 
+.head-action.on {
+  background: var(--active);
+  color: var(--ink);
+  border-color: var(--own);
+}
+
 .member-count {
   display: flex;
   align-items: center;

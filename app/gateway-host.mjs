@@ -66,6 +66,7 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
 
   const clients = new Map();
   const runtimes = new Map();
+  const roomModes = new Map(store.rooms.map((room) => [room.id, room.mode ?? "brief"]));
   for (const agent of store.agents) {
     engine.addAgent(engineProfile(agent, humanId));
     clients.set(
@@ -94,6 +95,12 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     log,
   });
 
+  const applyRoomMode = (roomId, mode = "brief") => {
+    roomModes.set(roomId, mode);
+    const engineRoom = engine.rooms.get(roomId);
+    if (engineRoom) engineRoom.mode = mode;
+  };
+
   return {
     engine,
     clients,
@@ -102,6 +109,11 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
 
     async start() {
       await gateway.start();
+      for (const [roomId, mode] of roomModes) applyRoomMode(roomId, mode);
+    },
+
+    setRoomMode(roomId, mode) {
+      applyRoomMode(roomId, mode);
     },
 
     async stop() {
@@ -137,8 +149,10 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
       }
     },
 
-    async attachRoom(roomId) {
+    async attachRoom(roomId, mode = "brief") {
+      roomModes.set(roomId, mode);
       await gateway.addRoom(roomId);
+      applyRoomMode(roomId, mode);
     },
 
     async syncRoom(roomId) {
@@ -146,6 +160,7 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     },
 
     async removeRoom(roomId) {
+      roomModes.delete(roomId);
       await gateway.removeRoom(roomId);
     },
 

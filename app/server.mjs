@@ -316,13 +316,14 @@ async function createDm(body) {
   const room = store.addRoom({
     id: roomId,
     kind: "dm",
+    mode: "brief",
     name: agent.displayName,
     peerId: agent.id,
     memberIds: [store.human.id, agent.id],
     createdAt: new Date().toISOString(),
     lastReadTs: Date.now(),
   });
-  await host.attachRoom(roomId);
+  await host.attachRoom(roomId, "brief");
   log(`[app] dm created ${room.id} with ${agent.id}`);
   return { room: await roomSummary(room), existing: false };
 }
@@ -344,15 +345,27 @@ async function createGroup(body) {
   const room = store.addRoom({
     id: roomId,
     kind: "group",
+    mode: "brief",
     name,
     peerId: null,
     memberIds: [store.human.id, ...agents.map((a) => a.id)],
     createdAt: new Date().toISOString(),
     lastReadTs: Date.now(),
   });
-  await host.attachRoom(roomId);
+  await host.attachRoom(roomId, "brief");
   log(`[app] group created ${room.id} "${name}" agents=${agents.length}`);
   return { room: await roomSummary(room), existing: false };
+}
+
+async function updateRoom(roomId, body) {
+  const room = store.room(roomId);
+  if (!room) throw Object.assign(new Error("room not found"), { status: 404 });
+  if (body.mode !== undefined) {
+    const mode = body.mode === "discussion" ? "discussion" : "brief";
+    store.updateRoom(roomId, { mode });
+    host.setRoomMode(roomId, mode);
+  }
+  return roomSummary(store.room(roomId));
 }
 
 async function addMembers(roomId, body) {
@@ -532,6 +545,12 @@ async function handleApi(req, res, url) {
   if (req.method === "DELETE" && parts[1] === "rooms" && parts.length === 3) {
     const roomId = decodeURIComponent(parts[2]);
     return json(res, 200, await deleteRoom(roomId));
+  }
+
+  if (req.method === "PATCH" && parts[1] === "rooms" && parts.length === 3) {
+    const roomId = decodeURIComponent(parts[2]);
+    const body = await readBody(req);
+    return json(res, 200, await updateRoom(roomId, body));
   }
 
   if (req.method === "POST" && url.pathname === "/api/rooms") {

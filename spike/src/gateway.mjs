@@ -398,17 +398,20 @@ export class Gateway {
       text: ev.text,
     });
 
-    await this.#dispatch(result.granted);
+    // Track agents already run by the granted chain (agent A may have @-ed B
+    // and B already took its turn) so the wake list does not run them twice.
+    const dispatched = new Set();
+    await this.#dispatch(result.granted, dispatched);
 
     // wakePolicy=all agents that were not auto-granted ask for the floor.
     for (const agentId of result.wake ?? []) {
-      if (agentId === result.granted?.agentId) continue;
+      if (dispatched.has(agentId)) continue;
       if (this.engine.getThread(ev.roomId, ev.threadId ?? "main")?.floor.holder) break;
       const req = this.engine.requestFloor(ev.roomId, ev.threadId ?? "main", agentId, {
         priority: 2,
         reason: "volunteer",
       });
-      if (req?.granted) await this.#dispatch(req.granted);
+      if (req?.granted) await this.#dispatch(req.granted, dispatched);
     }
   }
 
@@ -423,10 +426,11 @@ export class Gateway {
     });
   }
 
-  async #dispatch(granted) {
+  async #dispatch(granted, dispatched = null) {
     let current = granted;
     while (current) {
       const { agentId, envelope } = current;
+      if (dispatched) dispatched.add(agentId);
       const runtime = this.runtimes.get(agentId);
       const roomId = envelope?.message?.roomId;
       const threadId = envelope?.message?.threadId ?? "main";

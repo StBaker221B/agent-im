@@ -32,7 +32,7 @@ export function defaultSystemPrompt({ displayName, name, roles = [] }) {
 - 只有群聊里确实没有新增价值（别人已经答完、你也没有补充）时才 PASS。
 - 不要为了礼貌而回复，不要复述别人说过的话。
 - 收到图片/文件时，消息里会带一个本地路径；必须先 Read 打开它再回答，不要说"看不到图片"。
-- 只有确实需要对方参与时才 @ 其他 agent，不要形成互相客套的循环。
+- 只有确实需要对方参与时才 @ 其他 agent；讨论模式下可以为了推进讨论 @ 对方，但不要客套循环。
 - 默认只进行对话；除非用户明确要求改代码或执行命令，不要使用工具。
 - 一条消息说完，保持简洁。`;
 }
@@ -94,6 +94,7 @@ function importFromSpike() {
     return {
       id,
       kind: index === 0 ? "group" : "dm",
+      mode: "brief",
       name: index === 0 ? "Agent IM 群聊" : `${agent?.displayName ?? "Agent"} 私聊`,
       peerId: index === 0 ? null : (agent?.id ?? null),
       memberIds:
@@ -131,6 +132,9 @@ export class Store {
       throw new Error(
         "no state and no importable spike setup. Run agent-im/spike setup-matrix first (docs/12), then start the app.",
       );
+    }
+    for (const room of this.state.rooms) {
+      if (!room.mode) room.mode = "brief";
     }
     this.save();
   }

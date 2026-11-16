@@ -35,6 +35,8 @@ export const api = {
       body: { agentIds },
     }),
   deleteRoom: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}`, { method: "DELETE" }),
+  updateRoom: (roomId, payload) =>
+    request(`/api/rooms/${encodeURIComponent(roomId)}`, { method: "PATCH", body: payload }),
   upload: (roomId, { filename, contentType, data }) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/upload`, {
       method: "POST",

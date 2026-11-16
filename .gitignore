@@ -7,3 +7,4 @@ worktrees/
 *.log
 spike/.tmp/
 spike/.tmp-*
+web/dist/

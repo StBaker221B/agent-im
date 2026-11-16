@@ -44,7 +44,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 群聊默认自由讨论：agent 可以互相 @ 继续；不再有「讨论模式」toggle。
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
 - 新建/设置页的工具权限选择 `template/full/off`；设置页用量表来自 `/api/usage`（今天/累计 turns + USD），每 agent 可设每日 USD 预算、triage 冷却/每小时上限/skipAcks、暂停/启用。
-- 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具；`intent=tool_request` 的消息下有「批准并继续」按钮。
+- 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮；设置页显示/撤销已批准工具。
 
 ## 设计
 

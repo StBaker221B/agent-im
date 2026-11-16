@@ -403,7 +403,7 @@ type RuntimeCapabilities = {
   - **角色模板 + 私有知识**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + `knowledge/*.md`；角色别名 `@reviewer` 在唯一时解析。实验 coder×reviewer 形成"提案→质疑→修正→确认"闭环（记录 09）。
   - **自主工具循环**：沙箱 failing tests + coder/reviewer 工具权限；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，最终 5/5 通过（记录 10）。
   - **成本护栏**：规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）写 `audit.triage_skip`；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`，权限可手动放开（记录 12）。
-  - **流式 + 工具审批**：adapter `text_delta` → SSE `/api/events` → UI 实时气泡；`REQUEST_TOOL: <tool> <原因>` → intent=`tool_request` → 人类批准 → full + 人类消息继续；off 强制 `dontAsk`（记录 14）。
+  - **流式 + 工具审批**：adapter `text_delta` → SSE `/api/events` → UI 实时气泡；`REQUEST_TOOL: <tool> <原因>` → intent=`tool_request` → 人类批准 → 单工具持久 grant + 人类消息继续；off 用 `--tools "" --permission-mode dontAsk`（记录 14）。
 - 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md)、[14 角色模板与计划](14-role-templates-and-roadmap.md)，以及 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md) / [记录 10](records/2026-11-16-10-autonomy-bugfix.md) / [记录 12](records/2026-11-16-12-permissions-triage-usage.md) / [记录 14](records/2026-11-17-14-streaming-and-tool-approval.md)。
 
 ## 15. 待确认

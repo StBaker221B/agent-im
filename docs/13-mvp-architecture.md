@@ -137,7 +137,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
-| `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；切 `toolsMode=full`、重建 runtime，并以人类身份 @ agent 让它继续 |
+| `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
@@ -233,8 +233,9 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 ### 7.3 流式与工具申请
 
 - **流式**：ClaudeAdapter 用 `--include-partial-messages` 取 `text_delta`，Gateway `onEvent` 发 `turn_start / text_delta / tool_use / tool_result / turn_end / skip`；Server 用 SSE `GET /api/events`；UI 在消息末尾显示实时气泡和正在使用的工具，`turn_end` 后移除，等 Matrix 最终消息。
-- **工具申请**：系统提示列出当前可用工具；需要不可用工具时 agent 回复 `REQUEST_TOOL: <tool> <原因>`。Gateway 发一条 intent=`tool_request` 的消息（`com.agentim.tool` 带工具名）；UI 显示「批准并继续」；`POST /api/agents/:id/approve-tool` 切 `toolsMode=full`、重建 runtime，并以人类身份 @ 该 agent 让它继续。
-- **边界**：审批是 turn 后合作式，不是执行前拦截；批准等于 full 工具，不是单工具 grant；流式只流最终文本 delta，不流工具参数/思考。
+- **工具申请**：系统提示列出当前可用工具；需要不可用工具时 agent 回复 `REQUEST_TOOL: <tool> <原因>`。Gateway 发一条 intent=`tool_request` 的消息（`com.agentim.tool` 带工具名）；UI 显示「批准并继续」；`POST /api/agents/:id/approve-tool` 把该工具加入 `approvedTools`（单工具、持久）、重建 runtime，并以人类身份 @ 该 agent 让它继续。设置页可撤销。
+- **硬拒绝**：`toolsMode=off` 用 `--tools "" --permission-mode dontAsk`；只加批准的工具有可用集合。模型在无工具时输出的 DSML/XML tool call 会被 `parseReply` 转成 `tool_request`，不直接发到房间。
+- **边界**：审批是 turn 后合作式，不是执行前拦截；批准是单工具、agent 级持久 grant，不改变 toolsMode；流式只流最终文本 delta，不流工具参数/思考。
 
 ## 8. 安全边界
 
@@ -253,7 +254,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，但不能删除 agent、不能改 runtime、不能移除成员。
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
-- 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准等于 full 工具，不是单工具、也不是执行前拦截。支持图片/文件，但没有语音/视频、缩略图和断点续传。
+- 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。
 - 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - triage 参数可按 agent 配，但默认值写死在 Gateway；每日 USD 预算按 UTC 日、内存恢复，没有全局总额。
@@ -314,5 +315,6 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **预算 PASS**：claude-dev 今日已花 $0.8376，预算设 $0.01 后 DM 发消息没有 agent turn，audit `budget_skip spent=0.8376 cap=0.01`；恢复 0 后正常。
 - **暂停/triage 配置 PASS**：pm 暂停后 DM 发消息只有人类消息，`paused_skip @pm`；`PATCH triage` 参数成功；恢复 active。
 - **流式 PASS（2026-11-17）**：SSE `/api/events` 返回 `text/event-stream`；pm 一条消息收到 13 个 `text_delta` + `turn_start/turn_end`，文本逐字出现。
-- **工具审批 PASS**：pm `toolsMode=off` 时创建 hello3 被拒，回复 `REQUEST_TOOL: PowerShell ...`（intent=`tool_request`、tool=PowerShell）；`approve-tool` 后 agent 继续并创建 `hello3.txt`，内容正确。
-- **off 漏洞修复**：修复前 off 没传 `dontAsk`，pm 直接创建了 hello/hello2；修复后 off 强制 `dontAsk`，同样的创建请求被硬拒。
+- **工具审批 PASS**：pm `toolsMode=off` 时创建 hello3 被拒，回复 `REQUEST_TOOL: PowerShell ...`（intent=`tool_request`、tool=PowerShell）；`approve-tool` 后 agent 继续并创建 `hello3.txt`，`toolsMode` 仍是 off、`approvedTools=["PowerShell"]`。
+- **读取/DSML PASS**：pm off 读 hello4 时输出 DSML，被转成 `tool_request: Read`；批准 Read 后正常读出 `hello4`，没有原始 XML 进房间。
+- **off 漏洞修复**：修复前 off 没传 `dontAsk`，pm 直接创建了 hello/hello2；随后发现 `dontAsk` 仍放行 Read，最终用 `--tools ""`（init tools=[]）彻底关闭；同样的创建/读取请求都被硬拒或转成申请。

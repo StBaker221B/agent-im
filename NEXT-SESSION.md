@@ -21,7 +21,7 @@
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
   - **成本护栏**：规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient，参数可在设置页按 agent 调）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`；每 agent `dailyBudgetUsd`（超预算 PASS + `budget_skip`）；`status=paused`（`paused_skip`）。
-  - **流式 + 工具审批**：`--include-partial-messages` → `text_delta` → SSE `/api/events` → UI 实时气泡；系统提示列可用工具，需要时 `REQUEST_TOOL: <tool> <原因>` → intent=`tool_request` → UI 批准 → `approve-tool` 切 full + 人类 @ 它继续。`toolsMode=off` 现在强制 `dontAsk`（修复了曾经能写文件的漏洞）。
+  - **流式 + 工具审批**：`--include-partial-messages` → `text_delta` → SSE `/api/events` → UI 实时气泡；系统提示列可用工具，需要时 `REQUEST_TOOL: <tool> <原因>`（或 DSML 兜底）→ intent=`tool_request` → UI 批准 → `approve-tool` 加单工具 + 人类 @ 它继续。`toolsMode=off` 用 `--tools "" --permission-mode dontAsk` 硬拒绝；`approvedTools` 可在设置页撤销。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
 - 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
@@ -135,7 +135,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 
 1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；27 tests。
 2. **成本控制 v2 已做**（规则 triage/用量/每日预算/参数 UI）；待做全局预算、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
-3. **流式 + 工具审批 v1 已做**；待做执行前工具审批、单工具 grant、worktree/容器沙箱、SSE 断线补发。
+3. **流式 + 工具审批 v1 已做**（单工具 grant、DSML 兜底、off 硬拒绝）；待做执行前工具审批、按 thread/过期授权、worktree/容器沙箱、SSE 断线补发。
 4. 房间/agent 管理：删除/改名 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改模板/工具/预算、暂停/启用已完成）。
 5. 历史搜索：现在每房间最近 100 条子串匹配；做分页/索引（Matrix `/search` 或本地索引）。
 6. 跨房间记忆的隐私硬化：现在是系统提示级；可做 memory 摘要 + 每房间 session，或给 agent 受控 memory 文件。

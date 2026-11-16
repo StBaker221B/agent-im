@@ -2,7 +2,7 @@
 // runtimes. One process hosts every agent worker.
 
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { Engine } from "../spike/src/scheduler.mjs";
 import { ClaudeAdapter } from "../spike/src/claude-adapter.mjs";
 import { ScriptPeer, scripts } from "../spike/src/script-peer.mjs";
@@ -34,7 +34,7 @@ function createRuntime(agent, { dataDir, log }) {
   if (agent.runtime === "claude") {
     return new ClaudeAdapter({
       command: "claude",
-      cwd: join(home, "workspace"),
+      cwd: agent.cwd ? resolve(agent.cwd) : join(home, "workspace"),
       agentId: agent.id,
       model: agent.model,
       systemPrompt: composeSystemPrompt(agent),
@@ -42,6 +42,7 @@ function createRuntime(agent, { dataDir, log }) {
       // Same person across rooms: one Claude session per agent, not per room.
       sessionScope: agent.sessionScope ?? "agent",
       sessionStorePath: join(home, "sessions", "claude.json"),
+      extraArgs: agent.extraArgs ?? [],
       log: (msg) => log(`[claude:${agent.name}] ${msg}`),
     });
   }

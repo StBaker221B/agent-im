@@ -16,7 +16,8 @@ import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ROLE_NAMES, Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
+import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
+import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -214,19 +215,33 @@ function validateUsername(username) {
   if (store.agent(username)) throw Object.assign(new Error("这个 ID 已经存在"), { status: 409 });
 }
 
+function toolArgsFor(template, enabled, runtime) {
+  if (!enabled || runtime !== "claude" || !template?.tools?.allow?.length) return [];
+  return ["--permission-mode", "dontAsk", "--allowedTools", template.tools.allow.join(",")];
+}
+
+function parseRoles(body) {
+  const list = Array.isArray(body.roles)
+    ? body.roles.map(String).filter(Boolean)
+    : String(body.roles ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+  // Template ids are added by the server; keep them out of user tags.
+  return list.filter((r) => !TEMPLATE_IDS.includes(r));
+}
+
 async function createAgent(body) {
   const username = String(body.username ?? "")
     .trim()
     .toLowerCase();
   const displayName = String(body.displayName ?? "").trim() || username;
   const runtime = body.runtime === "script" ? "script" : "claude";
-  const role = ROLE_NAMES.includes(body.role) ? body.role : "generic";
-  const roles = Array.isArray(body.roles)
-    ? body.roles.map(String).filter(Boolean)
-    : String(body.roles ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+  const templateId = TEMPLATE_IDS.includes(body.templateId) ? body.templateId : "generic";
+  const template = getTemplate(templateId);
+  const tags = parseRoles(body);
+  const roles = [...new Set([template.id, ...tags])];
+  const toolsEnabled = runtime === "claude" && body.toolsEnabled !== false;
   validateUsername(username);
 
   const password = randomBytes(18).toString("base64url");
@@ -241,27 +256,35 @@ async function createAgent(body) {
     password,
     accessToken: account.accessToken,
     runtime,
-    role,
+    role: template.role,
+    templateId,
     script: runtime === "script" ? "reviewer" : undefined,
     roles,
     domains: [],
     systemPrompt:
-      String(body.systemPrompt ?? "").trim() || defaultSystemPrompt({ displayName, name: username, roles }),
-    wakePolicy: runtime === "script" ? "mention_only" : "human_all",
+      String(body.systemPrompt ?? "").trim() ||
+      defaultSystemPrompt({ displayName, name: username, roles: [template.name, ...tags] }),
+    wakePolicy: runtime === "script" ? "mention_only" : (template.defaultWakePolicy ?? "human_all"),
+    toolsEnabled,
+    extraArgs: toolArgsFor(template, toolsEnabled, runtime),
     status: "active",
     agentHome: join(dataDir, "agents", username),
     createdAt: new Date().toISOString(),
   };
   store.addAgent(agent);
   await host.attachAgent(agent);
-  log(`[app] agent created ${agent.id} runtime=${runtime}`);
+  log(`[app] agent created ${agent.id} template=${templateId} runtime=${runtime}`);
   return {
     id: agent.id,
     name: agent.name,
     displayName: agent.displayName,
     runtime: agent.runtime,
     role: agent.role,
+    templateId: agent.templateId,
+    templateName: template.name,
+    mission: template.mission,
     roles: agent.roles,
+    toolsEnabled: agent.toolsEnabled,
     status: "idle",
   };
 }
@@ -274,24 +297,42 @@ async function updateAgent(agentId, body) {
   const patch = {};
   if (typeof body.displayName === "string" && body.displayName.trim())
     patch.displayName = body.displayName.trim();
-  if (body.roles !== undefined) {
-    patch.roles = Array.isArray(body.roles)
-      ? body.roles.map(String).filter(Boolean)
-      : String(body.roles)
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+
+  const oldTemplateId = agent.templateId;
+  let template = getTemplate(agent.templateId) ?? getTemplate("generic");
+  let templateChanged = false;
+  if (body.templateId !== undefined) {
+    if (!TEMPLATE_IDS.includes(body.templateId))
+      throw Object.assign(new Error("bad templateId"), { status: 400 });
+    template = getTemplate(body.templateId);
+    templateChanged = template.id !== oldTemplateId;
+    patch.templateId = template.id;
+    patch.role = template.role;
   }
+
+  if (body.roles !== undefined) {
+    patch.roles = [...new Set([template.id, ...parseRoles(body)])];
+  } else if (templateChanged) {
+    patch.roles = [...new Set([template.id, ...(agent.roles ?? []).filter((r) => r !== oldTemplateId)])];
+  }
+
   if (body.wakePolicy !== undefined) {
     if (!WAKE_POLICIES.has(body.wakePolicy))
       throw Object.assign(new Error("bad wakePolicy"), { status: 400 });
     patch.wakePolicy = body.wakePolicy;
   }
-  if (body.role !== undefined) {
-    if (!ROLE_NAMES.includes(body.role)) throw Object.assign(new Error("bad role"), { status: 400 });
-    patch.role = body.role;
+
+  let toolsEnabled = Boolean(agent.toolsEnabled);
+  let toolsChanged = false;
+  if (body.toolsEnabled !== undefined) {
+    toolsChanged = Boolean(body.toolsEnabled) !== toolsEnabled;
+    toolsEnabled = Boolean(body.toolsEnabled);
+    patch.toolsEnabled = toolsEnabled;
   }
-  const roleChanged = patch.role !== undefined && patch.role !== agent.role;
+  if (templateChanged || toolsChanged) {
+    patch.extraArgs = toolArgsFor(template, toolsEnabled, agent.runtime);
+  }
+
   const promptChanged = typeof body.systemPrompt === "string" && body.systemPrompt !== agent.systemPrompt;
   if (typeof body.systemPrompt === "string") patch.systemPrompt = body.systemPrompt;
   Object.assign(agent, patch);
@@ -307,8 +348,9 @@ async function updateAgent(agentId, body) {
     if (patch.displayName) engineAgent.displayName = patch.displayName;
     if (patch.roles) engineAgent.roles = patch.roles;
     if (patch.wakePolicy) engineAgent.wakePolicy = patch.wakePolicy;
+    if (templateChanged) engineAgent.role = template.role;
   }
-  if (promptChanged || roleChanged) await host.updateAgent(agent);
+  if (promptChanged || templateChanged || toolsChanged) await host.updateAgent(agent);
   log(`[app] agent updated ${agent.id}`);
   return {
     id: agent.id,
@@ -316,7 +358,11 @@ async function updateAgent(agentId, body) {
     displayName: agent.displayName,
     runtime: agent.runtime,
     role: agent.role,
+    templateId: agent.templateId,
+    templateName: template.name,
+    mission: template.mission,
     roles: agent.roles,
+    toolsEnabled: Boolean(agent.toolsEnabled),
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),
   };
@@ -438,6 +484,10 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/health") {
     const health = await host.gateway.health();
     return json(res, 200, { ok: true, running: health.running, rooms: health.rooms });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/role-templates") {
+    return json(res, 200, { templates: TEMPLATE_LIST.map(publicTemplate) });
   }
 
   if (req.method === "GET" && url.pathname === "/api/search") {

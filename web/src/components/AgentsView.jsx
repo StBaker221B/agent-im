@@ -49,11 +49,14 @@ export default function AgentsView({ agents, onNew, onDm, onProfile, onBack }) {
                 <span className={`chip-runtime ${agent.runtime}`}>
                   {agent.runtime === "script" ? "测试脚本" : "Claude"}
                 </span>
-                {agent.roles.map((role) => (
-                  <span className="chip-role" key={role}>
-                    {role}
-                  </span>
-                ))}
+                {agent.templateName && <span className="chip-role">{agent.templateName}</span>}
+                {agent.roles
+                  .filter((role) => role !== agent.templateId)
+                  .map((role) => (
+                    <span className="chip-role" key={role}>
+                      {role}
+                    </span>
+                  ))}
               </div>
             </div>
             <div className={`agent-status ${agent.status}`}>

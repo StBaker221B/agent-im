@@ -3,12 +3,6 @@ import Icon from "./Icon";
 import { useDialogFocus } from "../useDialogFocus";
 
 const STATUS = { idle: "空闲", working: "思考中", offline: "离线" };
-const ROLE_LABEL = {
-  generic: "通用",
-  coder: "coder（实现）",
-  reviewer: "reviewer（评审）",
-  researcher: "researcher（研究）",
-};
 const WAKE = {
   human_all: "每条人类消息都会判断",
   mention_only: "只被 @ 时回复",
@@ -59,7 +53,7 @@ export default function ProfileModal({ profile, onClose, onDm }) {
             {isAgent && (
               <div>
                 <dt>角色模板</dt>
-                <dd>{ROLE_LABEL[profile.role] ?? profile.role ?? "通用"}</dd>
+                <dd>{profile.templateName ?? profile.role ?? "通用"}</dd>
               </div>
             )}
             {isAgent && (
@@ -77,7 +71,7 @@ export default function ProfileModal({ profile, onClose, onDm }) {
             {isAgent && (
               <div>
                 <dt>角色</dt>
-                <dd>{profile.roles?.length ? profile.roles.join("、") : "通用"}</dd>
+                <dd>{(profile.roles ?? []).filter((r) => r !== profile.templateId).join("、") || "通用"}</dd>
               </div>
             )}
             {isAgent && profile.domains?.length > 0 && (
@@ -88,6 +82,7 @@ export default function ProfileModal({ profile, onClose, onDm }) {
             )}
           </dl>
 
+          {isAgent && profile.mission && <p className="profile-note">{profile.mission}</p>}
           {isAgent && (
             <p className="profile-note">这个 agent 在群聊和私聊共享同一份记忆，但会把私聊内容留在私聊。</p>
           )}

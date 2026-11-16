@@ -34,6 +34,7 @@ function EmptyChat({ onNew }) {
 
 export default function App() {
   const [data, setData] = useState(null);
+  const [templates, setTemplates] = useState([]);
   const [connected, setConnected] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [view, setView] = useState("chat");
@@ -76,6 +77,13 @@ export default function App() {
     const timer = setInterval(loadBootstrap, 2500);
     return () => clearInterval(timer);
   }, [loadBootstrap]);
+
+  useEffect(() => {
+    api
+      .roleTemplates()
+      .then((res) => setTemplates(res.templates ?? []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -365,7 +373,12 @@ export default function App() {
             onBack={() => setMobilePane("list")}
           />
         ) : view === "settings" ? (
-          <SettingsView data={data} onSave={saveAgent} onBack={() => setMobilePane("list")} />
+          <SettingsView
+            data={data}
+            templates={templates}
+            onSave={saveAgent}
+            onBack={() => setMobilePane("list")}
+          />
         ) : activeRoom ? (
           <ChatView
             key={activeRoom.id}
@@ -405,6 +418,7 @@ export default function App() {
 
       {modal === "agent" && (
         <NewAgentModal
+          templates={templates}
           busy={busy}
           error={modalError}
           onClose={() => {

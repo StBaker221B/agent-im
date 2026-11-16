@@ -2,13 +2,6 @@ import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
 
-const ROLE_OPTIONS = [
-  { value: "generic", label: "通用" },
-  { value: "coder", label: "coder（实现）" },
-  { value: "reviewer", label: "reviewer（评审）" },
-  { value: "researcher", label: "researcher（研究）" },
-];
-
 const WAKE_OPTIONS = [
   { value: "human_all", label: "人类消息全部判断（默认）" },
   { value: "mention_only", label: "只在被 @ 时回复" },
@@ -17,20 +10,23 @@ const WAKE_OPTIONS = [
   { value: "digest", label: "只收摘要" },
 ];
 
-function AgentSettings({ agent, onSave }) {
+function AgentSettings({ agent, templates, onSave }) {
   const [displayName, setDisplayName] = useState(agent.displayName ?? "");
-  const [role, setRole] = useState(agent.role ?? "generic");
-  const [roles, setRoles] = useState((agent.roles ?? []).join(", "));
+  const [templateId, setTemplateId] = useState(agent.templateId ?? "generic");
+  const [roles, setRoles] = useState((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
   const [wakePolicy, setWakePolicy] = useState(agent.wakePolicy ?? "human_all");
+  const [toolsEnabled, setToolsEnabled] = useState(Boolean(agent.toolsEnabled));
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const template = templates.find((t) => t.id === templateId) ?? null;
 
   useEffect(() => {
     setDisplayName(agent.displayName ?? "");
-    setRole(agent.role ?? "generic");
-    setRoles((agent.roles ?? []).join(", "));
+    setTemplateId(agent.templateId ?? "generic");
+    setRoles((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
     setWakePolicy(agent.wakePolicy ?? "human_all");
+    setToolsEnabled(Boolean(agent.toolsEnabled));
     setSystemPrompt(agent.systemPrompt ?? "");
   }, [agent]);
 
@@ -39,7 +35,14 @@ function AgentSettings({ agent, onSave }) {
     setSaving(true);
     setSaved(false);
     try {
-      const ok = await onSave(agent.id, { displayName, role, roles, wakePolicy, systemPrompt });
+      const ok = await onSave(agent.id, {
+        displayName,
+        templateId,
+        roles,
+        wakePolicy,
+        toolsEnabled,
+        systemPrompt,
+      });
       if (ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
@@ -83,10 +86,10 @@ function AgentSettings({ agent, onSave }) {
       <div className="field-row">
         <label className="field">
           <span>角色模板</span>
-          <select name="role" value={role} onChange={(e) => setRole(e.target.value)}>
-            {ROLE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+          <select name="templateId" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}（{t.category}）
               </option>
             ))}
           </select>
@@ -103,8 +106,28 @@ function AgentSettings({ agent, onSave }) {
         </label>
       </div>
 
+      {template && (
+        <div className="template-preview compact">
+          <div className="template-preview-head">
+            <strong>{template.name}</strong>
+            <span>{template.mission}</span>
+          </div>
+          <p className="template-boundary">边界：{template.boundaries.slice(0, 3).join("；")}</p>
+          <p className="template-meta">
+            工具：{(template.tools?.allow ?? []).join(" / ") || "无"} · 知识包：
+            {(template.knowledgePacks ?? []).join("、") || "无"}
+          </p>
+        </div>
+      )}
+
+      <label className="check-inline">
+        <input type="checkbox" checked={toolsEnabled} onChange={(e) => setToolsEnabled(e.target.checked)} />
+        <span>按模板启用工具（本地 workspace）</span>
+      </label>
+
       <p className="form-note">
-        私有知识：<code>app/data/agents/{agent.name}/knowledge/*.md</code>，改完保存或重启后重建 runtime。
+        私有知识：<code>app/data/agents/{agent.name}/knowledge/*.md</code>；角色知识包在
+        <code>app/role-knowledge/{templateId}.md</code>。改模板/工具/提示会重建 runtime。
       </p>
 
       {agent.runtime !== "script" && (
@@ -127,7 +150,7 @@ function AgentSettings({ agent, onSave }) {
   );
 }
 
-export default function SettingsView({ data, onSave, onBack }) {
+export default function SettingsView({ data, templates = [], onSave, onBack }) {
   return (
     <section className="settings-view">
       <header className="view-head">
@@ -172,7 +195,7 @@ export default function SettingsView({ data, onSave, onBack }) {
         </p>
         <div className="settings-agents">
           {(data?.agents ?? []).map((agent) => (
-            <AgentSettings key={agent.id} agent={agent} onSave={onSave} />
+            <AgentSettings key={agent.id} agent={agent} templates={templates} onSave={onSave} />
           ))}
         </div>
       </div>

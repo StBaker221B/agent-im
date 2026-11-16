@@ -36,6 +36,11 @@ export class Engine {
     return this.now;
   }
 
+  setNow(now) {
+    this.now = now;
+    return this.now;
+  }
+
   addAgent(agent) {
     if (!agent.id) throw new Error("agent.id required");
     this.agents.set(agent.id, {
@@ -101,6 +106,68 @@ export class Engine {
     return thread;
   }
 
+  /**
+   * Rebuild a thread from persisted history without waking anyone or granting
+   * the floor. Hydrated ids are treated as already consumed, so a synced replay
+   * of the same event is ignored. Callers must only pass messages that are
+   * known to predate the gateway's persisted high-water mark.
+   */
+  hydrateThread({ roomId, threadId, messages = [] }) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new Error(`unknown room ${roomId}`);
+    let thread = this.getThread(roomId, threadId);
+    if (!thread) thread = this.createThread({ roomId, threadId });
+    const seen = new Set(thread.messages.map((m) => m.id));
+    for (const input of messages) {
+      if (!input?.id || seen.has(input.id)) continue;
+      const message = {
+        id: input.id,
+        roomId,
+        threadId,
+        sender: input.sender,
+        senderKind: input.senderKind ?? (this.agents.get(input.sender)?.kind ?? "human"),
+        text: input.text ?? "",
+        intent: input.intent ?? "chat",
+        mentions: input.mentions ?? [],
+        replyTo: input.replyTo,
+        proposalId: input.proposalId,
+        taskId: input.taskId,
+        taskOwner: input.taskOwner,
+        artifact: input.artifact,
+        createdAt: input.createdAt ?? this.now,
+      };
+      thread.messages.push(message);
+      thread.version += 1;
+      for (const memberId of room.members) thread.seenVersion.set(memberId, thread.version);
+      if (this.#isSubstantive(message)) thread.lastSubstantiveAt = this.now;
+      this.#trackTaskOrQuestion(message, thread);
+      if (message.intent === "proposal" && message.proposalId && !this.proposals.has(message.proposalId)) {
+        // A historical proposal without a recorded decision is closed by
+        // definition; leaving it open would block quiescence forever.
+        this.proposals.set(message.proposalId, {
+          id: message.proposalId,
+          threadKey: thread.key,
+          roomId,
+          threadId,
+          proposer: message.sender,
+          createdAt: message.createdAt,
+          deadlineAt: message.createdAt,
+          votes: new Map(),
+          status: "closed_history",
+        });
+      }
+      this.processedMessageIds.add(message.id);
+      seen.add(message.id);
+    }
+    for (const [agentId, state] of thread.states) {
+      if (state === "thinking" || state === "working" || state === "waiting") thread.states.set(agentId, "idle");
+    }
+    thread.floor.holder = null;
+    thread.floor.human = false;
+    thread.floor.version += 1;
+    return thread;
+  }
+
   getThread(roomId, threadId) {
     return this.threads.get(`${roomId}/${threadId}`);
   }
@@ -158,6 +225,24 @@ export class Engine {
     this.#trackTaskOrQuestion(message, thread);
     this.#maybeCreateProposal(message, thread);
     this.#syncHumanFloor(message, thread);
+
+    // A human message in the thread is a response to anything the agents were
+    // waiting on (ASK_HUMAN / approval). Clear the block and give the waiting
+    // agents the floor back; an explicit mention/reply still outranks this.
+    if (message.senderKind === "human") {
+      thread.pendingApprovals.clear();
+      for (const [agentId, state] of thread.states) {
+        if (state !== "waiting") continue;
+        thread.states.set(agentId, "idle");
+        this.#enqueue(thread, {
+          agentId,
+          priority: 1,
+          enqueuedAt: this.now,
+          reason: "reply",
+          messageId: message.id,
+        });
+      }
+    }
 
     const wake = [];
     for (const memberId of deliveredTo) {
@@ -247,16 +332,23 @@ export class Engine {
 
     if (outbound.type === "ask_human") {
       const escalation = this.resolveEscalation(thread, agentId);
+      const msg = this.#appendAgentMessage(thread, agentId, {
+        text: outbound.question ?? outbound.text ?? "",
+        intent: "ask_human",
+        mentions: outbound.mentions ?? [],
+        id: outId,
+      });
       thread.pendingApprovals.add(nextId("approval"));
       thread.states.set(agentId, "waiting");
       this.#release(thread);
-      return { accepted: true, askHuman: true, escalation, granted: this.grantNext(roomId, threadId) };
+      return { accepted: true, message: msg, askHuman: true, escalation, granted: this.grantNext(roomId, threadId) };
     }
 
     if (outbound.type === "done" || outbound.type === "handoff") {
       const msg = this.#appendAgentMessage(thread, agentId, {
         text: outbound.reason ?? "",
         intent: outbound.type,
+        mentions: outbound.mentions ?? [],
         taskId: outbound.taskId,
         artifact: outbound.artifact,
         id: outId,
@@ -328,6 +420,22 @@ export class Engine {
       }
     }
     return results;
+  }
+
+  /** Mark a turn failed, release the floor, and let the queue continue. */
+  failTurn(roomId, threadId, agentId, reason = "turn failed") {
+    const thread = this.getThread(roomId, threadId);
+    if (!thread) throw new Error(`unknown thread ${threadId}`);
+    thread.states.set(agentId, "error");
+    thread.quiescent = false;
+    if (thread.floor.holder === agentId) this.#release(thread);
+    return {
+      type: "turn_failed",
+      thread: thread.key,
+      agentId,
+      reason,
+      granted: this.grantNext(roomId, threadId),
+    };
   }
 
   attentionFor(agentId, message) {

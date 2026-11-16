@@ -4,9 +4,12 @@
 
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync, renameSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { buildAgentPrompt, parseReply } from "./reply.mjs";
+
+export { buildAgentPrompt, parseReply };
 
 const DEFAULT_SYSTEM_PROMPT = `You are an IM participant agent. You see room messages and reply as yourself.
 Be concise. Follow the response markers in the user message.
@@ -59,30 +62,6 @@ function createQueue() {
   };
 }
 
-export function buildAgentPrompt(envelope) {
-  const m = envelope.message;
-  const recent = (envelope.recentMessages ?? [])
-    .slice(-8)
-    .map((x) => `[${x.sender}] ${x.text}`)
-    .join("\n");
-  return `Room ${m.roomId}, thread ${m.threadId}.
-Recent messages:
-${recent || "(none)"}
-
-Newest message from ${m.sender} (${m.senderKind}); mentions=${JSON.stringify(m.mentions ?? [])}; your attention=${envelope.attention}.
-Reply as yourself, in one message max. Do not prefix with your name.
-If you have nothing to add, reply exactly: PASS
-If you need a human decision, reply exactly: ASK_HUMAN: <question>
-If you are done, reply exactly: DONE: <summary>`;
-}
-
-export function parseReply(text) {
-  const t = (text ?? "").trim();
-  if (/^PASS\b/i.test(t) || t === "PASS") return { type: "pass" };
-  if (/^ASK_HUMAN\s*:/i.test(t)) return { type: "ask_human", question: t.replace(/^ASK_HUMAN\s*:/i, "").trim() };
-  if (/^DONE\s*:/i.test(t)) return { type: "done", reason: t.replace(/^DONE\s*:/i, "").trim() };
-  return { type: "message", text: t };
-}
 
 export class ClaudeAdapter {
   constructor(opts = {}) {
@@ -96,10 +75,44 @@ export class ClaudeAdapter {
     this.sessions = new Map();
     this.closed = false;
     this.agentId = opts.agentId ?? "claude-dev";
+    this.sessionStorePath = opts.sessionStorePath ?? null;
+    this.nativeIds = this.#loadSessionStore();
 
     const dir = mkdtempSync(join(tmpdir(), "agent-im-claude-"));
     this.systemPromptPath = join(dir, "system-prompt.txt");
     writeFileSync(this.systemPromptPath, this.systemPrompt, "utf8");
+  }
+
+  /** Persisted thread -> native session id, so a gateway restart can --resume. */
+  #loadSessionStore() {
+    if (!this.sessionStorePath) return new Map();
+    try {
+      const raw = JSON.parse(readFileSync(this.sessionStorePath, "utf8"));
+      return new Map(Object.entries(raw?.sessions ?? {}));
+    } catch (err) {
+      if (err?.code !== "ENOENT") {
+        // A corrupt/mid-write store should not prevent startup; the next turn
+        // starts a fresh native session instead of resuming.
+        console.error(`[claude-adapter] ignoring unreadable session store: ${err.message}`);
+      }
+      return new Map();
+    }
+  }
+
+  #saveSessionStore() {
+    if (!this.sessionStorePath) return;
+    const dir = dirname(this.sessionStorePath);
+    mkdirSync(dir, { recursive: true });
+    const tmp = `${this.sessionStorePath}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ sessions: Object.fromEntries(this.nativeIds) }, null, 2), "utf8");
+    renameSync(tmp, this.sessionStorePath);
+  }
+
+  #rememberSession(key, sessionId) {
+    if (!sessionId) return;
+    if (this.nativeIds.get(key) === sessionId) return;
+    this.nativeIds.set(key, sessionId);
+    this.#saveSessionStore();
   }
 
   capabilities() {
@@ -136,7 +149,7 @@ export class ClaudeAdapter {
     const key = this.keyFor(ctx);
     const existing = this.sessions.get(key);
     if (existing?.child && !existing.exited) return existing;
-    return this.#spawn(ctx, existing?.sessionId);
+    return this.#spawn(ctx, existing?.sessionId ?? this.nativeIds.get(key));
   }
 
   #spawn(ctx, resumeId) {
@@ -256,6 +269,7 @@ export class ClaudeAdapter {
 
     if (ev.type === "system" && ev.subtype === "init") {
       session.sessionId = ev.session_id ?? session.sessionId;
+      this.#rememberSession(session.key, session.sessionId);
       return;
     }
     if (ev.type === "system" && String(ev.subtype ?? "").startsWith("hook")) return;
@@ -295,6 +309,8 @@ export class ClaudeAdapter {
 
     if (ev.type === "result") {
       turn.sessionId = ev.session_id ?? turn.sessionId;
+      session.sessionId = turn.sessionId ?? session.sessionId;
+      this.#rememberSession(session.key, session.sessionId);
       turn.usage = ev.usage ?? null;
       turn.cost = ev.total_cost_usd ?? null;
       turn.queue.push({

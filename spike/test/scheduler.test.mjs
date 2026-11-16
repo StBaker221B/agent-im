@@ -176,3 +176,26 @@ test("whoCanHelp resolves roles/domains", () => {
   assert.deepEqual(e.whoCanHelp("auth"), ["a1"]);
   assert.deepEqual(e.whoCanHelp("frontend"), ["a2"]);
 });
+
+test("ASK_HUMAN blocks quiescence; a human reply clears it and wakes the waiter", () => {
+  const e = setup();
+  const asker = e.post({ id: "m1", roomId: "r1", threadId: "t1", sender: "human", text: "@a1 decide", mentions: ["a1"] });
+  assert.equal(asker.granted.agentId, "a1");
+
+  const ask = e.agentAct("r1", "t1", "a1", { id: "o1", type: "ask_human", question: "approve the merge?" });
+  assert.equal(ask.accepted, true);
+  assert.equal(e.stateOf("r1", "t1", "a1"), "waiting");
+  assert.equal(e.getThread("r1", "t1").pendingApprovals.size, 1);
+  assert.equal(e.getThread("r1", "t1").messages.at(-1).intent, "ask_human");
+
+  e.advance(1000);
+  assert.ok(!e.tick().some((r) => r.type === "quiescent"), "pending approval blocks quiescence");
+
+  const reply = e.post({ id: "m2", roomId: "r1", threadId: "t1", sender: "human", text: "approved" });
+  assert.equal(reply.granted?.agentId, "a1", "human reply gives the floor back");
+  assert.equal(e.getThread("r1", "t1").pendingApprovals.size, 0);
+
+  e.agentAct("r1", "t1", "a1", { id: "o2", type: "done", reason: "ok" });
+  e.advance(1000);
+  assert.ok(e.tick().some((r) => r.type === "quiescent"));
+});

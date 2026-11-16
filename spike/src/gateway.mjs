@@ -1,0 +1,491 @@
+// Gateway: bridges an IM transport to the deterministic Engine and native
+// runtimes. One process can host several agent identities, each with its own
+// transport client and runtime.
+//
+// v0 simplifications (documented in docs/09 §14):
+// - One global async queue serializes ingestion AND turns. Different threads
+//   do not parallelize yet; same-thread single-writer is guaranteed.
+// - Inbound ids are persisted before the turn runs. A crash mid-turn loses
+//   that reply instead of re-running and risking a duplicate.
+// - Replies use deterministic Matrix txn ids derived from (agent, trigger),
+//   so a retried send is deduplicated by the homeserver.
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { AuditLog } from "./audit.mjs";
+import { parseReply } from "./reply.mjs";
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function fnv1a(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+export class Gateway {
+  constructor({
+    engine,
+    clients,
+    runtimes,
+    rooms = null,
+    statePath = null,
+    auditPath = null,
+    syncTimeoutMs = 30_000,
+    tickMs = 1000,
+    maxQueued = 5000,
+    now = () => Date.now(),
+    log = console.log,
+  }) {
+    this.engine = engine;
+    this.clients = clients;
+    this.runtimes = runtimes;
+    this.rooms = rooms ? [...rooms] : [];
+    this.statePath = statePath;
+    this.audit = new AuditLog(auditPath);
+    this.syncTimeoutMs = syncTimeoutMs;
+    this.tickMs = tickMs;
+    this.maxQueued = maxQueued;
+    this.now = now;
+    this.log = log;
+
+    this.since = new Map();
+    this.processed = new Set();
+    this.lastTs = 0;
+    this.sessions = new Map();
+    this.roomClients = new Map();
+    this.queue = Promise.resolve();
+    this.loops = [];
+    this.tickTimer = null;
+    this.saveTimer = null;
+    this.running = false;
+    this.#loadState();
+  }
+
+  #loadState() {
+    if (!this.statePath || !existsSync(this.statePath)) return;
+    try {
+      const raw = JSON.parse(readFileSync(this.statePath, "utf8"));
+      for (const [id, token] of Object.entries(raw?.since ?? {})) this.since.set(id, token);
+      for (const id of raw?.processed ?? []) this.processed.add(id);
+      this.lastTs = raw?.lastTs ?? 0;
+      this.log(`[gateway] state loaded: since=${this.since.size} processed=${this.processed.size} lastTs=${this.lastTs}`);
+    } catch (err) {
+      this.log(`[gateway] ignoring unreadable state: ${err.message}`);
+    }
+  }
+
+  save() {
+    if (!this.statePath) return;
+    mkdirSync(dirname(this.statePath), { recursive: true });
+    const state = {
+      since: Object.fromEntries(this.since),
+      lastTs: this.lastTs,
+      processed: [...this.processed].slice(-this.maxQueued),
+    };
+    writeFileSync(this.statePath, JSON.stringify(state, null, 2), "utf8");
+  }
+
+  #scheduleSave() {
+    if (!this.statePath || this.saveTimer) return;
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      this.save();
+    }, 100);
+    this.saveTimer.unref?.();
+  }
+
+  async start() {
+    if (this.running) return;
+    this.running = true;
+    for (const [agentId, client] of this.clients) {
+      try {
+        await client.connect?.();
+      } catch (err) {
+        this.log(`[gateway] connect ${agentId} failed: ${err.message}`);
+      }
+    }
+    for (const roomId of this.rooms) {
+      await this.#enqueue(() => this.#ensureRoom(roomId));
+    }
+    this.tickTimer = setInterval(() => this.#tick(), this.tickMs);
+    this.tickTimer.unref?.();
+    for (const [agentId, client] of this.clients) {
+      this.loops.push(this.#syncLoop(agentId, client));
+    }
+    this.log(
+      `[gateway] started rooms=${this.rooms.join(",") || "(discover)"} agents=${[...this.clients.keys()].join(",")}`,
+    );
+  }
+
+  async stop({ timeoutMs = 2000 } = {}) {
+    if (!this.running) return;
+    this.running = false;
+    if (this.tickTimer) clearInterval(this.tickTimer);
+    this.tickTimer = null;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    await Promise.race([Promise.allSettled(this.loops), sleep(timeoutMs)]);
+    await Promise.race([this.queue.catch(() => {}), sleep(timeoutMs)]);
+    this.save();
+    for (const runtime of this.runtimes.values()) {
+      try {
+        await runtime.close?.();
+      } catch (err) {
+        this.log(`[gateway] close runtime failed: ${err.message}`);
+      }
+    }
+    for (const client of this.clients.values()) {
+      try {
+        await client.close?.();
+      } catch (err) {
+        this.log(`[gateway] close client failed: ${err.message}`);
+      }
+    }
+    this.log("[gateway] stopped");
+  }
+
+  async #syncLoop(agentId, client) {
+    while (this.running) {
+      try {
+        const since = this.since.get(agentId);
+        const { events, nextToken } = await client.sync(since, { timeoutMs: this.syncTimeoutMs });
+        if (!this.running) break;
+        for (const ev of events) {
+          await this.#enqueue(() => this.#ingest(ev, client));
+        }
+        if (nextToken !== undefined && nextToken !== null) {
+          this.since.set(agentId, nextToken);
+          this.#scheduleSave();
+        }
+      } catch (err) {
+        if (!this.running) break;
+        this.log(`[sync:${agentId}] ${err.message}`);
+        await sleep(1000);
+      }
+    }
+  }
+
+  #enqueue(task) {
+    const run = this.queue.then(task, task);
+    this.queue = run.then(
+      () => {},
+      () => {},
+    );
+    return run;
+  }
+
+  /** Pick a client that is actually joined to the room (DM peers differ). */
+  async #clientForRoom(roomId, preferred = null) {
+    if (preferred) {
+      this.roomClients.set(roomId, preferred);
+      return preferred;
+    }
+    if (this.roomClients.has(roomId)) return this.roomClients.get(roomId);
+    for (const client of this.clients.values()) {
+      try {
+        await client.members(roomId);
+        this.roomClients.set(roomId, client);
+        return client;
+      } catch {
+        // not joined as this user; try the next one
+      }
+    }
+    return null;
+  }
+
+  async #ensureRoom(roomId, { beforeTs, client: preferred } = {}) {
+    if (this.engine.rooms.has(roomId)) return;
+    const client = await this.#clientForRoom(roomId, preferred);
+    if (!client) return;
+    let memberIds;
+    try {
+      memberIds = await client.members(roomId);
+    } catch (err) {
+      this.log(`[gateway] members ${roomId} failed: ${err.message}`);
+      return;
+    }
+    if (!memberIds.length) return;
+    const admin = memberIds.find((m) => this.engine.agents.get(m)?.kind !== "agent") ?? null;
+    const kind = memberIds.length === 2 ? "dm" : "group";
+    this.engine.addRoom({ id: roomId, members: memberIds, facilitator: admin, admin, kind });
+    this.engine.createThread({ roomId, threadId: "main" });
+    this.engine.setNow(this.now());
+
+    // Hydrate only history that predates the triggering event (if any) and the
+    // persisted high-water mark. It is treated as already consumed.
+    const cutoff = this.lastTs > 0 ? this.lastTs : (beforeTs ?? Number.POSITIVE_INFINITY);
+    try {
+      const history = await client.getMessages(roomId, { limit: 50 });
+      const main = history.filter(
+        (m) => m.threadId === "main" && (m.createdAt ?? 0) < (beforeTs ?? Number.POSITIVE_INFINITY) && (m.createdAt ?? 0) <= cutoff,
+      );
+      if (main.length) this.engine.hydrateThread({ roomId, threadId: "main", messages: main });
+      if (!this.lastTs && main.length) {
+        this.lastTs = Math.max(...main.map((m) => m.createdAt ?? 0));
+      }
+    } catch (err) {
+      this.log(`[gateway] history ${roomId} failed: ${err.message}`);
+    }
+    this.audit.write({ kind: "room_ready", roomId, kind, members: memberIds });
+  }
+
+  async #ensureThread(ev, client = null) {
+    const threadId = ev.threadId ?? "main";
+    if (this.engine.getThread(ev.roomId, threadId)) return;
+    this.engine.createThread({ roomId: ev.roomId, threadId });
+    if (threadId !== "main") {
+      const joined = client ?? (await this.#clientForRoom(ev.roomId));
+      if (!joined) return;
+      try {
+        const root = await joined.getEvent(ev.roomId, threadId);
+        if (root) this.engine.hydrateThread({ roomId: ev.roomId, threadId, messages: [root] });
+      } catch (err) {
+        this.log(`[gateway] thread root ${threadId} failed: ${err.message}`);
+      }
+    }
+  }
+
+  async #ingest(ev, client = null) {
+    // Track the high-water mark for every event we see, including our own
+    // echoes. Restart hydration uses it to include past agent replies.
+    if (ev?.createdAt) this.lastTs = Math.max(this.lastTs, ev.createdAt);
+    if (!ev?.id || this.processed.has(ev.id)) return;
+    await this.#ensureRoom(ev.roomId, { beforeTs: ev.createdAt, client });
+    const room = this.engine.rooms.get(ev.roomId);
+    if (!room) return;
+
+    // In a 2-person room everything is addressed to the other participant.
+    let mentions = [...(ev.mentions ?? [])];
+    if (room.kind === "dm") {
+      for (const m of room.members) {
+        if (m !== ev.sender && this.engine.agents.get(m)?.kind === "agent" && !mentions.includes(m)) mentions.push(m);
+      }
+    }
+
+    // Our own agents' messages are recorded when sent (agentAct). Ignore echoes
+    // and hydrated history.
+    const sender = this.engine.agents.get(ev.sender);
+    if (sender?.kind === "agent" && this.clients.has(ev.sender)) {
+      this.processed.add(ev.id);
+      return;
+    }
+
+    await this.#ensureThread(ev, client);
+    const result = this.engine.post({
+      id: ev.id,
+      roomId: ev.roomId,
+      threadId: ev.threadId ?? "main",
+      sender: ev.sender,
+      senderKind: ev.senderKind,
+      text: ev.text,
+      intent: ev.intent,
+      mentions,
+      replyTo: ev.replyTo,
+      proposalId: ev.proposalId,
+      taskId: ev.taskId,
+      taskOwner: ev.taskOwner,
+      artifact: ev.artifact,
+    });
+    if (result.duplicate) {
+      this.processed.add(ev.id);
+      return;
+    }
+    this.processed.add(ev.id);
+    this.lastTs = Math.max(this.lastTs, ev.createdAt ?? 0);
+    this.#scheduleSave();
+    this.audit.write({
+      kind: "inbound",
+      id: ev.id,
+      roomId: ev.roomId,
+      threadId: ev.threadId ?? "main",
+      sender: ev.sender,
+      intent: ev.intent,
+      mentions,
+      text: ev.text,
+    });
+
+    await this.#dispatch(result.granted);
+
+    // wakePolicy=all agents that were not auto-granted ask for the floor.
+    for (const agentId of result.wake ?? []) {
+      if (agentId === result.granted?.agentId) continue;
+      if (this.engine.getThread(ev.roomId, ev.threadId ?? "main")?.floor.holder) break;
+      const req = this.engine.requestFloor(ev.roomId, ev.threadId ?? "main", agentId, {
+        priority: 2,
+        reason: "volunteer",
+      });
+      if (req?.granted) await this.#dispatch(req.granted);
+    }
+  }
+
+  /** External trigger for a volunteer turn (cron/script/demo). */
+  async requestFloor(agentId, { roomId, threadId = "main" } = {}) {
+    const rid = roomId ?? this.rooms[0] ?? [...this.engine.rooms.keys()][0];
+    if (!rid) throw new Error("gateway: no room");
+    return this.#enqueue(async () => {
+      const req = this.engine.requestFloor(rid, threadId, agentId, { priority: 2, reason: "volunteer" });
+      if (req?.granted) return this.#dispatch(req.granted);
+      return req;
+    });
+  }
+
+  async #dispatch(granted) {
+    let current = granted;
+    while (current) {
+      const { agentId, envelope } = current;
+      const runtime = this.runtimes.get(agentId);
+      const roomId = envelope?.message?.roomId;
+      const threadId = envelope?.message?.threadId ?? "main";
+      if (!runtime) {
+        this.audit.write({ kind: "no_runtime", agentId, roomId, threadId });
+        const res = this.engine.failTurn(roomId, threadId, agentId, "no runtime");
+        current = res.granted;
+        continue;
+      }
+      current = await this.#runTurn(agentId, runtime, envelope);
+    }
+  }
+
+  async #runTurn(agentId, runtime, envelope) {
+    const { roomId, threadId = envelope.message.threadId ?? "main", id: triggerId } = envelope.message;
+    const client = this.clients.get(agentId);
+    let session;
+    try {
+      session = await runtime.ensureSession({ roomId, threadId });
+      this.sessions.set(agentId, session);
+    } catch (err) {
+      this.audit.write({ kind: "session_error", agentId, error: String(err) });
+      return this.engine.failTurn(roomId, threadId, agentId, `session: ${err.message}`).granted;
+    }
+
+    const collected = [];
+    let finalText = "";
+    try {
+      await client?.setTyping?.(roomId, true);
+      for await (const ev of runtime.send(session, envelope)) {
+        if (ev.type === "message") collected.push(ev.text);
+        else if (ev.type === "turn_end") finalText = ev.text ?? collected.join("");
+        else if (ev.type === "usage") this.audit.write({ kind: "usage", agentId, usage: ev.usage, costUsd: ev.costUsd, sessionId: ev.sessionId });
+        else if (ev.type === "tool_use") this.audit.write({ kind: "tool_use", agentId, name: ev.name, input: ev.input });
+        else if (ev.type === "tool_result") this.audit.write({ kind: "tool_result", agentId, toolUseId: ev.toolUseId, isError: ev.isError });
+      }
+    } catch (err) {
+      this.audit.write({ kind: "turn_error", agentId, error: String(err) });
+      return this.engine.failTurn(roomId, threadId, agentId, err.message).granted;
+    } finally {
+      await client?.setTyping?.(roomId, false);
+    }
+    if (!finalText) finalText = collected.join("");
+
+    const action = parseReply(finalText);
+    let outbound;
+    if (action.type === "pass" || (action.type === "message" && !action.text.trim())) {
+      outbound = { type: "pass" };
+    } else if (action.type === "ask_human") {
+      outbound = { type: "ask_human", question: action.question, text: action.question, intent: "ask_human" };
+    } else if (action.type === "done") {
+      outbound = { type: "done", reason: action.reason, text: action.reason, intent: "done" };
+    } else {
+      outbound = { type: "message", text: action.text, intent: "chat" };
+    }
+    const mentions = this.#resolveMentions(outbound.text ?? "", agentId);
+    const thread = this.engine.getThread(roomId, threadId);
+    if (!thread || thread.floor.holder !== agentId) {
+      this.audit.write({ kind: "stale_reply", agentId, reason: "floor lost", text: outbound.text });
+      return null;
+    }
+    let messageId = `local-${fnv1a(agentId + ":" + triggerId)}`;
+
+    if (outbound.type !== "pass" && (outbound.text ?? "").trim()) {
+      const txnId = `ai-${fnv1a(agentId + ":" + triggerId)}`;
+      try {
+        const sent = await client.send(roomId, {
+          threadId,
+          text: outbound.text,
+          intent: outbound.intent,
+          mentions,
+          txnId,
+        });
+        messageId = sent.eventId;
+        this.processed.add(messageId);
+      } catch (err) {
+        this.audit.write({ kind: "send_error", agentId, error: String(err) });
+        return this.engine.failTurn(roomId, threadId, agentId, `send: ${err.message}`).granted;
+      }
+    }
+
+    const act = this.engine.agentAct(roomId, threadId, agentId, {
+      id: messageId,
+      ...outbound,
+      mentions,
+    });
+    if (act.duplicate) return null;
+    if (act.accepted === false) {
+      this.audit.write({ kind: "stale_reply", agentId, reason: act.reason, text: outbound.text });
+      return null;
+    }
+    this.audit.write({
+      kind: "outbound",
+      agentId,
+      messageId,
+      type: outbound.type,
+      text: outbound.text,
+      mentions,
+      intent: outbound.intent,
+    });
+    return act.granted ?? null;
+  }
+
+  #resolveMentions(text, selfId) {
+    const byLocalpart = new Map();
+    for (const id of this.engine.agents.keys()) {
+      byLocalpart.set(String(id).replace(/^@/, "").split(":")[0], id);
+    }
+    const out = new Set();
+    for (const m of String(text ?? "").matchAll(/@([A-Za-z0-9._=-]+)(?::([A-Za-z0-9.-]+))?/g)) {
+      const id = m[2] ? `@${m[1]}:${m[2]}` : byLocalpart.get(m[1]);
+      if (id && id !== selfId) out.add(id);
+    }
+    return [...out];
+  }
+
+  #tick() {
+    if (!this.running) return;
+    const results = this.engine.tick(this.now());
+    for (const r of results) {
+      if (r.type === "turn_timeout") {
+        this.audit.write({ kind: "turn_timeout", ...r });
+        const runtime = this.runtimes.get(r.agentId);
+        const session = this.sessions.get(r.agentId);
+        Promise.resolve(runtime?.interrupt?.(session)).catch((err) =>
+          this.log(`[gateway] interrupt ${r.agentId} failed: ${err.message}`),
+        );
+        this.log(`[gateway] turn timeout: ${r.agentId}`);
+      } else if (r.type === "quiescent") {
+        this.audit.write({ kind: "quiescent", thread: r.thread });
+        this.log(`[gateway] quiescent: ${r.thread}`);
+      } else {
+        this.audit.write({ kind: r.type, ...r });
+      }
+    }
+  }
+
+  async health() {
+    const agents = {};
+    for (const [id, runtime] of this.runtimes) {
+      agents[id] = { capabilities: runtime.capabilities?.(), health: await runtime.health?.() };
+    }
+    return {
+      running: this.running,
+      rooms: [...this.engine.rooms.keys()],
+      since: Object.fromEntries(this.since),
+      agents,
+    };
+  }
+}

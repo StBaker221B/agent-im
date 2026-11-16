@@ -7,7 +7,12 @@
   "scripts": {
     "test": "node --test",
     "demo": "node src/demo.mjs",
-    "claude-demo": "node src/claude-demo.mjs"
+    "claude-demo": "node src/claude-demo.mjs",
+    "gateway-demo": "node src/fake-gateway-demo.mjs",
+    "gateway-demo-claude": "node src/fake-gateway-claude-demo.mjs",
+    "setup-matrix": "node scripts/setup-matrix.mjs",
+    "matrix-gateway": "node src/matrix-gateway.mjs",
+    "say": "node scripts/say.mjs"
   },
   "engines": {
     "node": ">=22"

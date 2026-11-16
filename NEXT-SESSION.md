@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)、[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)、[06 第二轮](docs/records/2026-11-16-06-mvp-round2.md)、[05 MVP](docs/records/2026-11-16-05-mvp.md)。
+- 记录：[09 角色模板](docs/records/2026-11-16-09-role-templates.md)、[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)、[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)、[06 第二轮](docs/records/2026-11-16-06-mvp-round2.md)、[05 MVP](docs/records/2026-11-16-05-mvp.md)。
 - 已完成：
   - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=3`、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -16,6 +16,7 @@
   - 搜索 `海豚`、PATCH 设置、列表删除均已验证。
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
   - **讨论模式**：每房间 `brief` / `discussion`，群聊头部切换；discussion 链上限 6，agent 可互相 @ 接话；`#dispatch` 去重避免重复 PASS。
+  - **角色模板 + 私有知识**：generic/coder/reviewer/researcher；prompt = base + role + `knowledge/*.md`；角色别名 @reviewer 在唯一时解析。arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
 - 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
@@ -79,6 +80,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
   - 群聊头部可切「讨论模式」：agent 可以互相 @ 继续，链上限 6；brief 模式更像每人各答一次。
+  - 角色模板（generic/coder/reviewer/researcher）+ 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选角色。
   - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。
   - 创建 agent = 注册 Matrix 用户 + 写 state + 动态 attach 到 gateway；创建后自动开 DM。
   - `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；`maxAgentChain=3`；直接提问/私聊必须回应。
@@ -129,10 +131,11 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 4. 房间/agent 管理：删除/暂停 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改角色/显示名/wakePolicy 已完成）。
 5. 历史搜索：现在每房间最近 100 条子串匹配；做分页/索引（Matrix `/search` 或本地索引）。
 6. 跨房间记忆的隐私硬化：现在是系统提示级；可做 memory 摘要 + 每房间 session，或给 agent 受控 memory 文件。
-7. 加第二个 runtime（本机 OpenClaw 或 Codex）验证异构。
-8. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
-9. 最后做“单 Claude + subagent”对比，作为 kill criterion。
-10. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
+7. **角色真正的异构**：现在角色只是 prompt；给 coder 仓库/worktree、reviewer 只读、researcher 资料/搜索权限，才是能力分工。
+8. 加第二个 runtime（本机 OpenClaw 或 Codex）验证异构。
+9. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
+10. 最后做“单 Claude + subagent”对比，作为 kill criterion。
+11. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
 
 ## 不要做什么
 

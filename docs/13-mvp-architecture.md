@@ -90,6 +90,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
     "id": "@claude-dev:localhost", "name": "claude-dev", "username": "claude-dev",
     "displayName": "Claude Dev", "password": "…", "accessToken": "…",
     "runtime": "claude",            // claude | script
+    "role": "coder",                // generic | coder | reviewer | researcher
     "script": "reviewer",           // script 专用
     "roles": ["coder"], "domains": [],
     "systemPrompt": "…",
@@ -108,7 +109,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 - **首次启动**：`Store` 发现没有 `state.json` 时，从 `spike/.tmp/matrix-config.json`、`matrix-users.json`、`matrix-registration-token.txt` 导入现有账号和房间。旧消息不算未读。
 - **之后**：全部以 `state.json` 为准；密码保留用于 token 失效时重新登录。
-- **agent home**：`data/agents/<name>/{workspace,sessions}`。Claude session 按 room/thread 持久化。
+- **agent home**：`data/agents/<name>/{workspace,sessions,knowledge}`。Claude session 默认一个 agent 一份（跨房间共享）；`knowledge/*.md` 是只属于这个 agent 的私有资料。
 - 一个 agent 一个 Matrix 账号；一个 gateway 进程内多 worker。
 
 ## 5. HTTP API
@@ -128,8 +129,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `DELETE /api/rooms/:id` | human 和所有 agent 离开房间，从 store/engine 移除 |
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
-| `POST /api/agents` | `{username,displayName,runtime,roles,systemPrompt}`；注册 Matrix 用户并 attach |
-| `PATCH /api/agents/:id` | `{displayName,roles,wakePolicy,systemPrompt}`；系统提示变更会重建 runtime |
+| `POST /api/agents` | `{username,displayName,runtime,role,roles,systemPrompt}`；注册 Matrix 用户并 attach |
+| `PATCH /api/agents/:id` | `{displayName,role,roles,wakePolicy,systemPrompt}`；role/系统提示变更会重建 runtime |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
@@ -172,7 +173,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 - `state.json` 保存 agent/room/read 状态；`gateway-state.json` 保存每 agent 的 since token、已消费 event id、lastTs。
 - 重启后从 since 补课；历史按 lastTs 水合为已消费，不会重跑旧消息。
-- Claude session 在 agent home，按 room/thread 继续 `--resume`。
+- Claude session 在 agent home；默认按 agent 共享（跨房间 `--resume`），不是每房间一份。
 
 ## 7. 唤醒与防循环
 
@@ -202,6 +203,18 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
   - 说明是同一份记忆 + 分场合判断，不是简单的"每房间一个新人"。
 - 隐私：私聊原文会进入同一 transcript，靠系统提示约束"私聊内容不主动带到群聊"。更严格的隔离可以改成"共享摘要 + 每房间 session"，或给 agent 一个受控 memory 文件。
 - 代价：transcript 跨房间增长，token 成本更高；切换回 `sessionScope: "room"` 即可恢复每房间独立。
+
+### 7.2 角色模板与私有知识
+
+- 每个 agent 有 `role`：`generic | coder | reviewer | researcher`。
+- runtime 的 system prompt = agent 的 base `systemPrompt` + 角色模板 + `knowledge/*.md`：
+  - coder：给最小实现路线，主动 @ reviewer 请求 review，收到 objection 必须回应；
+  - reviewer：必须找具体风险/遗漏/反例并 @ 提案人，没有具体风险才 PASS；
+  - researcher：查证、对比、给依据和适用边界，前提不成立要指出。
+- 私有知识：`app/data/agents/<name>/knowledge/*.md`（最多约 12KB）；同一房间的 agent 看到的消息相同，但私有资料不同。
+- 设置页/新建 agent 都有角色模板选择；改 role 或 system prompt 会重建 runtime，下一轮生效。
+- 注意：角色模板是**行为约束**，不是能力隔离。现在所有 agent 仍是同一个 Claude 模型、同一套工具、同一个空 workspace；真正的异构要靠不同工具/权限/模型。
+- 假设验证：只有角色标签不够；角色义务 + 私有信息 + review 强制项才可能产生"提问→补充→指正→结论"。实测见 §11。
 
 ## 8. 安全边界
 
@@ -264,3 +277,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 侧栏 `⋯` 改为预留列 + 垂直居中，不再压住预览文字。
 - **讨论模式 PASS**：讨论组问 session vs JWT，claude-dev 主动 `@researcher` 问判据，researcher 接话并收敛；2 条 agent 消息、1 次 agent→agent mention；activity 依次 `claude-dev` → `researcher` → 空。
 - **dispatch 去重**：同一条人类消息里，A 通过 @ 触发了 B 的链路 turn 后，外层 wake 不再把 B 跑第二遍（少一个 PASS turn/成本）。
+- **角色分工实验 PASS**：新建 `@arch-coder`（coder，私有实现约束）和 `@arch-reviewer`（reviewer，私有安全清单），discussion 群问登录方案：
+  - coder 给路线并 @reviewer；reviewer 指出 Secure 开关、sessions 并发、CSRF method/Origin、限流键、改密失效等具体问题；
+  - coder 逐条接受并修正 Windows fsync；reviewer 追加 Windows rename/备份细节后冻结；
+  - 2+2 条 agent 消息，形成"提案→质疑→修正→确认"闭环；4 个 turn 约 $0.258。
+  - 结论：角色标签不够，角色义务 + 私有知识 + 强制 review 才产生实质协作；仍是同模型/同工具，异构未做。

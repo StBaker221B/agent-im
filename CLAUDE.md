@@ -55,6 +55,8 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - **唤醒**：Claude agent 默认 `human_all`（人类消息全员判断）；agent 消息只唤醒被 @/回复的；DM 自动 direct。
 - **房间模式**：`room.mode=brief`（默认，链上限 3）或 `discussion`（链上限 6 + prompt 鼓励 agent 互相 @ 接话）。群聊头部可切；`PATCH /api/rooms/:id {mode}`。
 - **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
+- **角色模板**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + knowledge。角色是行为约束，不是工具/权限隔离。
+- 改 role / systemPrompt 会重建 runtime；改 `knowledge/*.md` 后需要重启或触发一次 runtime 重建。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
 - **回复先落 Matrix 再 `agentAct`**；txn id 由 `(agent, trigger)` 派生，重试幂等。
 - **同一个 agent = 同一个 session**：`ClaudeAdapter` 默认 `sessionScope: "agent"`，跨房间共享 transcript；隐私靠系统提示，不是硬隔离。要每房间独立就设 `"room"`。
@@ -77,7 +79,8 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 历史搜索 | `app/server.mjs` `/api/search` + `web/src/components/SearchView.jsx` |
 | 设置页 | `app/server.mjs` PATCH `/api/agents/:id` + `web/src/components/SettingsView.jsx` |
 | 跨房间记忆/session 作用域 | `spike/src/claude-adapter.mjs`（`sessionScope`） |
-| 数据/导入/默认提示 | `app/store.mjs` |
+| 数据/导入/默认提示/角色模板 | `app/store.mjs`（`ROLE_TEMPLATES` / `composeSystemPrompt`） |
+| 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |
 | agent/room 动态装配 | `app/gateway-host.mjs` |
 | 产品 UI | `web/src/` |

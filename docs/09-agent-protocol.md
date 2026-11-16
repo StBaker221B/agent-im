@@ -400,7 +400,8 @@ type RuntimeCapabilities = {
   - 历史搜索（每房间最近 100 条）、设置页 PATCH agent、列表右键/⋯删除、头像资料。
   - "正在思考/排队中"改为 Engine `room.activity`（floor/queue），PASS 后自动消失。
   - **讨论模式**（`room.mode=discussion`）：agent 链上限 3→6；prompt 要求对另一个 agent 的具体观点 @ 对方继续；群聊头部可切换。`#dispatch` 记录已跑过的 agent，避免同一条消息里重复 PASS。
-- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md)。
+  - **角色模板 + 私有知识**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + `knowledge/*.md`；角色别名 `@reviewer` 在唯一时解析。实验 coder×reviewer 形成"提案→质疑→修正→确认"闭环（记录 09）。
+- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md)。
 
 ## 15. 待确认
 

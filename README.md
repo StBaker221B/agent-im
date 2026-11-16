@@ -64,7 +64,7 @@ npm run format       # 自动格式化
 
 ## 状态与限制
 
-- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、设置页、头像资料、`human_all` 自行判断、链上限。
+- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、设置页、头像资料、`human_all` 自行判断、链上限、讨论模式、角色模板 + 私有知识。
 - 同一个 agent 跨房间共享记忆（一个 Claude session），但私聊内容不主动带到群聊，靠系统提示约束。
 - 限制：全局串行、无流式/审批、无删除/暂停 agent、未读按最近 50 条、单人类、无 E2E 加密。
 - 成本：`human_all` 下每个 Claude agent 都会跑 turn；实测 4 turn 约 $0.146。下一步先做 triage/冷却/预算。

@@ -35,6 +35,7 @@ npm start -- --port 8890   # 端口冲突
 | `gateway-state.json` | 每 agent 的 sync since、已消费 event id、lastTs |
 | `audit.jsonl` | inbound/outbound/usage/tool 事件，含成本 |
 | `agents/<name>/` | Claude session、system prompt、workspace |
+| `agents/<name>/knowledge/` | 该 agent 的私有资料；启动时拼进 system prompt |
 | `media/` | 房间图片/文件缓存；agent 用消息里的本地路径 Read |
 
 换库/重来：停服务 → 删 `state.json`（和需要时的 `gateway-state.json`）→ 重启会重新导入 spike 设置。Matrix 侧的房间和用户不会自动删除。
@@ -59,8 +60,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `DELETE /api/rooms/:id` — 所有本地成员 leave，从列表移除
 - `POST /api/rooms/:id/upload` `{filename,contentType,data(base64)}` — ≤8MB
 - `GET /api/media?uri=mxc://...` — 服务端带 token 下载媒体
-- `POST /api/agents` `{username,displayName,runtime,roles,systemPrompt}`
-- `PATCH /api/agents/:id` `{displayName,roles,wakePolicy,systemPrompt}`
+- `POST /api/agents` `{username,displayName,runtime,role,roles,systemPrompt}`
+- `PATCH /api/agents/:id` `{displayName,role,roles,wakePolicy,systemPrompt}`
 - `GET /api/search?q=` — 每个房间最近 100 条
 - `GET /api/health`
 

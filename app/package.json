@@ -1,0 +1,13 @@
+{
+  "name": "agent-im-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agent IM MVP: control plane, gateway host, and web API.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

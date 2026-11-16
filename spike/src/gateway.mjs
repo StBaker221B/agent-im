@@ -11,11 +11,22 @@
 //   so a retried send is deduplicated by the homeserver.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { AuditLog } from "./audit.mjs";
 import { parseReply } from "./reply.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const MEDIA_EXT = {
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "image/svg+xml": ".svg",
+  "application/pdf": ".pdf",
+  "text/plain": ".txt",
+  "application/json": ".json",
+};
 
 function fnv1a(s) {
   let h = 0x811c9dc5;
@@ -37,6 +48,7 @@ export class Gateway {
     syncTimeoutMs = 30_000,
     tickMs = 1000,
     maxQueued = 5000,
+    mediaDir = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -51,6 +63,8 @@ export class Gateway {
     this.maxQueued = maxQueued;
     this.now = now;
     this.log = log;
+    this.mediaDir = mediaDir;
+    this.mediaCache = new Map();
 
     this.since = new Map();
     this.processed = new Set();
@@ -148,6 +162,71 @@ export class Gateway {
       }
     }
     this.log("[gateway] stopped");
+  }
+
+  /**
+   * Attach an agent identity created after startup. The control plane calls
+   * this when a new agent is registered; existing rooms are discovered by the
+   * normal sync loop.
+   */
+  async addAgent({ agentId, client, runtime, profile = {} }) {
+    if (this.clients.has(agentId)) return { added: false, reason: "already attached" };
+    this.engine.addAgent({ id: agentId, ...profile });
+    this.clients.set(agentId, client);
+    this.runtimes.set(agentId, runtime);
+    try {
+      await client.connect?.();
+    } catch (err) {
+      this.log(`[gateway] connect ${agentId} failed: ${err.message}`);
+    }
+    if (this.running) this.loops.push(this.#syncLoop(agentId, client));
+    this.log(`[gateway] agent added ${agentId}`);
+    return { added: true };
+  }
+
+  /** Register a room created after startup and hydrate it into the engine. */
+  async addRoom(roomId) {
+    if (!this.rooms.includes(roomId)) this.rooms.push(roomId);
+    if (!this.running) return null;
+    return this.#enqueue(() => this.#ensureRoom(roomId));
+  }
+
+  /** Refresh a room's member list after an invite (control plane). */
+  async syncRoom(roomId) {
+    if (!this.running) return null;
+    return this.#enqueue(async () => {
+      if (!this.engine.rooms.has(roomId)) return this.#ensureRoom(roomId);
+      const client = await this.#clientForRoom(roomId);
+      if (!client) return null;
+      const memberIds = await client.members(roomId);
+      const room = this.engine.rooms.get(roomId);
+      room.members = memberIds;
+      const thread = this.engine.getThread(roomId, "main");
+      if (thread) {
+        for (const memberId of memberIds) {
+          const member = this.engine.agents.get(memberId);
+          if (member?.kind !== "agent") continue;
+          if (!thread.states.has(memberId)) thread.states.set(memberId, "idle");
+          if (!thread.seenVersion.has(memberId)) thread.seenVersion.set(memberId, thread.version);
+        }
+      }
+      this.audit.write({ kind: "room_members", roomId, members: memberIds });
+      return memberIds;
+    });
+  }
+
+  /** Drop a room from the engine after the last local member leaves. */
+  async removeRoom(roomId) {
+    if (!this.running) return;
+    return this.#enqueue(async () => {
+      this.rooms = this.rooms.filter((id) => id !== roomId);
+      this.engine.rooms.delete(roomId);
+      for (const key of [...this.engine.threads.keys()]) {
+        if (key.startsWith(`${roomId}/`)) this.engine.threads.delete(key);
+      }
+      this.roomClients.delete(roomId);
+      this.audit.write({ kind: "room_removed", roomId });
+    });
   }
 
   async #syncLoop(agentId, client) {
@@ -277,13 +356,22 @@ export class Gateway {
     }
 
     await this.#ensureThread(ev, client);
+    // Runtimes only receive text; after caching the media locally, give agents
+    // a path they can open with their Read tool.
+    const mediaPath = await this.#cacheMedia(ev, client);
+    const agentText =
+      ev.msgtype === "m.image"
+        ? `[图片] ${ev.text}${mediaPath ? `\n本地文件: ${mediaPath}` : ""}`
+        : ev.msgtype === "m.file"
+          ? `[文件] ${ev.text}${mediaPath ? `\n本地文件: ${mediaPath}` : ""}`
+          : ev.text;
     const result = this.engine.post({
       id: ev.id,
       roomId: ev.roomId,
       threadId: ev.threadId ?? "main",
       sender: ev.sender,
       senderKind: ev.senderKind,
-      text: ev.text,
+      text: agentText,
       intent: ev.intent,
       mentions,
       replyTo: ev.replyTo,
@@ -442,13 +530,37 @@ export class Gateway {
     return act.granted ?? null;
   }
 
+  /** Download room media once so agent runtimes can Read a local file. */
+  async #cacheMedia(ev, client) {
+    if (!this.mediaDir || !ev?.url || !client?.downloadMedia) return null;
+    const cached = this.mediaCache.get(ev.url);
+    if (cached) return cached;
+    const match = String(ev.url).match(/^mxc:\/\/([^/]+)\/(.+)$/);
+    if (!match) return null;
+    const [, serverName, mediaId] = match;
+    try {
+      const media = await client.downloadMedia(serverName, mediaId);
+      mkdirSync(this.mediaDir, { recursive: true });
+      const ext = MEDIA_EXT[media.contentType] ?? (ev.msgtype === "m.image" ? ".img" : ".bin");
+      const file = join(this.mediaDir, `${mediaId}${ext}`);
+      if (!existsSync(file)) writeFileSync(file, media.body);
+      const promptPath = file.replaceAll("\\", "/");
+      this.mediaCache.set(ev.url, promptPath);
+      return promptPath;
+    } catch (err) {
+      this.log(`[gateway] media cache failed: ${err.message}`);
+      return null;
+    }
+  }
+
   #resolveMentions(text, selfId) {
     const byLocalpart = new Map();
-    for (const id of this.engine.agents.keys()) {
+    for (const [id, agent] of this.engine.agents) {
       byLocalpart.set(String(id).replace(/^@/, "").split(":")[0], id);
+      if (agent.displayName && !byLocalpart.has(agent.displayName)) byLocalpart.set(agent.displayName, id);
     }
     const out = new Set();
-    for (const m of String(text ?? "").matchAll(/@([A-Za-z0-9._=-]+)(?::([A-Za-z0-9.-]+))?/g)) {
+    for (const m of String(text ?? "").matchAll(/@([\p{L}\p{N}._=-]+)(?::([A-Za-z0-9.-]+))?/gu)) {
       const id = m[2] ? `@${m[1]}:${m[2]}` : byLocalpart.get(m[1]);
       if (id && id !== selfId) out.add(id);
     }

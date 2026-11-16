@@ -75,6 +75,9 @@ export class ClaudeAdapter {
     this.sessions = new Map();
     this.closed = false;
     this.agentId = opts.agentId ?? "claude-dev";
+    // "room" (default) keeps one session per room/thread; "agent" keeps one
+    // session for the whole agent so the same person remembers every room.
+    this.sessionScope = opts.sessionScope ?? "room";
     this.sessionStorePath = opts.sessionStorePath ?? null;
     this.nativeIds = this.#loadSessionStore();
 
@@ -137,6 +140,7 @@ export class ClaudeAdapter {
   }
 
   keyFor(ctx) {
+    if (this.sessionScope === "agent") return `agent:${this.agentId}`;
     return `${ctx.roomId}/${ctx.threadId}`;
   }
 

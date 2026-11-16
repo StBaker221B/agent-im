@@ -199,3 +199,67 @@ test("ASK_HUMAN blocks quiescence; a human reply clears it and wakes the waiter"
   e.advance(1000);
   assert.ok(e.tick().some((r) => r.type === "quiescent"));
 });
+
+test("human_all wakes every agent for human messages, not for agent chatter", () => {
+  const e = setup();
+  e.agents.get("a1").wakePolicy = "human_all";
+  e.agents.get("a2").wakePolicy = "human_all";
+
+  const human = e.post({ id: "h1", roomId: "r1", threadId: "t1", sender: "human", text: "hello" });
+  assert.deepEqual([...human.wake].sort(), ["a1", "a2"]);
+
+  const ambient = e.post({ id: "m1", roomId: "r1", threadId: "t1", sender: "a1", senderKind: "agent", text: "hi" });
+  assert.deepEqual(ambient.wake, []);
+
+  const mention = e.post({
+    id: "m2",
+    roomId: "r1",
+    threadId: "t1",
+    sender: "a1",
+    senderKind: "agent",
+    text: "@a2 look",
+    mentions: ["a2"],
+  });
+  assert.deepEqual(mention.wake, ["a2"]);
+});
+
+test("agent chain cap stops ping-pong after the cap", () => {
+  const e = setup({ maxAgentChain: 2 });
+  e.agents.get("a1").wakePolicy = "human_all";
+  e.agents.get("a2").wakePolicy = "human_all";
+
+  e.post({ id: "h1", roomId: "r1", threadId: "t1", sender: "human", text: "discuss" });
+  const first = e.post({
+    id: "m1",
+    roomId: "r1",
+    threadId: "t1",
+    sender: "a1",
+    senderKind: "agent",
+    text: "@a2",
+    mentions: ["a2"],
+  });
+  assert.deepEqual(first.wake, ["a2"]);
+
+  const second = e.post({
+    id: "m2",
+    roomId: "r1",
+    threadId: "t1",
+    sender: "a2",
+    senderKind: "agent",
+    text: "@a1",
+    mentions: ["a1"],
+  });
+  assert.deepEqual(second.wake, [], "chain stops at the cap");
+
+  e.post({ id: "h2", roomId: "r1", threadId: "t1", sender: "human", text: "new round" });
+  const afterHuman = e.post({
+    id: "m3",
+    roomId: "r1",
+    threadId: "t1",
+    sender: "a1",
+    senderKind: "agent",
+    text: "@a2",
+    mentions: ["a2"],
+  });
+  assert.deepEqual(afterHuman.wake, ["a2"], "a human message resets the chain");
+});

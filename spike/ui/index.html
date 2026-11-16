@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent IM</title>
+<style>
+  :root {
+    --bg: #e9edf0;
+    --surface: #ffffff;
+    --rail: #f2f5f7;
+    --ink: #182029;
+    --muted: #67737f;
+    --faint: #8c97a2;
+    --rule: #d4dce2;
+    --hair: #e7ecef;
+    --human: #2b5d8c;
+    --claude: #6e4a9b;
+    --peer: #7a6200;
+    --agent: #2f6b57;
+    --mention-bg: #e6edf7;
+    --mention-rule: #b9cbe4;
+    --ok: #2f6b57;
+    --bad: #a33b2b;
+    --pending: #2b5d8c;
+    --shadow: 0 1px 0 rgba(24, 32, 41, 0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11161b;
+      --surface: #171e24;
+      --rail: #141a1f;
+      --ink: #e5ebef;
+      --muted: #93a0ab;
+      --faint: #74818d;
+      --rule: #28333b;
+      --hair: #212a31;
+      --human: #7fb0e0;
+      --claude: #b79be0;
+      --peer: #d6b84d;
+      --agent: #7fc2a8;
+      --mention-bg: #22303f;
+      --mention-rule: #3d5875;
+      --ok: #7fc2a8;
+      --bad: #e08a7a;
+      --pending: #7fb0e0;
+      --shadow: none;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, textarea { font: inherit; color: inherit; }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100dvh;
+    max-width: 1180px;
+    margin: 0 auto;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- header ---------- */
+
+  .head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .mark-bar {
+    width: 4px;
+    height: 26px;
+    background: var(--ink);
+    position: relative;
+    flex: none;
+  }
+
+  .mark-bar::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    bottom: -3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+  }
+
+  .mark h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  .mark p {
+    margin: 1px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .rooms {
+    display: flex;
+    justify-self: center;
+    gap: 2px;
+    padding: 3px;
+    background: var(--rail);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+
+  .rooms button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    padding: 5px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .rooms button[aria-selected="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(24, 32, 41, 0.12);
+  }
+
+  .conn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--faint);
+    flex: none;
+  }
+
+  .conn[data-state="ok"] .dot { background: var(--ok); }
+  .conn[data-state="ok"] .dot { animation: breathe 3.2s ease-in-out infinite; }
+  .conn[data-state="bad"] .dot { background: var(--bad); }
+  .conn[data-state="bad"] { color: var(--bad); }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ---------- body ---------- */
+
+  .body {
+    display: grid;
+    grid-template-columns: 224px minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .rail {
+    border-right: 1px solid var(--rule);
+    background: var(--rail);
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+
+  .rail h2 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .who {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 9px;
+    padding: 8px 0;
+    align-items: start;
+  }
+
+  .who + .who { border-top: 1px solid var(--hair); }
+
+  .glyph {
+    font-size: 10px;
+    line-height: 22px;
+    text-align: center;
+  }
+
+  .who-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .who-meta {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 0 6px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--muted);
+    vertical-align: 1px;
+  }
+
+  .rail-note {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  .rail-note code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 11px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+
+  .main {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* ---------- transcript ---------- */
+
+  .log {
+    overflow-y: auto;
+    padding: 10px 26px 22px;
+    scroll-behavior: smooth;
+  }
+
+  .msg {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 16px;
+    padding: 15px 0 15px 12px;
+    border-left: 2px solid transparent;
+  }
+
+  .msg + .msg { border-top: 1px solid var(--hair); }
+
+  .msg[data-kind="human"] { border-left-color: var(--human); }
+  .msg[data-kind="agent"] { border-left-color: var(--agent); }
+
+  .speaker {
+    padding-top: 1px;
+    min-width: 0;
+  }
+
+  .speaker .name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .speaker .time {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text {
+    max-width: 72ch;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .mention {
+    background: var(--mention-bg);
+    box-shadow: inset 0 -1px 0 var(--mention-rule);
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 600;
+  }
+
+  .empty {
+    display: grid;
+    place-content: center;
+    height: 100%;
+    min-height: 220px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+    padding: 24px;
+  }
+
+  .empty strong {
+    display: block;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- composer ---------- */
+
+  .compose {
+    border-top: 1px solid var(--rule);
+    padding: 12px 26px 16px;
+    background: var(--surface);
+  }
+
+  .pending {
+    display: none;
+    align-items: center;
+    gap: 9px;
+    min-height: 20px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    color: var(--pending);
+  }
+
+  .pending[data-on="true"] { display: flex; }
+
+  .pending-bar {
+    width: 26px;
+    height: 2px;
+    background: var(--mention-rule);
+    position: relative;
+    overflow: hidden;
+    flex: none;
+  }
+
+  .pending-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: var(--pending);
+    animation: sweep 1.3s ease-in-out infinite;
+  }
+
+  @keyframes sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(260%); }
+  }
+
+  .chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .chip {
+    appearance: none;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .chip:hover { color: var(--ink); border-color: var(--faint); }
+
+  .entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    max-height: 168px;
+    resize: none;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    line-height: 1.55;
+    outline: none;
+  }
+
+  textarea::placeholder { color: var(--faint); }
+
+  textarea:focus {
+    border-color: var(--human);
+    box-shadow: 0 0 0 3px rgba(43, 93, 140, 0.14);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    textarea:focus { box-shadow: 0 0 0 3px rgba(127, 176, 224, 0.16); }
+  }
+
+  .send {
+    appearance: none;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--surface);
+    border-radius: 8px;
+    padding: 0 20px;
+    height: 44px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .send:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .hint {
+    margin: 7px 0 0;
+    font-size: 11.5px;
+    color: var(--faint);
+  }
+
+  .error {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--bad);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--human);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible { outline-offset: 2px; }
+
+  @media (max-width: 760px) {
+    .app { max-width: none; }
+    .head {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 14px;
+      padding: 12px 16px;
+    }
+    .rooms { grid-column: 1 / -1; justify-self: start; }
+    .body { grid-template-columns: minmax(0, 1fr); }
+    .rail {
+      border-right: 0;
+      border-bottom: 1px solid var(--rule);
+      padding: 12px 16px;
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      align-items: flex-start;
+    }
+    .rail h2, .rail-note { display: none; }
+    .who {
+      grid-template-columns: 12px auto;
+      padding: 0;
+      flex: none;
+    }
+    .who + .who { border-top: 0; }
+    .who-meta { display: none; }
+    .log { padding: 6px 16px 18px; }
+    .msg {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+      padding: 13px 0 13px 10px;
+    }
+    .speaker { display: flex; align-items: baseline; gap: 8px; }
+    .speaker .time { margin: 0; }
+    .compose { padding: 10px 16px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <div class="mark">
+      <div class="mark-bar" aria-hidden="true"></div>
+      <div>
+        <h1>Agent IM</h1>
+        <p>本地房间</p>
+      </div>
+    </div>
+
+    <div class="rooms" role="tablist" aria-label="房间">
+      <button type="button" role="tab" data-room-index="0" aria-selected="true">群聊</button>
+      <button type="button" role="tab" data-room-index="1" aria-selected="false">私聊</button>
+    </div>
+
+    <div class="conn" id="conn" data-state="wait" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="conn-text">正在连接</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="rail">
+      <h2>参与者</h2>
+      <div id="members"></div>
+      <div class="rail-note">
+        消息里 <code>@名字</code> 会把对应 agent 叫醒；私聊不用 @。所有成员都会收到消息，@ 只是注意力信号。
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="log" id="log" aria-live="polite" aria-label="消息记录">
+        <div class="empty" id="empty">
+          <div><strong>还没有消息</strong>发一条 @claude-dev 试试</div>
+        </div>
+      </section>
+
+      <section class="compose">
+        <p class="error" id="error" hidden></p>
+        <div class="pending" id="pending" data-on="false" aria-live="polite">
+          <span class="pending-bar" aria-hidden="true"></span>
+          <span id="pending-text"></span>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="entry">
+          <textarea id="input" rows="1" placeholder="说点什么…" aria-label="消息"></textarea>
+          <button type="button" class="send" id="send" disabled>发送</button>
+        </div>
+        <p class="hint">Enter 发送 · Shift+Enter 换行</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const logEl = $("log");
+  const emptyEl = $("empty");
+  const inputEl = $("input");
+  const sendEl = $("send");
+  const connEl = $("conn");
+  const connTextEl = $("conn-text");
+  const errorEl = $("error");
+  const pendingEl = $("pending");
+  const pendingTextEl = $("pending-text");
+
+  const state = {
+    config: null,
+    roomIndex: 0,
+    messages: [],
+    pending: [],
+    pendingUntil: 0,
+    sending: false,
+    pollTimer: null,
+    alive: true,
+  };
+
+  const GLYPH = {
+    human: "■",
+    "claude-dev": "●",
+    "script-peer": "◆",
+  };
+
+  const COLOR = {
+    "kudo": "var(--human)",
+    "claude-dev": "var(--claude)",
+    "script-peer": "var(--peer)",
+  };
+
+  function colorOf(name) {
+    return COLOR[name] ?? "var(--agent)";
+  }
+
+  function glyphOf(member) {
+    return GLYPH[member.name] ?? (member.kind === "human" ? "■" : "●");
+  }
+
+  function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  let mentionPattern = null;
+
+  function buildMentionPattern() {
+    const names = state.config.members.map((m) => escapeRegExp(m.name)).sort((a, b) => b.length - a.length);
+    mentionPattern = new RegExp(`@(?:${names.join("|")})(?::[A-Za-z0-9.-]+)?`, "g");
+  }
+
+  function appendText(parent, text) {
+    if (!text) return;
+    let last = 0;
+    mentionPattern.lastIndex = 0;
+    for (const m of text.matchAll(mentionPattern)) {
+      if (m.index > last) parent.append(document.createTextNode(text.slice(last, m.index)));
+      const span = document.createElement("span");
+      span.className = "mention";
+      span.textContent = m[0];
+      parent.append(span);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) parent.append(document.createTextNode(text.slice(last)));
+  }
+
+  function timeOf(ts) {
+    return new Date(ts).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+
+  function renderMembers() {
+    const host = $("members");
+    host.replaceChildren();
+    for (const m of state.config.members) {
+      const row = document.createElement("div");
+      row.className = "who";
+
+      const glyph = document.createElement("span");
+      glyph.className = "glyph";
+      glyph.textContent = glyphOf(m);
+      glyph.style.color = colorOf(m.name);
+
+      const body = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "who-name";
+      name.style.color = colorOf(m.name);
+      name.textContent = m.name;
+      if (m.id === state.config.human) {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "你";
+        name.append(tag);
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "who-meta";
+      if (m.kind === "human") meta.textContent = "人类";
+      else meta.textContent = `${m.roles.join(" · ") || "agent"}${m.runtime ? " · " + m.runtime : ""}`;
+
+      body.append(name, meta);
+      row.append(glyph, body);
+      host.append(row);
+    }
+  }
+
+  function renderChips() {
+    const host = $("chips");
+    host.replaceChildren();
+    for (const m of state.config.members) {
+      if (m.kind !== "agent") continue;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = `@${m.name}`;
+      b.style.color = colorOf(m.name);
+      b.addEventListener("click", () => insertMention(m.name));
+      host.append(b);
+    }
+  }
+
+  function insertMention(name) {
+    const token = `@${name} `;
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    const before = inputEl.value.slice(0, start);
+    const after = inputEl.value.slice(end);
+    const pad = before && !/\s$/.test(before) ? " " : "";
+    inputEl.value = before + pad + token + after;
+    const caret = (before + pad + token).length;
+    inputEl.focus();
+    inputEl.setSelectionRange(caret, caret);
+    syncSend();
+    autoGrow();
+  }
+
+  function messageNode(msg) {
+    const row = document.createElement("article");
+    row.className = "msg";
+    row.dataset.kind = msg.kind;
+    row.dataset.id = msg.id;
+    row.style.borderLeftColor = colorOf(msg.senderName);
+
+    const speaker = document.createElement("div");
+    speaker.className = "speaker";
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.style.color = colorOf(msg.senderName);
+    const glyph = document.createElement("span");
+    glyph.textContent = msg.kind === "human" ? "■" : (GLYPH[msg.senderName] ?? "●");
+    glyph.style.color = colorOf(msg.senderName);
+    glyph.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.textContent = msg.senderName;
+    name.append(glyph, label);
+
+    const time = document.createElement("div");
+    time.className = "time";
+    time.textContent = timeOf(msg.createdAt);
+
+    speaker.append(name, time);
+
+    const text = document.createElement("div");
+    text.className = "text";
+    appendText(text, msg.text);
+
+    row.append(speaker, text);
+    return row;
+  }
+
+  function nearBottom() {
+    return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 120;
+  }
+
+  function renderAll() {
+    logEl.replaceChildren();
+    if (!state.messages.length) {
+      logEl.append(emptyEl);
+      return;
+    }
+    for (const m of state.messages) logEl.append(messageNode(m));
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function mergeMessages(incoming) {
+    const known = new Set(state.messages.map((m) => m.id));
+    const fresh = incoming.filter((m) => !known.has(m.id));
+    if (!fresh.length) {
+      if (state.messages.length > incoming.length) {
+        state.messages = incoming;
+        renderAll();
+      }
+      return;
+    }
+    const stick = nearBottom();
+    const hadEmpty = !state.messages.length;
+    state.messages = incoming;
+    if (hadEmpty) {
+      renderAll();
+    } else {
+      for (const m of fresh) logEl.append(messageNode(m));
+      if (stick) logEl.scrollTop = logEl.scrollHeight;
+    }
+    clearPendingFor(fresh);
+  }
+
+  function clearPendingFor(messages) {
+    if (!state.pending.length) return;
+    const hit = messages.some((m) => state.pending.includes(m.sender));
+    if (hit || Date.now() > state.pendingUntil) {
+      state.pending = [];
+      renderPending();
+    }
+  }
+
+  function renderPending() {
+    if (!state.pending.length) {
+      pendingEl.dataset.on = "false";
+      return;
+    }
+    pendingEl.dataset.on = "true";
+    pendingTextEl.textContent = `等待 ${state.pending.map((id) => "@" + id.split(":")[0].replace(/^@/, "")).join("、")} 回复…`;
+  }
+
+  function setConn(stateName, text) {
+    connEl.dataset.state = stateName;
+    connTextEl.textContent = text;
+  }
+
+  function showError(message) {
+    if (!message) {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      return;
+    }
+    errorEl.hidden = false;
+    errorEl.textContent = message;
+  }
+
+  async function loadConfig() {
+    const res = await fetch("/api/config");
+    if (!res.ok) throw new Error("无法读取本地配置");
+    state.config = await res.json();
+    buildMentionPattern();
+    renderMembers();
+    renderChips();
+    setConn("ok", `已连接 · ${new URL(state.config.homeserver).host}`);
+  }
+
+  async function refresh() {
+    if (!state.config) return;
+    const room = state.config.rooms[state.roomIndex];
+    try {
+      const res = await fetch(`/api/messages?room=${encodeURIComponent(room.id)}&limit=50`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `读取失败 (${res.status})`);
+      }
+      const messages = await res.json();
+      if (!state.alive) return;
+      mergeMessages(messages);
+      setConn("ok", `已连接 · ${new URL(state.config.homeserver).host}`);
+      showError("");
+    } catch (err) {
+      setConn("bad", "连接中断，正在重试");
+      showError(`读取消息失败：${err.message}`);
+    }
+  }
+
+  async function send() {
+    const text = inputEl.value.trim();
+    if (!text || state.sending || !state.config) return;
+    state.sending = true;
+    sendEl.disabled = true;
+    showError("");
+
+    const room = state.config.rooms[state.roomIndex];
+    const mentioned = [];
+    for (const m of state.config.members) {
+      if (m.kind === "agent" && new RegExp(`@${escapeRegExp(m.name)}(?![A-Za-z0-9._=-])`).test(text)) {
+        mentioned.push(m.id);
+      }
+    }
+    if (!mentioned.length && room.kind === "dm") {
+      const peer = state.config.members.find((m) => m.kind === "agent");
+      if (peer) mentioned.push(peer.id);
+    }
+
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId: room.id, text }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `发送失败 (${res.status})`);
+      inputEl.value = "";
+      autoGrow();
+      state.pending = mentioned;
+      state.pendingUntil = Date.now() + 60_000;
+      renderPending();
+      await refresh();
+    } catch (err) {
+      showError(`发送失败：${err.message}`);
+    } finally {
+      state.sending = false;
+      syncSend();
+    }
+  }
+
+  function syncSend() {
+    sendEl.disabled = state.sending || !inputEl.value.trim();
+  }
+
+  function autoGrow() {
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 168) + "px";
+  }
+
+  function switchRoom(index) {
+    if (index === state.roomIndex) return;
+    state.roomIndex = index;
+    state.messages = [];
+    state.pending = [];
+    renderPending();
+    for (const b of document.querySelectorAll(".rooms button")) {
+      b.setAttribute("aria-selected", String(Number(b.dataset.roomIndex) === index));
+    }
+    renderAll();
+    refresh();
+  }
+
+  for (const b of document.querySelectorAll(".rooms button")) {
+    b.addEventListener("click", () => switchRoom(Number(b.dataset.roomIndex)));
+  }
+
+  inputEl.addEventListener("input", () => {
+    autoGrow();
+    syncSend();
+  });
+
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  sendEl.addEventListener("click", send);
+
+  window.addEventListener("beforeunload", () => {
+    state.alive = false;
+  });
+
+  loadConfig()
+    .then(() => {
+      refresh();
+      state.pollTimer = setInterval(refresh, 2000);
+    })
+    .catch((err) => {
+      setConn("bad", "无法连接");
+      showError(err.message);
+    });
+</script>
+</body>
+</html>

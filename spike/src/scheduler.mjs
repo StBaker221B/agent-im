@@ -18,6 +18,9 @@ export class Engine {
     this.quietWindowMs = opts.quietWindowMs ?? 50;
     this.maxTurnMs = opts.maxTurnMs ?? 1000;
     this.lazyConsensusMs = opts.lazyConsensusMs ?? 100;
+    // Cap consecutive agent messages after a human message. Mentions can wake
+    // another agent, but a thread cannot ping-pong forever.
+    this.maxAgentChain = opts.maxAgentChain ?? 3;
 
     /** @type {Map<string, any>} */
     this.agents = new Map();
@@ -96,6 +99,7 @@ export class Engine {
       openQuestions: new Set(),
       pendingApprovals: new Set(),
       interruptedBy: null,
+      agentChainDepth: 0,
     };
     for (const memberId of this.rooms.get(roomId).members) {
       const member = this.agents.get(memberId);
@@ -217,6 +221,8 @@ export class Engine {
     thread.version += 1;
     thread.messages.push(message);
     thread.quiescent = false;
+    if (message.senderKind === "human") thread.agentChainDepth = 0;
+    else if (message.senderKind === "agent") thread.agentChainDepth += 1;
 
     if (this.#isSubstantive(message)) {
       thread.lastSubstantiveAt = this.now;
@@ -245,10 +251,11 @@ export class Engine {
     }
 
     const wake = [];
+    const chainCapped = message.senderKind === "agent" && thread.agentChainDepth >= this.maxAgentChain;
     for (const memberId of deliveredTo) {
       const agent = this.agents.get(memberId);
       if (agent?.kind !== "agent") continue;
-      if (this.#shouldWake(agent, message)) wake.push(memberId);
+      if (!chainCapped && this.#shouldWake(agent, message)) wake.push(memberId);
     }
 
     // Auto-enqueue direct mention / reply / task owner. Volunteers call requestFloor().
@@ -454,6 +461,11 @@ export class Engine {
     const attention = this.attentionFor(agent.id, message);
     switch (agent.wakePolicy) {
       case "all": return true;
+      // Product default: every human message is evaluated by every agent; an
+      // agent's own messages only wake others when explicitly addressed. This
+      // keeps "agents decide whether to reply" without agent-to-agent chatter.
+      case "human_all":
+        return message.senderKind === "human" || attention === "direct_mention" || attention === "reply" || attention === "task_owner";
       case "mention_only": return attention === "direct_mention";
       case "mention_or_reply": return attention === "direct_mention" || attention === "reply" || attention === "task_owner";
       case "digest": return false;
@@ -506,6 +518,9 @@ export class Engine {
   }
 
   #enqueueCandidates(message, thread, deliveredTo) {
+    // A human message starts a fresh chain. Agent messages may wake others by
+    // mention, but only until the chain cap is reached.
+    if (message.senderKind === "agent" && thread.agentChainDepth >= this.maxAgentChain) return;
     for (const memberId of deliveredTo) {
       const agent = this.agents.get(memberId);
       if (agent?.kind !== "agent") continue;
@@ -561,6 +576,7 @@ export class Engine {
     thread.version += 1;
     thread.messages.push(message);
     thread.quiescent = false;
+    thread.agentChainDepth += 1;
     for (const memberId of this.rooms.get(thread.roomId).members) {
       thread.seenVersion.set(memberId, thread.version);
     }

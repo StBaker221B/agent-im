@@ -152,7 +152,12 @@ export class MatrixClient {
 
   async send(roomId, payload = {}) {
     const txnId = payload.txnId ?? this.#nextTxnId();
-    const content = { msgtype: "m.text", body: payload.text ?? "" };
+    const content = {
+      msgtype: payload.msgtype ?? "m.text",
+      body: payload.text ?? payload.filename ?? "",
+    };
+    if (payload.url) content.url = payload.url;
+    if (payload.info) content.info = payload.info;
     if (payload.mentions?.length) content["m.mentions"] = { user_ids: payload.mentions };
     if (payload.intent && payload.intent !== "chat") content["com.agentim.intent"] = payload.intent;
     if (payload.proposalId) content["com.agentim.proposal_id"] = payload.proposalId;
@@ -181,6 +186,38 @@ export class MatrixClient {
     ).catch((err) => this.log(`typing failed: ${err.message}`));
   }
 
+  /** Upload raw bytes to the media repo; returns an mxc:// URI. */
+  async uploadMedia(bytes, { contentType = "application/octet-stream", filename = "file" } = {}) {
+    const url = new URL(`${this.homeserver}/_matrix/media/v3/upload`);
+    url.searchParams.set("filename", filename);
+    const res = await this.fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        "Content-Type": contentType,
+      },
+      body: bytes,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new MatrixError(res.status, json, "POST", "/media/v3/upload");
+    if (!json?.content_uri) throw new Error("media upload returned no content_uri");
+    return json.content_uri;
+  }
+
+  /** Authenticated media download (Tuwunel requires the v1 endpoint). */
+  async downloadMedia(serverName, mediaId) {
+    const url = `${this.homeserver}/_matrix/client/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
+    const res = await this.fetch(url, { headers: { Authorization: `Bearer ${this.accessToken}` } });
+    if (!res.ok) {
+      const json = await res.json().catch(() => null);
+      throw new MatrixError(res.status, json, "GET", "/media/download");
+    }
+    return {
+      contentType: res.headers.get("content-type") ?? "application/octet-stream",
+      body: Buffer.from(await res.arrayBuffer()),
+    };
+  }
+
   #nextTxnId() {
     this.txnSeq += 1;
     return `agentim-${this.userId.replace(/[^a-zA-Z0-9._=-]/g, "_")}-${Date.now()}-${this.txnSeq}`;
@@ -189,7 +226,8 @@ export class MatrixClient {
   #normalize(roomId, ev) {
     if (!ev || ev.type !== "m.room.message") return null;
     const content = ev.content ?? {};
-    if (content.msgtype !== "m.text" && content.msgtype !== "m.notice") return null;
+    const allowed = new Set(["m.text", "m.notice", "m.image", "m.file"]);
+    if (!allowed.has(content.msgtype)) return null;
     const rel = content["m.relates_to"];
     let threadId = "main";
     let replyTo;
@@ -205,7 +243,10 @@ export class MatrixClient {
       threadId,
       sender: ev.sender,
       senderKind: this.kinds.get(ev.sender) ?? "human",
+      msgtype: content.msgtype,
       text: content.body ?? "",
+      url: content.url ?? null,
+      fileInfo: content.info ?? null,
       intent: content["com.agentim.intent"] ?? "chat",
       mentions: content["m.mentions"]?.user_ids ?? [],
       replyTo,

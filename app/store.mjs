@@ -186,6 +186,7 @@ export class Store {
       const template = getTemplate(agent.templateId);
       if (!agent.role) agent.role = template.role;
       if (agent.toolsEnabled === undefined) agent.toolsEnabled = Boolean(agent.extraArgs?.length);
+      if (!agent.toolsMode) agent.toolsMode = agent.toolsEnabled ? "template" : "off";
       mkdirSync(join(agent.agentHome ?? join(dataDir, "agents", agent.name), "knowledge"), {
         recursive: true,
       });
@@ -290,6 +291,7 @@ export class Store {
         domains: a.domains,
         wakePolicy: a.wakePolicy,
         systemPrompt: a.systemPrompt,
+        toolsMode: a.toolsMode,
         toolsEnabled: Boolean(a.toolsEnabled),
         status: a.status,
       };

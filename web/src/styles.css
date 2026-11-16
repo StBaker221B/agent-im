@@ -1607,6 +1607,40 @@ button {
   margin: 0 0 14px;
 }
 
+.usage-table {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.usage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px 90px 78px 90px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid var(--hair);
+  font-size: 12.5px;
+}
+
+.usage-row.head {
+  border-top: 0;
+  background: var(--rail);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.usage-row.total {
+  background: var(--rail);
+  font-weight: 600;
+}
+
+.usage-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .settings-agents {
   display: grid;
   gap: 12px;
@@ -1792,6 +1826,14 @@ button {
 
   .settings-facts {
     grid-template-columns: 1fr;
+  }
+
+  .usage-row {
+    grid-template-columns: minmax(0, 1fr) 70px 84px;
+  }
+
+  .usage-total {
+    display: none;
   }
 
   .room-more {

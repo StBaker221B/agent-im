@@ -49,6 +49,7 @@ export class Gateway {
     tickMs = 1000,
     maxQueued = 5000,
     mediaDir = null,
+    triage = {},
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -65,6 +66,11 @@ export class Gateway {
     this.log = log;
     this.mediaDir = mediaDir;
     this.mediaCache = new Map();
+    // Cheap, rule-based triage before a full model turn. Direct mentions and
+    // replies always run; ambient wakes can be skipped by ack/cooldown/cap.
+    this.triage = { cooldownMs: 15_000, maxTurnsPerHour: 30, skipAcks: true, ...triage };
+    this.lastTurnAt = new Map();
+    this.turnTimes = new Map();
 
     this.since = new Map();
     this.processed = new Set();
@@ -407,6 +413,13 @@ export class Gateway {
     for (const agentId of result.wake ?? []) {
       if (dispatched.has(agentId)) continue;
       if (this.engine.getThread(ev.roomId, ev.threadId ?? "main")?.floor.holder) break;
+      const agent = this.engine.agents.get(agentId);
+      const attention = this.engine.attentionFor(agentId, result.message);
+      const skip = agent ? this.#triageSkip(agent, result.message, attention) : null;
+      if (skip) {
+        this.audit.write({ kind: "triage_skip", agentId, roomId: ev.roomId, reason: skip, text: ev.text });
+        continue;
+      }
       const req = this.engine.requestFloor(ev.roomId, ev.threadId ?? "main", agentId, {
         priority: 2,
         reason: "volunteer",
@@ -446,6 +459,7 @@ export class Gateway {
 
   async #runTurn(agentId, runtime, envelope) {
     const { roomId, threadId = envelope.message.threadId ?? "main", id: triggerId } = envelope.message;
+    this.#recordTurn(agentId);
     const client = this.clients.get(agentId);
     let session;
     try {
@@ -555,6 +569,51 @@ export class Gateway {
       this.log(`[gateway] media cache failed: ${err.message}`);
       return null;
     }
+  }
+
+  #isAck(text) {
+    const t = String(text ?? "").trim().toLowerCase();
+    if (!t) return true;
+    const stop = new Set([
+      "ok",
+      "okay",
+      "k",
+      "收到",
+      "好的",
+      "好",
+      "谢谢",
+      "谢了",
+      "thanks",
+      "thank you",
+      "thx",
+      "👍",
+      "👌",
+      "🙏",
+    ]);
+    return stop.has(t) || /^[\p{Extended_Pictographic}\s]+$/u.test(t);
+  }
+
+  /** Return a skip reason, or null when the agent may take a turn. */
+  #triageSkip(agent, message, attention) {
+    if (["direct_mention", "reply", "task_owner"].includes(attention)) return null;
+    if (this.triage.skipAcks && message.senderKind === "human" && this.#isAck(message.text)) {
+      return "ack";
+    }
+    const now = this.now();
+    const last = this.lastTurnAt.get(agent.id);
+    if (last !== undefined && now - last < this.triage.cooldownMs) return "cooldown";
+    const times = (this.turnTimes.get(agent.id) ?? []).filter((t) => t > now - 3_600_000);
+    this.turnTimes.set(agent.id, times);
+    if (times.length >= this.triage.maxTurnsPerHour) return "hourly_cap";
+    return null;
+  }
+
+  #recordTurn(agentId) {
+    const now = this.now();
+    this.lastTurnAt.set(agentId, now);
+    const times = (this.turnTimes.get(agentId) ?? []).filter((t) => t > now - 3_600_000);
+    times.push(now);
+    this.turnTimes.set(agentId, times);
   }
 
   #resolveMentions(text, selfId) {

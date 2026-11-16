@@ -8,7 +8,7 @@ export default function NewAgentModal({ templates, busy, error, onClose, onCreat
   const [templateId, setTemplateId] = useState("generic");
   const [roles, setRoles] = useState("");
   const [runtime, setRuntime] = useState("claude");
-  const [toolsEnabled, setToolsEnabled] = useState(true);
+  const [toolsMode, setToolsMode] = useState("template");
   const [systemPrompt, setSystemPrompt] = useState("");
   const dialogRef = useDialogFocus(onClose);
 
@@ -51,7 +51,7 @@ export default function NewAgentModal({ templates, busy, error, onClose, onCreat
                   templateId,
                   roles,
                   runtime,
-                  toolsEnabled,
+                  toolsMode,
                   systemPrompt,
                 });
               }
@@ -123,13 +123,13 @@ export default function NewAgentModal({ templates, busy, error, onClose, onCreat
                   <option value="script">测试脚本（不花钱）</option>
                 </select>
               </label>
-              <label className="check-inline">
-                <input
-                  type="checkbox"
-                  checked={toolsEnabled}
-                  onChange={(e) => setToolsEnabled(e.target.checked)}
-                />
-                <span>按模板启用工具（本地 workspace）</span>
+              <label className="field">
+                <span>工具权限</span>
+                <select name="toolsMode" value={toolsMode} onChange={(e) => setToolsMode(e.target.value)}>
+                  <option value="template">按模板（推荐）</option>
+                  <option value="full">完整工具（可写；需要时再放开）</option>
+                  <option value="off">关闭工具</option>
+                </select>
               </label>
             </div>
 

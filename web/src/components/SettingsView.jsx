@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { api } from "../api";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+
+const USD = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
 
 const WAKE_OPTIONS = [
   { value: "human_all", label: "人类消息全部判断（默认）" },
@@ -15,7 +18,7 @@ function AgentSettings({ agent, templates, onSave }) {
   const [templateId, setTemplateId] = useState(agent.templateId ?? "generic");
   const [roles, setRoles] = useState((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
   const [wakePolicy, setWakePolicy] = useState(agent.wakePolicy ?? "human_all");
-  const [toolsEnabled, setToolsEnabled] = useState(Boolean(agent.toolsEnabled));
+  const [toolsMode, setToolsMode] = useState(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -26,7 +29,7 @@ function AgentSettings({ agent, templates, onSave }) {
     setTemplateId(agent.templateId ?? "generic");
     setRoles((agent.roles ?? []).filter((r) => r !== agent.templateId).join(", "));
     setWakePolicy(agent.wakePolicy ?? "human_all");
-    setToolsEnabled(Boolean(agent.toolsEnabled));
+    setToolsMode(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
     setSystemPrompt(agent.systemPrompt ?? "");
   }, [agent]);
 
@@ -40,7 +43,7 @@ function AgentSettings({ agent, templates, onSave }) {
         templateId,
         roles,
         wakePolicy,
-        toolsEnabled,
+        toolsMode,
         systemPrompt,
       });
       if (ok) {
@@ -120,9 +123,13 @@ function AgentSettings({ agent, templates, onSave }) {
         </div>
       )}
 
-      <label className="check-inline">
-        <input type="checkbox" checked={toolsEnabled} onChange={(e) => setToolsEnabled(e.target.checked)} />
-        <span>按模板启用工具（本地 workspace）</span>
+      <label className="field">
+        <span>工具权限</span>
+        <select name="toolsMode" value={toolsMode} onChange={(e) => setToolsMode(e.target.value)}>
+          <option value="template">按模板（推荐）</option>
+          <option value="full">完整工具（可写；需要时再放开）</option>
+          <option value="off">关闭工具</option>
+        </select>
       </label>
 
       <p className="form-note">
@@ -151,6 +158,25 @@ function AgentSettings({ agent, templates, onSave }) {
 }
 
 export default function SettingsView({ data, templates = [], onSave, onBack }) {
+  const [usage, setUsage] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      api
+        .usage()
+        .then((d) => {
+          if (alive) setUsage(d);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 5000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, []);
+
   return (
     <section className="settings-view">
       <header className="view-head">
@@ -185,6 +211,46 @@ export default function SettingsView({ data, templates = [], onSave, onBack }) {
             </dd>
           </div>
         </dl>
+      </div>
+
+      <div className="settings-section">
+        <h3>用量（今天 / 累计）</h3>
+        {usage ? (
+          <>
+            <div className="usage-table">
+              <div className="usage-row head">
+                <span>Agent</span>
+                <span className="usage-num">今天 turns</span>
+                <span className="usage-num">今天 $</span>
+                <span className="usage-num usage-total">累计 turns</span>
+                <span className="usage-num usage-total">累计 $</span>
+              </div>
+              {[...usage.agents]
+                .sort((a, b) => b.todayCost - a.todayCost)
+                .map((row) => (
+                  <div className="usage-row" key={row.id}>
+                    <span>{row.displayName}</span>
+                    <span className="usage-num">{row.todayTurns}</span>
+                    <span className="usage-num">{USD.format(row.todayCost)}</span>
+                    <span className="usage-num usage-total">{row.totalTurns}</span>
+                    <span className="usage-num usage-total">{USD.format(row.totalCost)}</span>
+                  </div>
+                ))}
+              <div className="usage-row total">
+                <span>合计</span>
+                <span className="usage-num">{usage.todayTurns}</span>
+                <span className="usage-num">{USD.format(usage.todayCost)}</span>
+                <span className="usage-num usage-total">{usage.totalTurns}</span>
+                <span className="usage-num usage-total">{USD.format(usage.totalCost)}</span>
+              </div>
+            </div>
+            <p className="settings-note">
+              数据来自 app/data/audit.jsonl 的 usage 事件；triage 跳过不会产生 turn。
+            </p>
+          </>
+        ) : (
+          <p className="muted">加载中…</p>
+        )}
       </div>
 
       <div className="settings-section">

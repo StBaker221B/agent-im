@@ -18,6 +18,7 @@ async function request(path, { method = "GET", body } = {}) {
 export const api = {
   bootstrap: () => request("/api/bootstrap"),
   roleTemplates: () => request("/api/role-templates"),
+  usage: () => request("/api/usage"),
   messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
   send: (roomId, text) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, { method: "POST", body: { text } }),

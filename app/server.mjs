@@ -208,6 +208,58 @@ async function bootstrap() {
   };
 }
 
+async function usageSummary() {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = new Map(
+    store.agents.map((a) => [
+      a.id,
+      {
+        id: a.id,
+        name: a.name,
+        displayName: a.displayName,
+        todayTurns: 0,
+        todayCost: 0,
+        totalTurns: 0,
+        totalCost: 0,
+      },
+    ]),
+  );
+  let text = "";
+  try {
+    text = await readFile(join(dataDir, "audit.jsonl"), "utf8");
+  } catch {
+    // no usage yet
+  }
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (!entry || entry.kind !== "usage" || !entry.agentId) continue;
+    const row = rows.get(entry.agentId);
+    if (!row) continue;
+    const cost = Number(entry.costUsd) || 0;
+    row.totalTurns += 1;
+    row.totalCost += cost;
+    if (String(entry.ts ?? "").slice(0, 10) === today) {
+      row.todayTurns += 1;
+      row.todayCost += cost;
+    }
+  }
+  const agents = [...rows.values()];
+  return {
+    today,
+    agents,
+    totalTurns: agents.reduce((n, a) => n + a.totalTurns, 0),
+    totalCost: agents.reduce((n, a) => n + a.totalCost, 0),
+    todayTurns: agents.reduce((n, a) => n + a.todayTurns, 0),
+    todayCost: agents.reduce((n, a) => n + a.todayCost, 0),
+  };
+}
+
 function validateUsername(username) {
   if (!/^[a-z0-9._=-]{1,32}$/.test(username)) {
     throw Object.assign(new Error("ID 只能是小写字母、数字和 . _ = -，长度 1–32"), { status: 400 });
@@ -215,9 +267,21 @@ function validateUsername(username) {
   if (store.agent(username)) throw Object.assign(new Error("这个 ID 已经存在"), { status: 409 });
 }
 
-function toolArgsFor(template, enabled, runtime) {
-  if (!enabled || runtime !== "claude" || !template?.tools?.allow?.length) return [];
-  return ["--permission-mode", "dontAsk", "--allowedTools", template.tools.allow.join(",")];
+const TOOL_MODES = new Set(["template", "full", "off"]);
+const FULL_TOOLS = ["Read", "Glob", "Grep", "PowerShell", "Edit", "Write"];
+
+function toolArgsFor(template, mode, runtime) {
+  if (runtime !== "claude" || mode === "off") return [];
+  const allow = mode === "full" ? FULL_TOOLS : (template?.tools?.allow ?? []);
+  if (!allow.length) return [];
+  return ["--permission-mode", "dontAsk", "--allowedTools", allow.join(",")];
+}
+
+function toolsModeOf(body, fallback = "template") {
+  if (TOOL_MODES.has(body.toolsMode)) return body.toolsMode;
+  if (body.toolsEnabled === false) return "off";
+  if (body.toolsEnabled === true) return "template";
+  return fallback;
 }
 
 function parseRoles(body) {
@@ -241,7 +305,8 @@ async function createAgent(body) {
   const template = getTemplate(templateId);
   const tags = parseRoles(body);
   const roles = [...new Set([template.id, ...tags])];
-  const toolsEnabled = runtime === "claude" && body.toolsEnabled !== false;
+  const toolsMode = runtime === "claude" ? toolsModeOf(body, "template") : "off";
+  const toolsEnabled = toolsMode !== "off";
   validateUsername(username);
 
   const password = randomBytes(18).toString("base64url");
@@ -265,8 +330,9 @@ async function createAgent(body) {
       String(body.systemPrompt ?? "").trim() ||
       defaultSystemPrompt({ displayName, name: username, roles: [template.name, ...tags] }),
     wakePolicy: runtime === "script" ? "mention_only" : (template.defaultWakePolicy ?? "human_all"),
+    toolsMode,
     toolsEnabled,
-    extraArgs: toolArgsFor(template, toolsEnabled, runtime),
+    extraArgs: toolArgsFor(template, toolsMode, runtime),
     status: "active",
     agentHome: join(dataDir, "agents", username),
     createdAt: new Date().toISOString(),
@@ -284,6 +350,7 @@ async function createAgent(body) {
     templateName: template.name,
     mission: template.mission,
     roles: agent.roles,
+    toolsMode: agent.toolsMode,
     toolsEnabled: agent.toolsEnabled,
     status: "idle",
   };
@@ -322,15 +389,22 @@ async function updateAgent(agentId, body) {
     patch.wakePolicy = body.wakePolicy;
   }
 
-  let toolsEnabled = Boolean(agent.toolsEnabled);
+  let toolsMode = agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off");
   let toolsChanged = false;
-  if (body.toolsEnabled !== undefined) {
-    toolsChanged = Boolean(body.toolsEnabled) !== toolsEnabled;
-    toolsEnabled = Boolean(body.toolsEnabled);
+  if (body.toolsMode !== undefined || body.toolsEnabled !== undefined) {
+    const next = toolsModeOf(body, toolsMode);
+    toolsChanged = next !== toolsMode;
+    toolsMode = next;
+  }
+  const toolsEnabled = toolsMode !== "off";
+  if (toolsEnabled !== Boolean(agent.toolsEnabled)) {
     patch.toolsEnabled = toolsEnabled;
+    toolsChanged = true;
   }
   if (templateChanged || toolsChanged) {
-    patch.extraArgs = toolArgsFor(template, toolsEnabled, agent.runtime);
+    patch.toolsMode = toolsMode;
+    patch.toolsEnabled = toolsEnabled;
+    patch.extraArgs = toolArgsFor(template, toolsMode, agent.runtime);
   }
 
   const promptChanged = typeof body.systemPrompt === "string" && body.systemPrompt !== agent.systemPrompt;
@@ -362,6 +436,7 @@ async function updateAgent(agentId, body) {
     templateName: template.name,
     mission: template.mission,
     roles: agent.roles,
+    toolsMode: agent.toolsMode,
     toolsEnabled: Boolean(agent.toolsEnabled),
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),
@@ -488,6 +563,10 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/role-templates") {
     return json(res, 200, { templates: TEMPLATE_LIST.map(publicTemplate) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/usage") {
+    return json(res, 200, await usageSummary());
   }
 
   if (req.method === "GET" && url.pathname === "/api/search") {

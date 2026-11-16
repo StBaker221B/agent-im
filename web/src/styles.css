@@ -1005,8 +1005,11 @@ button {
   color: var(--muted);
 }
 
-.view-head .primary {
+.view-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .view-note {

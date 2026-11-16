@@ -5,6 +5,7 @@ import ChatView from "./components/ChatView";
 import AgentsView from "./components/AgentsView";
 import NewChatModal from "./components/NewChatModal";
 import NewAgentModal from "./components/NewAgentModal";
+import TeamModal from "./components/TeamModal";
 import InviteModal from "./components/InviteModal";
 import ProfileModal from "./components/ProfileModal";
 import SearchView from "./components/SearchView";
@@ -35,6 +36,7 @@ function EmptyChat({ onNew }) {
 export default function App() {
   const [data, setData] = useState(null);
   const [templates, setTemplates] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [connected, setConnected] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [view, setView] = useState("chat");
@@ -82,6 +84,10 @@ export default function App() {
     api
       .roleTemplates()
       .then((res) => setTemplates(res.templates ?? []))
+      .catch(() => {});
+    api
+      .teamTemplates()
+      .then((res) => setTeams(res.teams ?? []))
       .catch(() => {});
   }, []);
 
@@ -313,6 +319,16 @@ export default function App() {
       openRoom(res.room.id);
     });
 
+  const handleCreateTeam = (payload) =>
+    runModal(async () => {
+      const res = await api.createTeam(payload.teamId, {
+        prefix: payload.prefix,
+        groupName: payload.groupName,
+      });
+      await loadBootstrap();
+      openRoom(res.group.room.id);
+    });
+
   const handleInvite = (agentIds) =>
     runModal(async () => {
       if (!activeRoomId) return;
@@ -361,6 +377,7 @@ export default function App() {
           <AgentsView
             agents={data?.agents ?? []}
             onNew={() => openModal("agent")}
+            onNewTeam={() => openModal("team")}
             onDm={handleCreateDm}
             onProfile={openProfile}
             onBack={() => setMobilePane("list")}
@@ -425,6 +442,19 @@ export default function App() {
             if (!busy) setModal(null);
           }}
           onCreateAgent={handleCreateAgent}
+        />
+      )}
+
+      {modal === "team" && (
+        <TeamModal
+          teams={teams}
+          templates={templates}
+          busy={busy}
+          error={modalError}
+          onClose={() => {
+            if (!busy) setModal(null);
+          }}
+          onCreate={handleCreateTeam}
         />
       )}
 

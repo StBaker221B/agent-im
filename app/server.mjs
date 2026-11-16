@@ -18,6 +18,7 @@ import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
+import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -482,6 +483,43 @@ async function updateAgent(agentId, body) {
   };
 }
 
+async function createTeam(teamId, body) {
+  const team = getTeamTemplate(teamId);
+  if (!team) throw Object.assign(new Error("team template not found"), { status: 404 });
+  const prefix = String(body.prefix ?? "squad")
+    .trim()
+    .toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{0,19}$/.test(prefix))
+    throw Object.assign(new Error("prefix 只能是小写字母/数字/-，1–20 位"), { status: 400 });
+  const usernames = team.roles.map((roleId) => `${prefix}-${shortRoleName(roleId)}`);
+  for (const username of usernames) {
+    if (store.agent(username))
+      throw Object.assign(new Error(`ID 已存在：${username}，换一个 prefix`), { status: 409 });
+  }
+  const agents = [];
+  for (let i = 0; i < team.roles.length; i++) {
+    const roleId = team.roles[i];
+    const template = getTemplate(roleId);
+    if (!template) throw new Error(`unknown role template: ${roleId}`);
+    const agent = await createAgent({
+      username: usernames[i],
+      displayName: template.name,
+      runtime: "claude",
+      templateId: roleId,
+      toolsMode: "template",
+      roles: "",
+      systemPrompt: "",
+    });
+    agents.push(agent);
+  }
+  const group = await createGroup({
+    name: String(body.groupName ?? "").trim() || team.groupName,
+    agentIds: agents.map((a) => a.id),
+  });
+  log(`[app] team created ${team.id} prefix=${prefix} agents=${agents.length}`);
+  return { team: team.id, group, agents };
+}
+
 async function createDm(body) {
   const agent = store.agent(String(body.agentId ?? ""));
   if (!agent) throw Object.assign(new Error("agent not found"), { status: 404 });
@@ -602,6 +640,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/role-templates") {
     return json(res, 200, { templates: TEMPLATE_LIST.map(publicTemplate) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/team-templates") {
+    return json(res, 200, { teams: TEAM_LIST.map(publicTeam) });
+  }
+
+  if (req.method === "POST" && parts[1] === "team-templates" && parts[3] === "create" && parts.length === 4) {
+    const teamId = decodeURIComponent(parts[2]);
+    const body = await readBody(req);
+    return json(res, 200, await createTeam(teamId, body));
   }
 
   if (req.method === "GET" && url.pathname === "/api/usage") {

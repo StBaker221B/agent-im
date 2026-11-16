@@ -2,6 +2,7 @@
 
 - 状态：调研 2026-11-16；未安装、未实测；星数为 GitHub API 当日值，会变化。
 - 背景：笔记本 + 办公机都是本地 Windows，没有公网 IP；目前只能本地部署。以后 Matrix/agent 可能要跨机、手机访问，甚至对公网开放。
+- **2026-11-16 更新**：Conduit 上游基本停更，当前维护版是 **Tuwunel**（Conduit → conduwuit → Tuwunel，v2.0.0）。v0 用 Tuwunel 单二进制，安装见 [12 Matrix 宿主](12-matrix-host-wsl.md)。
 
 ## 1. 先说结论：没有项目能“凭空给你公网 IP”
 
@@ -37,7 +38,7 @@
 ### 现在：本地多机验证
 
 - 用 **EasyTier** 把笔记本和办公机加入同一个虚拟网络（也可以加手机）。
-- Matrix 跑在其中一台（先不用 Docker Desktop；后续用 WSL2/Linux rootfs 或 Windows 原生方案）。
+- Matrix 跑在其中一台（v0：本机 WSL2 + Tuwunel，不用 Docker Desktop；见 [12](12-matrix-host-wsl.md)）。
 - 另一台通过 EasyTier 的虚拟 IP 访问 Matrix/Element。
 - 不需要公网 IP；不需要路由器端口映射；不把家宽暴露到公网。
 - 如果 EasyTier 在你家网络穿透失败，它会走公共中继；仍不需要公网 IP。

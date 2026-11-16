@@ -1,6 +1,6 @@
 # 00 需求合同（草案）
 
-- 状态：草案 2026-11-15。A–D/F/E/G 已确认；H1 本机先搞；H2 已装 `spec-driven-development`（addyosmani）。
+- 状态：草案 2026-11-15（2026-11-16 补充宿主决定）。A–D/F/E/G 已确认；H1 本机先搞；H2 已装 `spec-driven-development`（addyosmani）；Matrix 宿主 = WSL2 + Tuwunel（[12](12-matrix-host-wsl.md)）。
 - 本文是 v0 的唯一需求口径；确认后 01/03/05/06 以本文为准。
 - 来源：[01 需求](01-requirements.md) · [03 架构](03-architecture.md) · [04 接入](04-agent-integration.md) · [过程记录：需求澄清](records/2026-11-15-02-clarifications.md) · [过程记录：第二轮答复](records/2026-11-15-03-answers-round2.md) · [过程记录：第三轮答复](records/2026-11-15-04-answers-round3.md)
 - 文档约定：**正式文档 = `docs/0X-*.md`（随项目更新）；过程记录 = `docs/records/`（可追加/修改）**。
@@ -218,15 +218,15 @@ interface AgentRuntime {
 
 | 组件 | 内存粗估 |
 |---|---|
-| Matrix：Conduit | ~50–150MB |
+| Matrix：Tuwunel（Conduit 系） | ~50–150MB |
 | Matrix：Synapse + Postgres | ~0.5–1GB |
 | Element Web（静态） | ~20–50MB |
 | Gateway/Supervisor（一个进程） | ~100–250MB |
 | 2–3 个 runtime | ~0.5–1.5GB |
-| **合计** | **约 2–3GB（Conduit）/ 3–4GB（Synapse）** |
+| **合计** | **约 2–3GB（Tuwunel）/ 3–4GB（Synapse）** |
 
 - 16GB 内存足够；Docker/WSL2 额外 1–2GB。
-- 省资源：Conduit、一个 gateway、runtime 懒启动/空闲睡、SQLite、v0 不用 per-agent 容器、worktree 放 D 盘。
+- 省资源：Tuwunel、一个 gateway、runtime 懒启动/空闲睡、SQLite、v0 不用 per-agent 容器、worktree 放 D 盘。
 - 第一个协议 spike 不需要 Matrix/Docker：Node + Claude CLI + 假总线即可。
 - H1：本机先搞；办公机后面 `git pull` 复现；环境差异与清单见 `10-dev-setup.md`。
 
@@ -388,7 +388,7 @@ interface AgentRuntime {
 
 - ✅ A–D/F/E/G 已确认；H1 本机先搞；H2 已装 `spec-driven-development`（addyosmani）。
 - ✅ v0 底座：Matrix + Element（单 homeserver；先用子集：普通账号、房间、消息、历史；不用 AppService/E2E/federation）。
-- 本机当前**没有 Docker Desktop / 可用 WSL 发行版**；C 盘剩 25GB、D 盘 321GB、16GB 内存。上 Matrix 时再装 Docker+WSL2（数据放 D）/ 用办公机 / 小 VPS。
+- 本机**没有 Docker Desktop**；WSL 3.0.5 + `agentim` 发行版（Ubuntu 24.04.4，VHDX 在 D 盘）已可用，Tuwunel 2.0.0 已装并验证（监听 `127.0.0.1:8008`）。C 盘剩 24GB、D 盘 321GB、16GB 内存。Matrix 宿主：**WSL2 + Tuwunel 单二进制**（不装 Docker Desktop，数据放 D 盘），见 [12](12-matrix-host-wsl.md)；办公机 / 小 VPS 是以后跨机/公开的选项。
 - 本机只有 Claude Code + OpenClaw；**Codex/dsh 未安装**，需本机装或用办公机；Hermes 未装。
 - 单开发者；【待确认】每周投入时间、每月 API 预算上限（你说不够会停，暂不设硬数字）。
 - Agent 是半可信：防 prompt injection/循环/超预算；不防“持有 Matrix token 的恶意 agent”（v0）。

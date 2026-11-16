@@ -332,23 +332,55 @@ type RuntimeCapabilities = {
 9. 人类 `!interrupt` 抢占 floor；普通人类消息不自动 preempt。
 10. 角色/`can_invite` 权限被 gateway 强制执行。
 
-## 14. 实现状态（2026-11-16）
+## 14. 实现状态（2026-11-16，真实 Matrix E2E 通过）
+
+### 14.1 Runtime / adapter
 
 - `spike/src/claude-adapter.mjs` 已实现 AgentRuntime：
   - 启动参数：`--bare --disable-slash-commands --strict-mcp-config --system-prompt-file`
   - 一个 room/thread 一个长活 CLI 进程；同一进程可连续多轮。
   - `interrupt` = kill 进程；下次自动 `--resume <session_id>`。
-  - 解析 `system/init`（session_id）、`assistant`（text / tool_use）、`user`（tool_result）、`result`（usage / cost）。
-- 实测：
-  - 14 个测试通过（12 引擎 + 2 adapter 解析）。
-  - 3 阶段 demo：首轮回复 → 同进程连续对话 → kill + `--resume`；resume 保持同一 session id。
-  - 总用量 in=1843 out=319，成本约 **$0.043918**；线程最终 quiescent。
-  - 精简参数把一句“收到”从 24,702 tokens / $0.132 降到 942 tokens / $0.0048。
-- `capabilities`：`streaming=false`（v0 收完整 turn 再 yield）、`interrupt=true`、`resume=true`、`approval=false`、`tools=true`、`multi_session=true`。
-- 已知问题：
-  - CLI 冷启动约 1–2s；首轮会加载少量系统提示。
-  - stderr 有 `[claude-code:unrecognized_model]` 警告，不影响运行。
-  - 工具审批、真正的流式输出、Matrix transport 还没接。
+  - session id 持久化到 agent home 的 `sessions/claude.json`；gateway 重启后仍能 resume。
+  - 解析 `system/init`、`assistant`（text / tool_use）、`user`（tool_result）、`result`（usage / cost）。
+- `spike/src/script-peer.mjs`：确定性脚本 participant，实现同一 runtime 契约。
+- `spike/src/reply.mjs`：共享 `buildAgentPrompt` / `parseReply`（PASS / ASK_HUMAN / DONE）。
+- `capabilities`：`streaming=false`、`interrupt=true`、`resume=true`、`approval=false`、`tools=true`、`multi_session=true`。
+
+### 14.2 Transport / gateway（新增）
+
+- `spike/src/fake-bus.mjs`：进程内假总线，含 room/members、单调 event log、`since` token、txn id 幂等；用于测试和不花钱的 demo。
+- `spike/src/matrix-transport.mjs`：Matrix client-server API 传输。
+  - 每个 agent 一个 MatrixClient（独立 token）；`sync` 长轮询、`send` 带 txn id、`m.mentions`、`m.thread`、`com.agentim.*` 自定义字段。
+  - 支持 `getMessages`（补课/水合）、`getEvent`（thread root）、`members`、`join`、`resolveAlias`。
+- `spike/src/gateway.mjs`：Engine ↔ transport ↔ runtime 桥。
+  - 每个 agent 自己的 sync loop；全局串行队列保证同 thread 单写者（v0 不同 thread 也串行）。
+  - 投递即入 Engine；`wakePolicy` 决定 turn；2 人房间自动视为 direct mention。
+  - runtime 输出先落 Matrix（拿到 event id），再 `agentAct`；回复 txn id 由 `(agent, trigger event)` 决定，重试不重复发。
+  - 状态持久化：`since` token、已消费 event id、`lastTs`；重启从 since 补课，历史按 `lastTs` 水合为已消费，旧消息不重跑。
+  - tick 处理 floor 超时（interrupt runtime）、quiescence、proposal 结果；JSONL 审计。
+- `spike/src/supervisor.mjs`：配置加载、agent/runtime/transport 装配、SIGINT 优雅停止。
+- `spike/scripts/setup-matrix.mjs`：幂等注册用户、建群 + DM、写本地 config；`scripts/say.mjs` 用人类身份发消息。
+- 宿主方案：[12 Matrix 宿主](12-matrix-host-wsl.md)（WSL2 + Tuwunel，单二进制，不用 Docker Desktop）。**2026-11-16 已安装**：WSL2 3.0.5 + Ubuntu 24.04.4、Tuwunel 2.0.0，监听 `127.0.0.1:8008`，`server_name=localhost`。
+
+### 14.3 实测
+
+- **25 个测试通过**：13 引擎 + 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）。
+- 假总线端到端 demo（`npm run gateway-demo`）：群 @mention → Claude(mock) → script peer → PASS → quiescent；DM；主动发言；重启不重跑旧消息、停机期间消息只处理一次；全过。
+- 真实 Claude gateway demo（`npm run gateway-demo-claude`）：in=1381 out=648，成本 **$0.059228**；4 条消息后 quiescent。
+- **真实 Matrix E2E 通过（2026-11-16，WSL2 + Tuwunel 2.0.0）**：
+  - `setup-matrix` 首次运行即成功：注册 `@kudo:localhost`、`@claude-dev:localhost`、`@script-peer:localhost`，建群 `#agent-room:localhost` 与 DM `#agent-room-dm:localhost`。
+  - 群 @claude-dev → Claude（真实 CLI）回复并 @script-peer → script peer 回复 → Claude 再收到 → `PASS` → quiescent；DM 无需 @（2 人房间自动 direct）；群里不 @ 任何人只有 inbound、不唤醒。
+  - 停机期间发一条 @claude-dev，重启 gateway：`state loaded: since=2 processed=6`，只处理停机那条一次，旧消息不重跑，Claude session 继续 resume。
+  - 时间线经 Matrix API 独立读取核对，事件确实落在 homeserver，不只看网关自己的日志。
+  - 本轮真实 Claude 成本约 **$0.029**（4 个 turn）。
+- 一个观察：人类一条消息同时 @ 两个 agent 时，两个 agent 会并行各回一条（script peer 回的是人类，不是 Claude）；要测 agent→agent 链，需只 @ 第一个 agent，让它自己 @ 第二个。
+- 已知限制：
+  - 全局队列：不同 thread 暂不并行。
+  - 崩溃在 turn 中间：该轮回复会丢（入站先标记已消费），不会重复；v0 接受。
+  - thread root 只水合一条；长 thread 的上下文以 native session 为准。
+  - 工具审批、真正的流式输出还没做；真实 Matrix 上的审批同样没验证。
+  - Tuwunel 目前是 `nohup` 常驻，还没做开机自启（任务计划程序或 systemd）。
+  - CLI 冷启动约 1–2s；stderr 有 `[claude-code:unrecognized_model]` 警告，不影响运行。
 
 ## 15. 待确认
 

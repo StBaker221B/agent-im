@@ -30,3 +30,5 @@
 | 04 | [2026-11-15 第三轮答复](2026-11-15-04-answers-round3.md) | runtime 常驻/多 worker、投递 vs 唤醒、角色/升级链、Matrix 备选 |
 | 05 | [2026-11-16 Milestone A](2026-11-16-01-milestone-a.md) | 真实 Claude adapter、三阶段 demo、成本、无公网 IP 组网调研 |
 | 06 | [2026-11-16 暂停点](2026-11-16-02-pause.md) | 明天继续的入口、环境状态、待拍板、下一步 |
+| 07 | [2026-11-16 Transport + Gateway](2026-11-16-03-transport-gateway.md) | transport 抽象、gateway、真实 Claude 端到端、Tuwunel/WSL2 决定 |
+| 08 | [2026-11-16 真实 Matrix E2E](2026-11-16-04-matrix-e2e.md) | WSL2 导入、Tuwunel 2.0.0 安装、真实 Matrix 五条验收、成本与遗留 |

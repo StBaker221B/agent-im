@@ -1,14 +1,14 @@
 # 10 开发环境与复现（本机 / 办公机）
 
-- 状态：2026-11-15。记录当前机器事实、spike 运行方式、Matrix 环境计划和办公机复现清单。
+- 状态：2026-11-16。记录当前机器事实、spike 运行方式、Matrix 环境（已安装）和办公机复现清单。
 - 关联：[00 合同](00-requirements-contract.md) · [09 协议](09-agent-protocol.md) · [spike](../spike/) · [过程记录](records/2026-11-15-04-answers-round3.md)
 
-## 1. 当前机器事实（2026-11-15 验证）
+## 1. 当前机器事实（2026-11-16 验证）
 
 - Windows 11 Home China；AMD Ryzen 7 5800H；16GB 内存；无独显。
 - C 盘剩 ~25GB；D 盘剩 ~321GB。软件装在 `D:\Install`；Node 在 `D:\Install\nodejs`。
 - Node v24.21.0；npm 11.19.0。
-- **未安装 Docker Desktop；WSL 无可用发行版**。
+- **未安装 Docker Desktop**；**WSL 3.0.5 可用**，发行版 `agentim`（Ubuntu 24.04.4，VHDX 在 `D:\WSL\agentim`），Tuwunel 2.0.0 监听 `127.0.0.1:8008`。
 - 已安装：Claude Code 2.1.296、OpenClaw；**未安装 Codex CLI / dsh / Hermes**。
 - 办公机：Win11 Pro，常驻，有 OpenClaw + 飞书 + ACP 的 claude/codex；可作为第二节点。
 
@@ -16,12 +16,13 @@
 
 ```bash
 cd d:/Git/learn/agent-im/spike
-node --test          # 12 个协议测试
-npm run demo         # 人类 + PM/dev/reviewer 的确定性演示
+node --test              # 25 个测试
+npm run demo             # 人类 + PM/dev/reviewer 的确定性演示
+npm run gateway-demo     # 假总线端到端：@mention 链、DM、主动发言、pass、静默收敛、重启去重
 ```
 
 - 纯 Node ESM，无第三方依赖；Node >= 22。
-- 覆盖：投递/唤醒、mention 优先级、单写者 floor、pass、静默收敛、lazy consensus、升级链、幂等、canInvite、interrupt、turn timeout、角色查询。
+- 覆盖：投递/唤醒、mention 优先级、单写者 floor、pass、静默收敛、lazy consensus、升级链、幂等、canInvite、interrupt、turn timeout、角色查询；gateway 的群聊链、DM、volunteer、重启水合；Matrix transport 的 sync/send/thread/mention/txn 幂等；setup-matrix 的注册/建群/DM/幂等。
 
 ### 2.1 Claude adapter demo（真实 Claude Code）
 
@@ -31,10 +32,37 @@ npm run claude-demo
 ```
 
 - 三阶段：首轮 human @claude-dev → Claude 回复并 @reviewer；同进程连续对话；kill 进程后 `--resume` 继续。
-- 2026-11-16 实测：14 tests pass；总 in=1843 / out=319 / **$0.043918**；resume 保持同一 session id；线程最终 quiescent。
+- 2026-11-16 实测（当时 14 tests；现在全量 **25 tests**）：总 in=1843 / out=319 / **$0.043918**；resume 保持同一 session id；线程最终 quiescent。
 - 精简参数：`--bare --disable-slash-commands --strict-mcp-config --system-prompt-file`；一句“收到” 942 tokens / $0.0048（完整环境 24,702 / $0.132）。
 - 审计 JSONL：`spike/.tmp/audit.jsonl`（gitignore）。
-- 限制：v0 不流式输出、无工具审批、无 Matrix；CLI 冷启动 1–2s。
+- 限制：v0 不流式输出、无工具审批；真实 Matrix E2E 已通过（见 2.3）。
+
+### 2.2 Gateway 端到端
+
+```bash
+cd d:/Git/learn/agent-im/spike
+npm run gateway-demo          # 免费，mock runtime + script peer；假总线
+npm run gateway-demo-claude   # 真实 Claude + script peer；约 $0.06，1–3 分钟
+```
+
+- `gateway-demo` 覆盖：群 @mention → 回复 @peer → peer 回复 → Claude PASS → quiescent；DM；volunteer；重启不重跑旧消息、停机期间消息只处理一次。
+- `gateway-demo-claude` 2026-11-16 实测：in=1381 / out=648 / **$0.059228**；4 条消息后 quiescent。
+- 状态/审计：`spike/.tmp/{fake,claude}-gateway-state.json`、`*.jsonl`、`agents/*/sessions/claude.json`；都在 gitignore 的 `.tmp` 下。
+
+### 2.3 真实 Matrix（2026-11-16 已验证）
+
+```bash
+curl.exe -s http://127.0.0.1:8008/_matrix/client/versions   # 宿主要在跑
+cd d:/Git/learn/agent-im/spike
+npm run setup-matrix -- --registration-token "$(cat .tmp/matrix-registration-token.txt)"  # 幂等；写 .tmp/matrix-config.json
+npm run matrix-gateway                                    # 常驻 gateway
+npm run say -- --text "@claude-dev 你好"                  # 用人类身份发消息
+```
+
+- 实测：群 @claude-dev → Claude 回复 @script-peer → peer 回复 → Claude PASS → quiescent；DM 自动 direct；不 @ 不唤醒；停机重启只处理新消息。详见 [记录 04](records/2026-11-16-04-matrix-e2e.md)。
+- 宿主安装见 [12 Matrix 宿主：WSL2 + Tuwunel](12-matrix-host-wsl.md)；Windows 重启后 Tuwunel 不会自启，需手动拉起。
+- 一个 agent 一个 Matrix 账号/token；DM 用单独房间；gateway 只绑本机 loopback。
+- 不提交 `.tmp/matrix-config.json` / `matrix-users.json`。
 
 ## 3. Linux 环境（不需要 WSL）
 
@@ -50,6 +78,8 @@ npm run claude-demo
 
 ## 4. Matrix 本机环境（需要你操作的步骤）
 
+> **2026-11-16 已选路径**：本机 **WSL2 + Tuwunel 单二进制**，不装 Docker Desktop。步骤见 [12 Matrix 宿主](12-matrix-host-wsl.md)。
+> 下面 4.2–4.4 的 Docker Desktop 方案保留为备选；以后需要 Synapse/Postgres/Element 多服务时，优先在 WSL 发行版里装 **Docker Engine**（不是 Docker Desktop）。
 > 这些步骤需要管理员权限/重启，只能由你执行；装完把版本/路径回填到本节。
 
 ### 4.1 前置
@@ -74,7 +104,7 @@ wsl -l -v
 
 应看到 `VERSION 2`。如果只有 WSL1，执行 `wsl --set-default-version 2`。
 
-### 4.3 安装 Docker Desktop
+### 4.3 安装 Docker Desktop（备选，v0 不选）
 
 1. 下载 Docker Desktop for Windows（docker.com）。
 2. 安装时勾选 **Use WSL 2 instead of Hyper-V**。
@@ -94,7 +124,7 @@ docker compose version
 
 | 服务 | 端口 | 说明 |
 |---|---|---|
-| Synapse 或 Conduit | 8008 | homeserver |
+| Synapse 或 Tuwunel | 8008 | homeserver |
 | Postgres（如果 Synapse） | 5432（仅内部） | 数据库 |
 | Element Web | 8080 | 人类客户端 |
 | agent-im gateway | 8090 | 我们的 gateway/数据平台 |
@@ -151,8 +181,9 @@ docker compose version
 
 ## 9. 待办
 
-- [ ] 本机安装 WSL2 + Docker Desktop，回填版本/路径。
-- [ ] 写 `docker-compose.yml`（Synapse/Conduit + Postgres + Element + gateway）。
+- [x] 本机安装 WSL2（3.0.5 + `agentim`/Ubuntu 24.04.4）+ Tuwunel 2.0.0；不装 Docker Desktop。见 [12](12-matrix-host-wsl.md) §12。
+- [ ] Tuwunel 开机自启（Windows 任务计划程序或 WSL systemd）。
+- [ ] （备选，暂不做）写 `docker-compose.yml`（Synapse/Conduit + Postgres + Element + gateway）。
 - [ ] 写 `.env.example` / `.gitignore` / `.gitattributes`。
 - [ ] 办公机复现并按第 5 节验证。
 - [ ] Codex/Hermes 安装与登录（各自机器）。

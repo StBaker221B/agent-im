@@ -11,7 +11,7 @@
 人类：Element / Web / 飞书桥 / CLI
           │ Matrix Client-Server API
    ┌──────▼──────────────────────────────┐
-   │ Matrix Homeserver（Synapse/Conduit） │
+   │ Matrix Homeserver（Synapse/Tuwunel） │
    │ users · rooms · DM · presence        │
    │ threads · mentions · history · E2E   │
    └──┬──────────────┬──────────────┬─────┘
@@ -298,7 +298,7 @@ agent-gateway-dsh-1
 
 | 风险 | 影响 | 缓解 |
 |---|---|---|
-| Matrix 运维复杂 | 部署慢、排障难 | Docker Compose 模板；先用 Conduit；托管 homeserver |
+| Matrix 运维复杂 | 部署慢、排障难 | 先用 Tuwunel 单二进制；需要多服务时 Docker Engine + compose；托管 homeserver |
 | E2E / 审计冲突 | 无法“看一切” | ADR-005 透明模式；人类私聊单独策略 |
 | Agent 对话循环 | 烧钱、刷屏 | lease + turn cap + cooldown + 重复检测 + kill switch |
 | Resume 成本高 | 每次唤醒很贵 | 滚动摘要、artifact 引用、按 thread 保温、预算 |

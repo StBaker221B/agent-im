@@ -63,16 +63,19 @@ export function composeSystemPrompt(agent) {
   const roleCard = renderRoleCard(template);
   const roleKnowledge = readRoleKnowledge(template.id);
   const knowledge = readKnowledge(agent.agentHome);
-  const tools =
+  const baseTools =
     agent.runtime === "script" || agent.toolsMode === "off"
       ? []
       : agent.toolsMode === "full"
         ? FULL_TOOL_LIST
         : (template.tools?.allow ?? []);
+  const tools = [...new Set([...baseTools, ...(agent.approvedTools ?? [])])];
+  const requestHint =
+    "不要伪造工具调用或输出 XML/DSML；需要不可用工具时只回复 exactly: REQUEST_TOOL: <工具名> <原因>。";
   const toolLine =
     tools.length > 0
-      ? `当前可用工具：${tools.join(", ")}。如果任务需要写文件/执行命令但不在列表里，不要假装完成；回复 exactly: REQUEST_TOOL: <工具名> <原因>。`
-      : "当前没有工具权限。如果任务需要工具，不要假装完成；回复 exactly: REQUEST_TOOL: <工具名> <原因>。";
+      ? `当前可用工具：${tools.join(", ")}。${requestHint}`
+      : `当前没有工具权限。${requestHint}`;
   return [
     agent.systemPrompt,
     roleCard,
@@ -200,6 +203,7 @@ export class Store {
       if (!agent.toolsMode) agent.toolsMode = agent.toolsEnabled ? "template" : "off";
       if (agent.dailyBudgetUsd === undefined) agent.dailyBudgetUsd = 0;
       if (!agent.triage) agent.triage = {};
+      if (!Array.isArray(agent.approvedTools)) agent.approvedTools = [];
       mkdirSync(join(agent.agentHome ?? join(dataDir, "agents", agent.name), "knowledge"), {
         recursive: true,
       });
@@ -308,6 +312,7 @@ export class Store {
         toolsEnabled: Boolean(a.toolsEnabled),
         dailyBudgetUsd: Number(a.dailyBudgetUsd ?? 0),
         triage: a.triage ?? {},
+        approvedTools: a.approvedTools ?? [],
         status: a.status,
       };
     });

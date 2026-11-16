@@ -376,7 +376,10 @@ export default function ChatView({
                     </div>
                     {!mine &&
                       message.intent === "tool_request" &&
-                      agentsById.get(message.sender)?.toolsMode !== "full" && (
+                      agentsById.get(message.sender)?.toolsMode !== "full" &&
+                      !(agentsById.get(message.sender)?.approvedTools ?? []).includes(
+                        message.tool ?? toolFromRequest(message.text),
+                      ) && (
                         <button
                           type="button"
                           className="approve-tool"
@@ -384,7 +387,7 @@ export default function ChatView({
                             onApproveTool(message.sender, message.tool ?? toolFromRequest(message.text))
                           }
                         >
-                          批准 {message.tool ?? toolFromRequest(message.text)} 并继续（开启完整工具）
+                          批准 {message.tool ?? toolFromRequest(message.text)}（只开这个工具）
                         </button>
                       )}
                   </div>

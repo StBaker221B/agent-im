@@ -30,5 +30,11 @@ export function parseReply(text) {
     return { type: "tool_request", tool: tool ?? "", reason: rest.join(" ") };
   }
   if (/^DONE\s*:/i.test(t)) return { type: "done", reason: t.replace(/^DONE\s*:/i, "").trim() };
+  // Some models emit a fake DSML/XML tool call when the CLI has no tools.
+  // Treat it as a request instead of posting raw XML to the room.
+  const invoked = /invoke\s+name=["']([^"']+)["']/i.exec(t);
+  if (invoked && /DSML|function_calls|invoke\s+name=/i.test(t)) {
+    return { type: "tool_request", tool: invoked[1], reason: "模型尝试调用不可用工具" };
+  }
   return { type: "message", text: t };
 }

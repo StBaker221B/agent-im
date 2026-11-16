@@ -201,6 +201,32 @@ function AgentSettings({ agent, templates, onSave }) {
         </label>
       </div>
 
+      {agent.approvedTools?.length > 0 && (
+        <div className="approved-tools">
+          <span>已批准工具：</span>
+          {agent.approvedTools.map((tool) => (
+            <button
+              key={tool}
+              type="button"
+              className="tool-chip"
+              title="撤销这个工具"
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await onSave(agent.id, {
+                    approvedTools: agent.approvedTools.filter((item) => item !== tool),
+                  });
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {tool} ×
+            </button>
+          ))}
+        </div>
+      )}
+
       <p className="form-note">
         私有知识：<code>app/data/agents/{agent.name}/knowledge/*.md</code>；角色知识包在
         <code>app/role-knowledge/{templateId}.md</code>。改模板/工具/提示会重建 runtime。

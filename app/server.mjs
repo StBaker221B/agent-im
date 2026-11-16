@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
-import { toolArgsFor } from "./tool-policy.mjs";
+import { normalizeApprovedTools, toolArgsFor } from "./tool-policy.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -360,7 +360,8 @@ async function createAgent(body) {
     toolsEnabled,
     dailyBudgetUsd: Math.max(0, Number(body.dailyBudgetUsd) || 0),
     triage: normalizeTriage(body.triage),
-    extraArgs: toolArgsFor(template, toolsMode, runtime),
+    extraArgs: toolArgsFor(template, toolsMode, runtime, []),
+    approvedTools: [],
     status: "active",
     agentHome: join(dataDir, "agents", username),
     createdAt: new Date().toISOString(),
@@ -420,11 +421,18 @@ async function updateAgent(agentId, body) {
   }
 
   let toolsMode = agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off");
+  let approvedTools = Array.isArray(agent.approvedTools) ? agent.approvedTools : [];
   let toolsChanged = false;
   if (body.toolsMode !== undefined || body.toolsEnabled !== undefined) {
     const next = toolsModeOf(body, toolsMode);
     toolsChanged = next !== toolsMode;
     toolsMode = next;
+  }
+  if (body.approvedTools !== undefined) {
+    const next = normalizeApprovedTools(body.approvedTools);
+    patch.approvedTools = next;
+    approvedTools = next;
+    toolsChanged = true;
   }
   const toolsEnabled = toolsMode !== "off";
   if (toolsEnabled !== Boolean(agent.toolsEnabled)) {
@@ -434,7 +442,7 @@ async function updateAgent(agentId, body) {
   if (templateChanged || toolsChanged) {
     patch.toolsMode = toolsMode;
     patch.toolsEnabled = toolsEnabled;
-    patch.extraArgs = toolArgsFor(template, toolsMode, agent.runtime);
+    patch.extraArgs = toolArgsFor(template, toolsMode, agent.runtime, approvedTools);
   }
 
   const promptChanged = typeof body.systemPrompt === "string" && body.systemPrompt !== agent.systemPrompt;
@@ -485,6 +493,7 @@ async function updateAgent(agentId, body) {
     toolsEnabled: Boolean(agent.toolsEnabled),
     dailyBudgetUsd: Number(agent.dailyBudgetUsd ?? 0),
     triage: agent.triage ?? {},
+    approvedTools: agent.approvedTools ?? [],
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),
   };
@@ -497,9 +506,8 @@ async function approveTool(agentId, body) {
   if (!room) throw Object.assign(new Error("room not found"), { status: 404 });
   const tool = String(body.tool ?? "").trim() || "工具";
   const template = getTemplate(agent.templateId);
-  agent.toolsMode = "full";
-  agent.toolsEnabled = true;
-  agent.extraArgs = toolArgsFor(template, "full", agent.runtime);
+  agent.approvedTools = normalizeApprovedTools([...(agent.approvedTools ?? []), tool]);
+  agent.extraArgs = toolArgsFor(template, agent.toolsMode, agent.runtime, agent.approvedTools);
   store.save();
   await host.updateAgent(agent);
   store.markRead(room.id, Date.now());
@@ -509,7 +517,7 @@ async function approveTool(agentId, body) {
     mentions: [agent.id],
   });
   log(`[app] tool approved ${agent.id} ${tool}`);
-  return { ok: true, eventId: sent.eventId, toolsMode: "full" };
+  return { ok: true, eventId: sent.eventId, toolsMode: agent.toolsMode, approvedTools: agent.approvedTools };
 }
 
 async function createTeam(teamId, body) {

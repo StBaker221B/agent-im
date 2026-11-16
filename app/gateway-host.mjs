@@ -48,7 +48,10 @@ function createRuntime(agent, { dataDir, log }) {
       sessionScope: agent.sessionScope ?? "agent",
       sessionStorePath: join(home, "sessions", "claude.json"),
       // Re-apply the current policy even if state has stale tool flags.
-      extraArgs: mergeToolArgs(agent.extraArgs ?? [], toolArgsFor(template, mode, agent.runtime)),
+      extraArgs: mergeToolArgs(
+        agent.extraArgs ?? [],
+        toolArgsFor(template, mode, agent.runtime, agent.approvedTools ?? []),
+      ),
       log: (msg) => log(`[claude:${agent.name}] ${msg}`),
     });
   }

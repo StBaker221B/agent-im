@@ -1298,6 +1298,30 @@ button {
   line-height: 1.6;
 }
 
+.approved-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tool-chip {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.tool-chip:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .template-preview {
   display: grid;
   gap: 6px;

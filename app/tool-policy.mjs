@@ -6,13 +6,19 @@
 
 import { FULL_TOOL_LIST } from "./role-templates.mjs";
 
-const TOOL_FLAGS = new Set(["--permission-mode", "--allowedTools"]);
+const TOOL_FLAGS = new Set(["--permission-mode", "--allowedTools", "--tools"]);
 
-export function toolArgsFor(template, mode, runtime) {
+export function toolArgsFor(template, mode, runtime, approvedTools = []) {
   if (runtime !== "claude") return [];
-  const allow = mode === "full" ? FULL_TOOL_LIST : mode === "off" ? [] : (template?.tools?.allow ?? []);
-  if (!allow.length) return ["--permission-mode", "dontAsk"];
-  return ["--permission-mode", "dontAsk", "--allowedTools", allow.join(",")];
+  const base = mode === "full" ? FULL_TOOL_LIST : mode === "off" ? [] : (template?.tools?.allow ?? []);
+  const allow = [...new Set([...base, ...approvedTools])];
+  if (!allow.length) return ["--tools", "", "--permission-mode", "dontAsk"];
+  return ["--tools", allow.join(","), "--permission-mode", "dontAsk", "--allowedTools", allow.join(",")];
+}
+
+export function normalizeApprovedTools(input) {
+  if (!Array.isArray(input)) return [];
+  return [...new Set(input.map(String).filter((tool) => FULL_TOOL_LIST.includes(tool)))];
 }
 
 /** Keep non-tool extra args, but always apply the current tool policy. */

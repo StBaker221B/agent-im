@@ -11,6 +11,11 @@ test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
     reason: "需要保存文件",
   });
   assert.deepEqual(parseReply("DONE: 已完成"), { type: "done", reason: "已完成" });
+  assert.deepEqual(parseReply('DSML calls <invoke name="Read">'), {
+    type: "tool_request",
+    tool: "Read",
+    reason: "模型尝试调用不可用工具",
+  });
   assert.deepEqual(parseReply("普通回复"), { type: "message", text: "普通回复" });
 });
 

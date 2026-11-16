@@ -8,19 +8,19 @@
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
 - 记录：[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)、[09 角色模板](docs/records/2026-11-16-09-role-templates.md)、[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)、[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)、[06 第二轮](docs/records/2026-11-16-06-mvp-round2.md)、[05 MVP](docs/records/2026-11-16-05-mvp.md)。
 - 已完成：
-  - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=3`、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
+  - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
   - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、设置页、深链。
   - **图片理解 PASS**：上传 `VISION-OK 42`，agent 读到本地缓存并描述出来。
   - **researcher 回复 PASS**：`@研究员` 正确解析；直接提问必回（不再 PASS 回避）。
   - 搜索 `海豚`、PATCH 设置、列表删除均已验证。
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
-  - **讨论模式**：每房间 `brief` / `discussion`，群聊头部切换；discussion 链上限 6，agent 可互相 @ 接话；`#dispatch` 去重避免重复 PASS。
+  - **自由讨论**：链上限 10（防死循环），prompt 允许 agent 互相 @ 接话；旧讨论模式 toggle 已移除；`#dispatch` 去重避免重复 PASS。
   - **角色模板 + 私有知识**：generic/coder/reviewer/researcher；prompt = base + role + `knowledge/*.md`；角色别名 @reviewer 在唯一时解析。arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
-- 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
+- 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
 - Matrix 宿主：WSL2 + Tuwunel 单二进制；**Tuwunel 用 `nohup` 常驻，没有开机自启**。
 
 ## 开机后先做什么
@@ -58,19 +58,20 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 1. [00 需求合同](docs/00-requirements-contract.md) — 唯一需求口径
 2. [09 Agent 协议](docs/09-agent-protocol.md) — 消息/floor/收敛/共识/adapter；§14 是当前实现状态
 3. [13 MVP 架构](docs/13-mvp-architecture.md) — 组件、数据、API、流程、唤醒、限制
-4. [CLAUDE.md](CLAUDE.md) — 给后续 agent 的工作笔记（布局/命令/不变量/坑）
-5. [12 Matrix 宿主：WSL2 + Tuwunel](docs/12-matrix-host-wsl.md) — 已安装；§12 是实测记录和排障
-6. [10 开发环境与复现](docs/10-dev-setup.md) — 本机/办公机、spike/MVP 命令
-7. [11 本地部署与无公网 IP 组网](docs/11-local-networking.md) — EasyTier/Tailscale/VPS；Tuwunel 更新
-8. [2026-11-16 MVP 记录](docs/records/2026-11-16-05-mvp.md)
-9. [2026-11-16 真实 Matrix E2E 记录](docs/records/2026-11-16-04-matrix-e2e.md)
-10. [2026-11-16 Transport + Gateway 记录](docs/records/2026-11-16-03-transport-gateway.md)
-11. [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
-12. [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
-13. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
-14. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-02-clarifications.md)
-15. [01 需求](docs/01-requirements.md) · [03 架构](docs/03-architecture.md) · [04 Agent 接入](docs/04-agent-integration.md)
-16. [06 待确认问题](docs/06-open-questions.md)
+4. [14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md) — 角色卡、知识分层、来源选项、剩余工作
+6. [CLAUDE.md](CLAUDE.md) — 给后续 agent 的工作笔记（布局/命令/不变量/坑）
+7. [12 Matrix 宿主：WSL2 + Tuwunel](docs/12-matrix-host-wsl.md) — 已安装；§12 是实测记录和排障
+8. [10 开发环境与复现](docs/10-dev-setup.md) — 本机/办公机、spike/MVP 命令
+9. [11 本地部署与无公网 IP 组网](docs/11-local-networking.md) — EasyTier/Tailscale/VPS；Tuwunel 更新
+10. [2026-11-16 MVP 记录](docs/records/2026-11-16-05-mvp.md)
+11. [2026-11-16 真实 Matrix E2E 记录](docs/records/2026-11-16-04-matrix-e2e.md)
+12. [2026-11-16 Transport + Gateway 记录](docs/records/2026-11-16-03-transport-gateway.md)
+13. [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
+14. [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
+15. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
+16. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-02-clarifications.md)
+17. [01 需求](docs/01-requirements.md) · [03 架构](docs/03-architecture.md) · [04 Agent 接入](docs/04-agent-integration.md)
+18. [06 待确认问题](docs/06-open-questions.md)
 
 > 文档约定：正式文档 = `docs/0X-*.md`；过程记录 = `docs/records/`（可追加/修改）。
 
@@ -80,12 +81,12 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 - MVP 行为：
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
-  - 群聊头部可切「讨论模式」：agent 可以互相 @ 继续，链上限 6；brief 模式更像每人各答一次。
+  - 群聊默认自由讨论：agent 可以互相 @ 继续，链上限 10 只是防死循环。
   - 角色模板（generic/coder/reviewer/researcher）+ 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选角色。
   - agent 可按需配 `cwd` + `extraArgs`（工具白名单）；目前是本地 state，没有产品 UI，也不是强沙箱。
   - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。
   - 创建 agent = 注册 Matrix 用户 + 写 state + 动态 attach 到 gateway；创建后自动开 DM。
-  - `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；`maxAgentChain=3`；直接提问/私聊必须回应。
+  - `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；`maxAgentChain=10`（防死循环）；直接提问/私聊必须回应。
   - **同一个 agent 一个 session（`sessionScope="agent"`）**：群聊和私聊共享记忆；私聊隐私靠系统提示。
   - `@` 支持 localpart 和中文 displayName（`@研究员`）。
   - 数据在 `app/data/state.json`（token/密码/房间/已读），首次从 `spike/.tmp` 导入。

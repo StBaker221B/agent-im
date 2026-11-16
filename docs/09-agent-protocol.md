@@ -387,7 +387,7 @@ type RuntimeCapabilities = {
 - 新目录：`app/`（控制面 + gateway 宿主 + Web API）和 `web/`（React + Vite 产品 UI）；协议核心仍复用 `spike/src`。
 - 产品形态：单列会话（DM/群混排）+ 聊天窗；`+` 新建私聊/群聊/agent；Agents 页管理参与者。
 - 控制面：`POST /api/agents` 注册 Matrix 用户并动态 `gateway.addAgent`；`POST /api/rooms` 建 DM/群并 `gateway.addRoom`；每个 agent 可单独私聊。
-- 唤醒默认改为 **`human_all`**：人类消息唤醒所有 agent，由 agent 自己决定回复或 `PASS`；agent 消息只唤醒被 @/回复的；`maxAgentChain=3` 防止互刷。
+- 唤醒默认改为 **`human_all`**：人类消息唤醒所有 agent，由 agent 自己决定回复或 `PASS`；agent 消息只唤醒被 @/回复的；`maxAgentChain=10` 只做防死循环护栏。
 - 验证：新建 `@researcher` → DM 回复；群「讨论组」不 @ 发一条 → claude-dev 和 researcher 都回复；DM claude-dev 不 @ 也回复。
 - 成本：4 个真实 turn 约 **$0.146**；`human_all` 的成本随 agent 数线性增长，下一步要 triage/冷却/预算。
 - **第二轮（同日下午）**：
@@ -399,10 +399,10 @@ type RuntimeCapabilities = {
   - `@` 同时解析 localpart 和 displayName（含中文）；直接提问/私聊必须回应，修复 researcher 过度 PASS。
   - 历史搜索（每房间最近 100 条）、设置页 PATCH agent、列表右键/⋯删除、头像资料。
   - "正在思考/排队中"改为 Engine `room.activity`（floor/queue），PASS 后自动消失。
-  - **讨论模式**（`room.mode=discussion`）：agent 链上限 3→6；prompt 要求对另一个 agent 的具体观点 @ 对方继续；群聊头部可切换。`#dispatch` 记录已跑过的 agent，避免同一条消息里重复 PASS。
+  - **自由讨论（默认）**：链上限 10（防死循环）；prompt 允许对另一个 agent 的具体观点 @ 对方继续；不再有「讨论模式」toggle。`#dispatch` 记录已跑过的 agent，避免同一条消息里重复 PASS。
   - **角色模板 + 私有知识**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + `knowledge/*.md`；角色别名 `@reviewer` 在唯一时解析。实验 coder×reviewer 形成"提案→质疑→修正→确认"闭环（记录 09）。
   - **自主工具循环**：沙箱 failing tests + coder/reviewer 工具权限；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，最终 5/5 通过（记录 10）。
-- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md) / [记录 10](records/2026-11-16-10-autonomy-bugfix.md)。
+- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md)、[14 角色模板与计划](14-role-templates-and-roadmap.md)，以及 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md) / [记录 10](records/2026-11-16-10-autonomy-bugfix.md)。
 
 ## 15. 待确认
 

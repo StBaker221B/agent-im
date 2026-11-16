@@ -53,7 +53,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - **一个 agent token 只能有一个 gateway 在 sync**。启动 `app` 前停掉旧 `spike` gateway，否则重复回复。
 - **同一 thread 单写者**：floor 串行；PASS 释放；quiescence 30s。
 - **唤醒**：Claude agent 默认 `human_all`（人类消息全员判断）；agent 消息只唤醒被 @/回复的；DM 自动 direct。
-- **房间模式**：`room.mode=brief`（默认，链上限 3）或 `discussion`（链上限 6 + prompt 鼓励 agent 互相 @ 接话）。群聊头部可切；`PATCH /api/rooms/:id {mode}`。
+- **自由讨论默认**：链上限 `maxAgentChain=10`（防死循环，不是轮数限制）；prompt 允许 agent 互相 @ 接话。旧的 `room.mode` 字段保留兼容但不再影响行为，toggle 已移除。
 - **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
 - **角色模板**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + knowledge。角色是行为约束，不是工具/权限隔离。
 - 改 role / systemPrompt 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。

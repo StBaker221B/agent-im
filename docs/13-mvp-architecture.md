@@ -35,7 +35,7 @@
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
 - 顶部搜索框回车搜历史消息；侧栏「设置」页管理 agent 显示名/角色/唤醒策略/系统提示。
-- 群聊头部可切换「讨论模式」：允许 agent 互相 @ 继续，链上限 6；默认 brief 模式更像"每人各答一次"。
+- 群聊默认自由讨论：agent 可以互相 @ 继续；链上限 10 只是防死循环，不是对话轮数限制。
 
 ## 2. 组件
 
@@ -124,7 +124,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/rooms/:id/messages` | `{text}`；人类身份发送；解析 `@name` 为 `m.mentions`；返回 eventId |
 | `POST /api/rooms/:id/read` | `{ts}`；更新 human 的 lastReadTs |
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
-| `PATCH /api/rooms/:id` | `{mode:"brief"|"discussion"}`；讨论模式放宽 agent 链上限并改 prompt |
+| `PATCH /api/rooms/:id` | `{mode}`；legacy 兼容，当前无 UI、不再影响行为（自由讨论默认） |
 | `POST /api/rooms/:id/members` | `{agentIds[]}`；邀请 agent 加入群聊（DM 不允许） |
 | `DELETE /api/rooms/:id` | human 和所有 agent 离开房间，从 store/engine 移除 |
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
@@ -186,8 +186,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 - **DM**：2 人房间自动视为 direct，不用 @。
 - **单写者 floor**：同一 thread 同一时刻只有一个 agent 在跑；其他人排队。
-- **agent 链上限**：brief 模式 `maxAgentChain=3`；discussion 模式放宽到 6。一条人类消息之后最多连续这么多条 agent 消息；人类再发消息重置。
-- **讨论模式**：`room.mode="discussion"` 时，prompt 要求 agent 对另一个 agent 的具体疑问/反驳/补充直接 @ 对方继续；不是固定轮流，也不强制每个 agent 每轮都说话。人类消息仍唤醒所有 `human_all` agent。
+- **agent 链上限**：`maxAgentChain=10`，防无限互刷；不是对话轮数限制。人类再发消息重置。
+- **自由讨论**：默认 prompt 允许 agent 对另一个 agent 的具体疑问/反驳/补充直接 @ 对方继续；不固定轮流，也不强制每个 agent 每轮都说话。人类消息仍唤醒所有 `human_all` agent。旧的 `room.mode` 字段保留兼容，但已不再影响行为。
 - **PASS**：agent 判断没有补充就只输出 PASS，不产生 Matrix 消息，只释放 floor。
 - **quiescence**：30s 无活动后线程静默。
 - **UI 的"正在思考"来自 Engine**：bootstrap 的房间 `activity` 给出当前 floor holder 和排队 agent；不是前端按发送时间猜的。PASS 后 floor 释放，提示自动消失。
@@ -216,6 +216,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 注意：角色模板是**行为约束**，不是能力隔离。默认 agent 仍是同一个 Claude 模型、同一套工具、各自的空 workspace；真正的异构要靠不同工具/权限/模型。
 - 但 agent 可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`（例如 `--permission-mode dontAsk --allowedTools ...`）：coder 可 Edit/Write/PowerShell，reviewer 只给 Read/PowerShell 并在 prompt 里要求只读。这是**弱隔离**，不是强沙箱；目前写在本地 `state.json`，没有产品 UI。
 - 假设验证：只有角色标签不够；角色义务 + 私有信息 + 工具/环境反馈才可能产生"提问→补充→指正→结论"。实测见 §11。
+- 角色模板库、知识分层和后续开发计划见 [14 角色模板与开发计划](14-role-templates-and-roadmap.md)。
 
 ## 8. 安全边界
 
@@ -235,7 +236,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 没有流式输出、工具审批；支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。
-- 讨论模式一条人类消息最多 6 条 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
+- 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 是各自的空 workspace，不是项目仓库；要让它改代码需要另配 worktree。

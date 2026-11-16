@@ -42,6 +42,7 @@ npm run build                             # 然后打开 8790
 - [00 需求合同](docs/00-requirements-contract.md)
 - [09 Agent 协议](docs/09-agent-protocol.md) — 投递/唤醒/floor/收敛；§14 实现状态
 - [13 MVP 架构](docs/13-mvp-architecture.md) — 组件/数据/API/流程/唤醒/限制
+- [14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md) — 角色卡、知识分层、来源选项、剩余工作
 - [12 Matrix 宿主](docs/12-matrix-host-wsl.md) — WSL2 + Tuwunel
 - [10 开发环境](docs/10-dev-setup.md)、[11 组网](docs/11-local-networking.md)
 - [NEXT-SESSION](NEXT-SESSION.md) — 下一次从哪继续

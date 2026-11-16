@@ -55,8 +55,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - **唤醒**：Claude agent 默认 `human_all`（人类消息全员判断）；agent 消息只唤醒被 @/回复的；DM 自动 direct。
 - **自由讨论默认**：链上限 `maxAgentChain=10`（防死循环，不是轮数限制）；prompt 允许 agent 互相 @ 接话。旧的 `room.mode` 字段保留兼容但不再影响行为，toggle 已移除。
 - **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
-- **角色模板**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + knowledge。角色是行为约束，不是工具/权限隔离。
-- 改 role / systemPrompt 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。
+- **角色模板**：13 个内置模板（`app/role-templates.mjs`）；`agent.templateId` 决定角色卡，`role` 是宽泛分类。runtime prompt = base + 角色卡 + 角色知识包 + 私有 knowledge。角色是行为约束，不是强权限隔离。
+- 改 `templateId` / `toolsEnabled` / `systemPrompt` 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。
+- 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`dontAsk + allowedTools` 是弱隔离，reviewer 的只读靠 prompt。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 沙箱实验：`app/data/experiments/bugfix`；`@fix-coder`/`@fix-reviewer` 的 cwd 指向它（本地 state，不提交）。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
@@ -81,7 +82,8 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 历史搜索 | `app/server.mjs` `/api/search` + `web/src/components/SearchView.jsx` |
 | 设置页 | `app/server.mjs` PATCH `/api/agents/:id` + `web/src/components/SettingsView.jsx` |
 | 跨房间记忆/session 作用域 | `spike/src/claude-adapter.mjs`（`sessionScope`） |
-| 数据/导入/默认提示/角色模板 | `app/store.mjs`（`ROLE_TEMPLATES` / `composeSystemPrompt`） |
+| 数据/导入/默认提示/拼装 | `app/store.mjs`（`composeSystemPrompt`） |
+| 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 工具/workspace | state 里 agent 的 `cwd` + `extraArgs`（如 `--permission-mode dontAsk --allowedTools ...`） |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |

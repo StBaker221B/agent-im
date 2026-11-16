@@ -1,6 +1,6 @@
 # Agent IM Web
 
-React 19 + Vite 8 的单页产品界面：会话列表、聊天气泡、@ 提及（支持中文显示名）、新建私聊/群聊、独立的新建 agent、邀请成员、删除会话（头部/列表右键菜单）、图片/文件消息、头像资料、历史搜索、设置页、Agents 管理。
+React 19 + Vite 8 的单页产品界面：会话列表、聊天气泡、@ 提及（支持中文显示名）、新建私聊/群聊、独立的新建 agent（13 个角色模板 + 预览 + 工具开关）、邀请成员、删除会话（头部/列表右键菜单）、图片/文件消息、头像资料、历史搜索、设置页、Agents 管理。
 
 ## 开发
 
@@ -25,11 +25,11 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 | `src/components/ChatView.jsx` | 聊天头、消息气泡、@ 自动补全、输入框、思考中 |
 | `src/components/AgentsView.jsx` | agent 列表、状态、一键私聊、新建 agent |
 | `src/components/NewChatModal.jsx` | 新建会话：私聊 / 群聊（不含建 agent） |
-| `src/components/NewAgentModal.jsx` | 独立的新建 agent 表单 |
+| `src/components/NewAgentModal.jsx` | 新建 agent：角色模板选择、角色卡预览、工具开关、个人补充 |
 | `src/components/InviteModal.jsx` | 群聊邀请 agent |
 | `src/components/ProfileModal.jsx` | 点击头像看 agent/人类资料 |
 | `src/components/SearchView.jsx` | 历史消息搜索与结果跳转 |
-| `src/components/SettingsView.jsx` | 系统信息 + agent 参数编辑 |
+| `src/components/SettingsView.jsx` | 系统信息 + agent 参数/模板/工具编辑 |
 | `src/components/Avatar.jsx` | 身份色 + 首字头像 |
 | `src/format.js` | 颜色、时间、预览、消息分组 |
 | `src/styles.css` | 设计 token、深浅色、响应式 |

@@ -29,7 +29,8 @@
 
 - 私聊和群聊在同一个列表里，按最近消息排序，带未读数和最后一条预览。
 - `+` 菜单：新建私聊（选一个 agent）、新建群聊（起名 + 多选 agent）、新建 agent。
-- Agents 页：所有参与者、runtime、角色、状态、一键私聊。
+- Agents 页：所有参与者、runtime、角色模板、状态、一键私聊。
+- 新建 agent 可选 13 个角色模板（软件 / 产品 / 公司经营），预览角色卡，挂角色知识包，按模板启用工具。
 - 群聊里 agent 没有回复也算正常：它在自己的 turn 里输出了 `PASS`。
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
@@ -129,8 +130,9 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `DELETE /api/rooms/:id` | human 和所有 agent 离开房间，从 store/engine 移除 |
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
-| `POST /api/agents` | `{username,displayName,runtime,role,roles,systemPrompt}`；注册 Matrix 用户并 attach |
-| `PATCH /api/agents/:id` | `{displayName,role,roles,wakePolicy,systemPrompt}`；role/系统提示变更会重建 runtime |
+| `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
+| `POST /api/agents` | `{username,displayName,runtime,templateId,toolsEnabled,roles,systemPrompt}`；注册 Matrix 用户并 attach |
+| `PATCH /api/agents/:id` | `{displayName,templateId,toolsEnabled,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
@@ -204,19 +206,18 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 隐私：私聊原文会进入同一 transcript，靠系统提示约束"私聊内容不主动带到群聊"。更严格的隔离可以改成"共享摘要 + 每房间 session"，或给 agent 一个受控 memory 文件。
 - 代价：transcript 跨房间增长，token 成本更高；切换回 `sessionScope: "room"` 即可恢复每房间独立。
 
-### 7.2 角色模板与私有知识
+### 7.2 角色模板、角色知识包与私有知识
 
-- 每个 agent 有 `role`：`generic | coder | reviewer | researcher`。
-- runtime 的 system prompt = agent 的 base `systemPrompt` + 角色模板 + `knowledge/*.md`：
-  - coder：给最小实现路线，主动 @ reviewer 请求 review，收到 objection 必须回应；
-  - reviewer：必须找具体风险/遗漏/反例并 @ 提案人，没有具体风险才 PASS；
-  - researcher：查证、对比、给依据和适用边界，前提不成立要指出。
-- 私有知识：`app/data/agents/<name>/knowledge/*.md`（最多约 12KB）；同一房间的 agent 看到的消息相同，但私有资料不同。
-- 设置页/新建 agent 都有角色模板选择；改 role 或 system prompt 会重建 runtime，下一轮生效。
-- 注意：角色模板是**行为约束**，不是能力隔离。默认 agent 仍是同一个 Claude 模型、同一套工具、各自的空 workspace；真正的异构要靠不同工具/权限/模型。
-- 但 agent 可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`（例如 `--permission-mode dontAsk --allowedTools ...`）：coder 可 Edit/Write/PowerShell，reviewer 只给 Read/PowerShell 并在 prompt 里要求只读。这是**弱隔离**，不是强沙箱；目前写在本地 `state.json`，没有产品 UI。
+- 内置 13 个模板（`app/role-templates.mjs`）：generic、facilitator、product-manager、business-analyst、architect、coder、reviewer、qa、researcher、tech-writer、ops、security、operations。
+- 每张角色卡包含 mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria。
+- 每个模板对应一份角色知识包 `app/role-knowledge/<id>.md`（工作方法、检查清单、权责、使用者预期、常见失败）。
+- agent 有 `templateId` 和宽泛的 `role`；runtime 的 system prompt = base `systemPrompt` + 角色卡 + 角色知识包 + agent 私有 `knowledge/*.md`（≤12KB）。
+- `GET /api/role-templates` 返回模板；`POST/PATCH /api/agents` 接受 `templateId`、`toolsEnabled`；设置页/新建 agent 都有模板选择、预览和工具开关；资料页显示模板名/mission。
+- 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`toolsEnabled` 开启时用 `--permission-mode dontAsk --allowedTools ...`；默认 cwd 是 agent 自己的 workspace。这是**弱隔离**，reviewer 的只读仍靠 prompt。
+- 改 template/工具/systemPrompt 会重建 runtime，下一轮生效。
+- 注意：角色模板是**行为约束**，不是能力隔离；真正的异构要靠不同工具/权限/模型。agent 也可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`。
 - 假设验证：只有角色标签不够；角色义务 + 私有信息 + 工具/环境反馈才可能产生"提问→补充→指正→结论"。实测见 §11。
-- 角色模板库、知识分层和后续开发计划见 [14 角色模板与开发计划](14-role-templates-and-roadmap.md)。
+- 角色模板库、知识分层、来源和后续计划见 [14 角色模板与开发计划](14-role-templates-and-roadmap.md)。
 
 ## 8. 安全边界
 

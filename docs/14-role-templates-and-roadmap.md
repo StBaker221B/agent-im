@@ -1,8 +1,8 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-16 提案 + 已完成的 toggle 简化；角色模板库尚未实现。
-- 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md)
-- 用法：这份文档可以直接在段落旁写批注（`> 批注：…`），定稿后再拆进 13/09。
+- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI**；自定义模板、团队模板、O*NET/ESCO 导入待做。
+- 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
+- 过程批注已移入记录 11；本文只保留项目状态和决策。
 
 ## 1. 「讨论模式」toggle 的结论
 
@@ -19,8 +19,6 @@
 - 链上限改成全局 **10**，只作为防死循环的护栏，不是对话轮数限制。
 - “需要追问/反驳就 @ 对方”的提示改为默认提示，不再按模式开关。
 - `room.mode` 字段保留兼容，但不再影响行为；后续可以删。
-
-> 批注：
 
 ## 2. 为什么要角色模板
 
@@ -53,6 +51,8 @@
   "defaults": { "wakePolicy": "human_all", "speakMode": "volunteer" }
 }
 ```
+
+**角色需要自己的知识库**：每个模板带一份 `app/role-knowledge/<id>.md`，写清工作方法、检查清单、权责边界、**使用者预期**、常见失败；运行时会拼进 system prompt。agent 自己的 notes 仍然在 `agentHome/knowledge/`。
 
 ### 2.2 知识分层，不要每个 agent 都手配
 
@@ -87,6 +87,8 @@
 | [O*NET](https://www.onetcenter.org/database.html) | 美国劳工部职业数据库 | 每个职业的 tasks / skills / abilities / work activities / KSA | **高（结构化）**：生成职责/技能字段 |
 | [ESCO](https://esco.ec.europa.eu/en/use-esco/download) | 欧盟职业/技能分类 | 职业、技能、知识、能力 | **高（结构化）**：多语言职业数据 |
 
+**已选来源组合**：以 MetaGPT/ChatDev 的软件团队职责为主，CrewAI 的 `role/goal/backstory` 作为字段结构，LangGPT 的结构化写法；O*NET/ESCO 作为后续扩充结构化任务/技能的底稿；prompts.chat 只做灵感，不原样导入。冲突处理原则：职责以软件团队实践为主，安全/边界以 reviewer/security 的检查清单为主，公司经营角色只保留可执行指标/流程，不写空泛愿景。
+
 ### 3.1 推荐组合
 
 - **角色结构**：MetaGPT/ChatDev 的软件团队角色 + CrewAI 的 `role/goal/backstory` 字段。
@@ -94,25 +96,23 @@
 - **提示词写法**：LangGPT 的结构化模板；prompts.chat 只作为灵感，不直接导入。
 - **不建议**：把几千个职业描述原样塞进 prompt（太长、偏人类岗位、缺少工具/handoff/PASS 条件）。
 
-> 批注：
+**角色范围决策**：先做 **13 个内置模板**（含 generic），覆盖软件、产品/需求/测试、公司经营；对业务权责/边界/沟通的要求写进角色卡和知识包。以后向上下游扩（marketing、sales、finance、support 等）。
 
-## 4. 角色模板库的实现计划（建议 1–2 天）
+## 4. 角色模板库（已实现）
 
-1. 新增 `app/role-templates/*.json`（先 8 个）：
-   - facilitator（主持人/收敛）
-   - product-manager（需求/优先级）
-   - architect（方案/边界）
-   - coder（实现/测试）
-   - reviewer（对抗式评审）
-   - qa（测试/复现）
-   - researcher（查证/对比）
-   - writer（文档/总结）
-   - ops/security 可选第 9/10 个。
-2. 每个模板带：角色卡字段、默认知识包、默认工具白名单、默认 wakePolicy。
-3. `GET /api/role-templates`；`POST /api/agents` 接受 `templateId` + overrides。
-4. 新建 agent 弹窗：模板选择 + 角色卡预览 + 可编辑字段 + 知识包/工具选择。
-5. 设置页支持换模板（保留 base prompt 的个性化部分）。
-6. 模板可以另存为自定义（写回本地 `app/data/role-templates/`）。
+1. `app/role-templates.mjs`：13 个角色卡：
+   - 通用：generic
+   - 软件：architect、coder、reviewer、qa、ops、security
+   - 产品/需求：facilitator、product-manager、business-analyst、researcher、tech-writer
+   - 公司经营：operations
+2. 每张卡带：mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria / defaultWakePolicy。
+3. `app/role-knowledge/<id>.md`：13 份角色知识包（工作方法、检查清单、权责、使用者预期、常见失败）。
+4. `GET /api/role-templates`；`POST /api/agents` / `PATCH /api/agents/:id` 接受 `templateId`、`toolsEnabled`。
+5. 新建 agent：模板选择 + 角色卡预览 + 个人补充 + 工具开关；设置页支持换模板。
+6. 资料页/Agents 页显示模板名和 mission。
+7. 现有 agent 迁移 `templateId`；`composeSystemPrompt` = base + 角色卡 + 角色知识包 + agent 私有 knowledge。
+
+待做：自定义模板另存、团队模板（一次建一组角色）、O*NET/ESCO 自动生成。
 
 ## 5. 剩余工作与开发计划
 
@@ -122,7 +122,7 @@
 |---|---|---|---|
 | 协议/引擎/Matrix | ✅ 可用 | 并行化、更多测试 | 1–2d |
 | 产品 UI（会话/群/私聊/媒体/搜索/设置/资料） | ✅ 可用 | 细节、键盘/移动端打磨 | 1–2d |
-| 角色模板库 + 创建向导 | ⏳ 未做 | 模板、API、UI、知识包 | 1–2d |
+| 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
 | 成本控制 | ⏳ 未做 | triage、冷却、每 thread 预算、用量视图 | 2–3d |
 | 工具审批/沙箱/流式 | ⚠️ 部分 | 审批 UI、流式输出、真正沙箱（现在只有 dontAsk + prompt） | 3–5d |
 | Agent/房间生命周期 | ⚠️ 部分 | 删除/暂停/改名 agent、移除成员、邀请第二个人类 | 2–3d |
@@ -140,8 +140,8 @@
 
 **第 1 周：角色与成本**
 
-1. 角色模板库 + 创建向导（上面的 1–2 天）。
-2. 成本控制：每 agent/thread 预算、冷却、廉价 triage；用量页。
+1. ✅ 角色模板库 + 创建向导（13 个模板、知识包、API/UI）。
+2. 成本控制：每 agent/thread 预算、冷却、廉价 triage；用量页。**triage** = 跑完整模型 turn 前，用规则或便宜小模型判断这条消息需不需要该 agent 回/该谁处理，减少 `human_all` 下 N 个完整 turn。
 3. 把“讨论轮次/链上限”变成可配置的护栏，不做强制。
 
 **第 2 周：工具与治理**
@@ -160,7 +160,7 @@
 **第 4 周：验证与收敛**
 
 11. App/Web 测试 + CI。
-12. “单 Claude + subagent” kill criterion 对比。
+12. “单 Claude + subagent” kill criterion 对比。**kill criterion** = 同一任务对比多 agent IM 与单 Claude + subagent；如果完成质量、token 成本、人类干预次数没有明显优势，就停止扩张，转为观测/治理层或个人工具。
 13. 根据结果决定：继续做产品，还是收敛成观测/治理层。
 
 ### 5.3 风险
@@ -170,14 +170,20 @@
 - **角色泛滥**：模板太多会像“扮演”；先把 8 个软件团队角色打磨好，再扩。
 - **多用户**：Matrix 账号/权限模型要重做，不能靠单一 human token。
 
-> 批注：
+## 6. 已拍板 / 待拍板
 
-## 6. 需要你拍板的点
+已定：
 
-1. 角色模板先做哪 8 个？是否以软件团队为主？
-2. 知识包来源：先手工写 8 份精简角色卡，还是直接接 O*NET/ESCO 生成？
-3. 工具权限模板：coder 可改仓库、reviewer 只读、researcher 可联网，是否接受？
-4. 成本优先级：先做 triage/预算，还是先做角色模板？
-5. 目标节奏：每天可用 vs 先验证 kill criterion。
+1. **角色范围**：先从软件团队出发，覆盖需求/测试/产品/公司经营；先做 13 个，以后向上下游扩展。
+2. **知识包**：先手工写 13 份精简角色卡 + 知识包，参考 MetaGPT/ChatDev/CrewAI/LangGPT；不足自己补；O*NET/ESCO 自动化后续再做。
+3. **权限观**：角色定义职责，权限是安全护栏；coder 也可以查资料，researcher 也可以写文档；reviewer 的只读靠 prompt + 工具白名单，暂不做强沙箱。权限相对开放，但不影响安全边界。
+4. **顺序**：角色模板先做（已完成），成本控制紧随其后；两者都做。
+5. **节奏**：先做到自己每天愿意用，再跑 kill criterion 对比；不是先证明再可用。
 
-> 批注：
+待定：
+
+- 自定义模板/团队模板的编辑体验（另存、clone、一次建一组）。
+- 是否接 O*NET/ESCO 自动生成角色卡；生成后如何人工审。
+- triage 用规则还是小模型；预算/冷却默认值。
+- 真正沙箱/审批的边界（worktree/容器/工具白名单）。
+- 角色模板是否要版本化和团队共享。

@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)、[09 角色模板](docs/records/2026-11-16-09-role-templates.md)、[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)、[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)、[06 第二轮](docs/records/2026-11-16-06-mvp-round2.md)、[05 MVP](docs/records/2026-11-16-05-mvp.md)。
+- 记录：[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)、[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)、[09 角色模板](docs/records/2026-11-16-09-role-templates.md)、[08 讨论模式](docs/records/2026-11-16-08-discussion-mode.md)、[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)。
 - 已完成：
   - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -16,7 +16,8 @@
   - 搜索 `海豚`、PATCH 设置、列表删除均已验证。
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
   - **自由讨论**：链上限 10（防死循环），prompt 允许 agent 互相 @ 接话；旧讨论模式 toggle 已移除；`#dispatch` 去重避免重复 PASS。
-  - **角色模板 + 私有知识**：generic/coder/reviewer/researcher；prompt = base + role + `knowledge/*.md`；角色别名 @reviewer 在唯一时解析。arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
+  - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/设置页可选模板、预览、工具开关。
+  - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
@@ -82,7 +83,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
   - 群聊默认自由讨论：agent 可以互相 @ 继续，链上限 10 只是防死循环。
-  - 角色模板（generic/coder/reviewer/researcher）+ 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选角色。
+  - 13 个角色模板 + 角色知识包 + 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选模板、预览、工具开关。
   - agent 可按需配 `cwd` + `extraArgs`（工具白名单）；目前是本地 state，没有产品 UI，也不是强沙箱。
   - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。
   - 创建 agent = 注册 Matrix 用户 + 写 state + 动态 attach 到 gateway；创建后自动开 DM。
@@ -128,7 +129,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 
 ## 下一步
 
-1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**；27 tests。
+1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；27 tests。
 2. **下一步（优先）**：成本控制。`human_all` 下每条人类消息触发 N 个 Claude turn；实测 4 turn 约 $0.146。加廉价 triage / 每 agent 冷却 / 每 thread 预算，或者让 agent 只在被叫到时用完整模型。
 3. 流式输出 + 工具审批；`tool_use` 已经能抓到，approval 还没有。
 4. 房间/agent 管理：删除/暂停 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改角色/显示名/wakePolicy 已完成）。

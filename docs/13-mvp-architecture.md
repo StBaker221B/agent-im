@@ -213,8 +213,9 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
   - researcher：查证、对比、给依据和适用边界，前提不成立要指出。
 - 私有知识：`app/data/agents/<name>/knowledge/*.md`（最多约 12KB）；同一房间的 agent 看到的消息相同，但私有资料不同。
 - 设置页/新建 agent 都有角色模板选择；改 role 或 system prompt 会重建 runtime，下一轮生效。
-- 注意：角色模板是**行为约束**，不是能力隔离。现在所有 agent 仍是同一个 Claude 模型、同一套工具、同一个空 workspace；真正的异构要靠不同工具/权限/模型。
-- 假设验证：只有角色标签不够；角色义务 + 私有信息 + review 强制项才可能产生"提问→补充→指正→结论"。实测见 §11。
+- 注意：角色模板是**行为约束**，不是能力隔离。默认 agent 仍是同一个 Claude 模型、同一套工具、各自的空 workspace；真正的异构要靠不同工具/权限/模型。
+- 但 agent 可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`（例如 `--permission-mode dontAsk --allowedTools ...`）：coder 可 Edit/Write/PowerShell，reviewer 只给 Read/PowerShell 并在 prompt 里要求只读。这是**弱隔离**，不是强沙箱；目前写在本地 `state.json`，没有产品 UI。
+- 假设验证：只有角色标签不够；角色义务 + 私有信息 + 工具/环境反馈才可能产生"提问→补充→指正→结论"。实测见 §11。
 
 ## 8. 安全边界
 
@@ -282,3 +283,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
   - coder 逐条接受并修正 Windows fsync；reviewer 追加 Windows rename/备份细节后冻结；
   - 2+2 条 agent 消息，形成"提案→质疑→修正→确认"闭环；4 个 turn 约 $0.258。
   - 结论：角色标签不够，角色义务 + 私有知识 + 强制 review 才产生实质协作；仍是同模型/同工具，异构未做。
+- **自主修测试实验 PASS**：沙箱仓库 4 个 failing tests，`@fix-coder`（可改 src/跑测试）和 `@fix-reviewer`（只读+跑测试）一条人类消息、**5 个 agent turn、0 次人类干预**：
+  - reviewer 复现失败并列出边界 → coder 用工具修到 5/5 → reviewer 复验时发现测试没覆盖的 `parseAmount("-$5")` 不对称 → coder 再修 → reviewer 复验通过；
+  - reviewer 21 次 PowerShell + 5 次 Read，coder 11 次 PowerShell + 5 次 Read + 2 次 Edit；
+  - 5 turn 约 **$2.16**；`test/` 未改。记录 10。

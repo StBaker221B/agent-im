@@ -56,7 +56,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - **房间模式**：`room.mode=brief`（默认，链上限 3）或 `discussion`（链上限 6 + prompt 鼓励 agent 互相 @ 接话）。群聊头部可切；`PATCH /api/rooms/:id {mode}`。
 - **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
 - **角色模板**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + knowledge。角色是行为约束，不是工具/权限隔离。
-- 改 role / systemPrompt 会重建 runtime；改 `knowledge/*.md` 后需要重启或触发一次 runtime 重建。
+- 改 role / systemPrompt 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。
+- 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
+- 沙箱实验：`app/data/experiments/bugfix`；`@fix-coder`/`@fix-reviewer` 的 cwd 指向它（本地 state，不提交）。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。
 - **回复先落 Matrix 再 `agentAct`**；txn id 由 `(agent, trigger)` 派生，重试幂等。
 - **同一个 agent = 同一个 session**：`ClaudeAdapter` 默认 `sessionScope: "agent"`，跨房间共享 transcript；隐私靠系统提示，不是硬隔离。要每房间独立就设 `"room"`。
@@ -81,6 +83,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 跨房间记忆/session 作用域 | `spike/src/claude-adapter.mjs`（`sessionScope`） |
 | 数据/导入/默认提示/角色模板 | `app/store.mjs`（`ROLE_TEMPLATES` / `composeSystemPrompt`） |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
+| 工具/workspace | state 里 agent 的 `cwd` + `extraArgs`（如 `--permission-mode dontAsk --allowedTools ...`） |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |
 | agent/room 动态装配 | `app/gateway-host.mjs` |
 | 产品 UI | `web/src/` |

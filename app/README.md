@@ -46,6 +46,19 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 
 要回到每房间独立 session：在 `state.json` 给该 agent 加 `"sessionScope": "room"`，重启服务。切换后新 session 会从头开始。
 
+### Agent workspace / tools（本地实验）
+
+`state.json` 的 agent 可选带 `cwd` 和 `extraArgs`，用于把 agent 指到共享沙箱并限制工具：
+
+```jsonc
+"cwd": "D:/…/app/data/experiments/bugfix",
+"extraArgs": ["--permission-mode", "dontAsk", "--allowedTools", "Read,Glob,Grep,PowerShell,Edit,Write"]
+```
+
+- Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 会拒绝未列入白名单的工具。
+- reviewer 的"只读"目前靠 prompt，不是强沙箱；PowerShell 仍能写文件。
+- 这些字段没有产品 UI，也没有通过 API 暴露。
+
 ## API
 
 见 [13 §5](../docs/13-mvp-architecture.md#5-http-api)。摘要：

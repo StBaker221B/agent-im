@@ -270,11 +270,11 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 3. 房间/agent 管理：暂停已完成；待做删除/改名 agent、移除成员、邀请人类。
 4. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 5. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
-6. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 27 个测试。
+6. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 34 个测试。
 
 ## 11. 验证记录（2026-11-16）
 
-- spike：`node --test` → **27 tests pass**。
+- spike：`node --test` → **34 tests pass**。
 - 真实 Tuwunel + 真实 Claude：
   - 新建 agent `@researcher` → 自动建 DM → 发消息 → Claude 回复。
   - 新建群「讨论组」（claude-dev + researcher）→ 不 @ 发一条 → **两个 agent 都收到并各自回复**。

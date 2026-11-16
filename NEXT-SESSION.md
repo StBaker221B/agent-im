@@ -1,14 +1,14 @@
 # NEXT SESSION — Agent IM
 
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
-> **MVP 第三轮已跑通：跨房间记忆、agent 真正读图、邀请/列表删除、头像资料、历史搜索、设置页；27 tests。下一步是成本控制、搜索索引、流式/审批、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
+> **MVP 第三轮已跑通：跨房间记忆、agent 真正读图、邀请/列表删除、头像资料、历史搜索、设置页；34 tests。下一步是成本控制、搜索索引、流式/审批、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
 
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
 - 记录：[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)、[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)。
 - 已完成：
-  - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
+  - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
   - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、设置页、深链。
   - **图片理解 PASS**：上传 `VISION-OK 42`，agent 读到本地缓存并描述出来。
@@ -47,7 +47,7 @@ EOF
 
 ```bash
 cd d:/Git/learn && git status
-cd agent-im/spike && node --test          # 27 tests
+cd agent-im/spike && node --test          # 34 tests
 cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 ```
 
@@ -81,7 +81,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 
 ## 当前状态（2026-11-16 MVP 第三轮）
 
-- 阶段：**00/09/10/11/12/13 + spike 协议 + 真实 Matrix + MVP（app/web）第二轮完成**；27 tests；真实 Claude 在真实 Tuwunel 上跑通；网页可直接聊天。
+- 阶段：**00/09/10/11/12/13 + spike 协议 + 真实 Matrix + MVP（app/web）第二轮完成**；34 tests；真实 Claude 在真实 Tuwunel 上跑通；网页可直接聊天。
 - MVP 行为：
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
@@ -133,7 +133,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 
 ## 下一步
 
-1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；27 tests。
+1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；34 tests。
 2. **成本控制 v2 已做**（规则 triage/用量/每日预算/参数 UI）；待做全局预算、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
 3. **流式 + 工具审批 v1 已做**（单工具 grant、DSML 兜底、off 硬拒绝）；待做执行前工具审批、按 thread/过期授权、worktree/容器沙箱、SSE 断线补发。
 4. 房间/agent 管理：删除/改名 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改模板/工具/预算、暂停/启用已完成）。

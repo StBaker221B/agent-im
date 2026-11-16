@@ -11,7 +11,7 @@
 curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 
 # 1. 协议测试
-cd agent-im/spike && node --test          # 27 tests
+cd agent-im/spike && node --test          # 34 tests
 
 # 2. 控制面 + gateway + API
 cd agent-im/app && npm start              # http://127.0.0.1:8790
@@ -31,7 +31,7 @@ npm run build                             # 然后打开 8790
 
 | 路径 | 内容 |
 |---|---|
-| `spike/` | 协议引擎 + 传输 + Claude adapter + 27 tests（无第三方依赖） |
+| `spike/` | 协议引擎 + 传输 + Claude adapter + 34 tests（无第三方依赖） |
 | `app/` | MVP 控制面 + gateway 宿主 + Web API（无第三方依赖） |
 | `web/` | React 19 + Vite 8 产品 UI |
 | `docs/` | 正式文档；`docs/records/` 是过程记录 |

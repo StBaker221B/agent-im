@@ -54,8 +54,30 @@
 - 流式只流最终文本 delta；工具参数/思考过程不流。
 - SSE 每标签一条连接；服务重启会重连，没有事件回放。
 
+## 执行前审批（调研，未实现）
+
+想从“turn 后申请”升级成“工具执行前挂起等人类”，协议已经摸清（参考本机 OpenClaw 的 Claude CLI transport）：
+
+- 启动加 `--permission-mode manual --permission-prompts host`，并保持 `--input-format stream-json --output-format stream-json`。
+- CLI 在工具调用前从 stdout 发：
+  ```json
+  {"type":"control_request","request_id":"...","request":{"subtype":"can_use_tool","tool_name":"Edit","input":{...},"tool_use_id":"..."}}
+  ```
+- 宿主往 stdin 回：
+  ```json
+  {"type":"control_response","response":{"subtype":"success","request_id":"...","response":{"behavior":"allow"}}}
+  ```
+  deny 用 `{"behavior":"deny","message":"..."}`。
+- 设计取舍：
+  - Read/Glob/Grep 自动 allow，PowerShell/Edit/Write 才问人类；
+  - Gateway 在 `#runTurn` 收到 permission_request 后发 Matrix 审批卡 + SSE，await 人类响应；
+  - 超时（如 5 分钟）自动 deny；拒绝后模型继续/放弃，不杀 turn；
+  - 审批 API/UI 与现有 tool_request 类似，但会**阻塞当前 turn**，floor 不释放；
+  - `--tools` 仍需列出所有可能调用的工具，权限由 control_request 控制，而不是 allowedTools。
+- 未做的原因：会引入阻塞 turn、超时、SSE 断线重连、审批卡状态同步等一整套状态机；当前合作式 v1 已够用。真正需要时再上。
+
 ## 下一步
 
-- 执行前工具审批（Claude CLI `--permission-prompts host` / control_request）或 worktree 沙箱。
+- 执行前工具审批（上面的 control_request 方案）或 worktree 沙箱。
 - SSE 事件回放/断线补发。
 - 批准工具的过期/按 thread 授权；目前是 agent 级持久 grant。

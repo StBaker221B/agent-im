@@ -364,7 +364,7 @@ type RuntimeCapabilities = {
 
 ### 14.3 实测
 
-- **27 个测试通过**：15 引擎（含 `human_all` / agent 链上限）+ 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）。
+- **34 个测试通过**：15 引擎（含 `human_all` / agent 链上限）+ 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）+ 7 工具策略（off 硬拒绝/单工具 grant/merge）。
 - 假总线端到端 demo（`npm run gateway-demo`）：群 @mention → Claude(mock) → script peer → PASS → quiescent；DM；主动发言；重启不重跑旧消息、停机期间消息只处理一次；全过。
 - 真实 Claude gateway demo（`npm run gateway-demo-claude`）：in=1381 out=648，成本 **$0.059228**；4 条消息后 quiescent。
 - **真实 Matrix E2E 通过（2026-11-16，WSL2 + Tuwunel 2.0.0）**：

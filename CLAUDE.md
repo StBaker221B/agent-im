@@ -26,7 +26,7 @@ agent-im/
 
 ```bash
 # 协议测试（改 scheduler/gateway/transport 后必跑）
-cd agent-im/spike && node --test          # 27 tests
+cd agent-im/spike && node --test          # 34 tests
 
 # MVP 服务（需要 Tuwunel 在 8008）
 cd agent-im/app && npm start              # http://127.0.0.1:8790

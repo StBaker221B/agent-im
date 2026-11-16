@@ -56,8 +56,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - **自由讨论默认**：链上限 `maxAgentChain=10`（防死循环，不是轮数限制）；prompt 允许 agent 互相 @ 接话。旧的 `room.mode` 字段保留兼容但不再影响行为，toggle 已移除。
 - **dispatch 去重**：`#dispatch` 记录本次已跑的 agent，wake 循环跳过，避免同一条消息里重复 PASS。
 - **角色模板**：13 个内置模板（`app/role-templates.mjs`）；`agent.templateId` 决定角色卡，`role` 是宽泛分类。runtime prompt = base + 角色卡 + 角色知识包 + 私有 knowledge。角色是行为约束，不是强权限隔离。
-- 改 `templateId` / `toolsEnabled` / `systemPrompt` 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。
-- 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`dontAsk + allowedTools` 是弱隔离，reviewer 的只读靠 prompt。
+- 改 `templateId` / `toolsMode` / `systemPrompt` 会重建 runtime；改 `knowledge/*.md`、`cwd`、`extraArgs` 后需要重启。
+- 工具权限：`toolsMode=template|full|off`。template 按角色推荐；full 放开全部本地工具（含 Edit/Write），用于手动批准；off 关闭。`dontAsk + allowedTools` 是弱隔离，reviewer 的只读靠 prompt。
+- 成本护栏：Gateway 规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient），跳过写 `triage_skip`；`GET /api/usage` 聚合 audit，设置页有用量表。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 沙箱实验：`app/data/experiments/bugfix`；`@fix-coder`/`@fix-reviewer` 的 cwd 指向它（本地 state，不提交）。
 - **投递 ≠ 唤醒**：所有成员都收到消息；`@` 只是注意力信号。

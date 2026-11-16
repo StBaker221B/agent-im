@@ -50,6 +50,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 
 ### Agent workspace / tools（本地实验）
 
+`toolsMode` 三档：`template`（按角色推荐，默认）、`full`（全部本地工具，含 Edit/Write，手动放开）、`off`。规则 triage 会跳过 ack/冷却/超频的 ambient turn，并写 `triage_skip` 审计；用量在 `GET /api/usage`。
+
 `state.json` 的 agent 可选带 `cwd` 和 `extraArgs`，用于把 agent 指到共享沙箱并限制工具：
 
 ```jsonc
@@ -76,8 +78,9 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `POST /api/rooms/:id/upload` `{filename,contentType,data(base64)}` — ≤8MB
 - `GET /api/media?uri=mxc://...` — 服务端带 token 下载媒体
 - `GET /api/role-templates` — 13 个角色卡
-- `POST /api/agents` `{username,displayName,runtime,templateId,toolsEnabled,roles,systemPrompt}`
-- `PATCH /api/agents/:id` `{displayName,templateId,toolsEnabled,roles,wakePolicy,systemPrompt}`
+- `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
+- `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,roles,systemPrompt}`
+- `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,roles,wakePolicy,systemPrompt}`
 - `GET /api/search?q=` — 每个房间最近 100 条
 - `GET /api/health`
 

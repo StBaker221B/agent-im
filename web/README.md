@@ -43,6 +43,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 群聊和私聊在同一个列表；DM 标题取 peer 的 displayName。
 - 群聊默认自由讨论：agent 可以互相 @ 继续；不再有「讨论模式」toggle。
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
+- 新建/设置页的工具权限选择 `template/full/off`；设置页用量表来自 `/api/usage`（今天/累计 turns + USD）。
 
 ## 设计
 

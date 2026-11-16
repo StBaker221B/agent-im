@@ -39,3 +39,4 @@
 | 13 | [2026-11-16 角色模板](2026-11-16-09-role-templates.md) | 角色模板、私有知识、角色 @ 别名、coder×reviewer 实验 |
 | 14 | [2026-11-16 自主修测试实验](2026-11-16-10-autonomy-bugfix.md) | 真实失败测试 + 工具 + coder/reviewer，5 turn 自主闭环、成本 |
 | 15 | [2026-11-16 角色模板决策](2026-11-16-11-role-template-decisions.md) | 用户批注、13 个角色范围、知识分层、权限观、triage/kill criterion |
+| 16 | [2026-11-16 权限/triage/用量](2026-11-16-12-permissions-triage-usage.md) | toolsMode 三档、规则 triage、usage API/UI、成本观察 |

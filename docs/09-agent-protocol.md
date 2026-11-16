@@ -402,7 +402,8 @@ type RuntimeCapabilities = {
   - **自由讨论（默认）**：链上限 10（防死循环）；prompt 允许对另一个 agent 的具体观点 @ 对方继续；不再有「讨论模式」toggle。`#dispatch` 记录已跑过的 agent，避免同一条消息里重复 PASS。
   - **角色模板 + 私有知识**：`agent.role` = generic/coder/reviewer/researcher；runtime prompt = base + role template + `knowledge/*.md`；角色别名 `@reviewer` 在唯一时解析。实验 coder×reviewer 形成"提案→质疑→修正→确认"闭环（记录 09）。
   - **自主工具循环**：沙箱 failing tests + coder/reviewer 工具权限；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，最终 5/5 通过（记录 10）。
-- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md)、[14 角色模板与计划](14-role-templates-and-roadmap.md)，以及 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md) / [记录 10](records/2026-11-16-10-autonomy-bugfix.md)。
+  - **成本护栏**：规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）写 `audit.triage_skip`；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`，权限可手动放开（记录 12）。
+- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md)、[14 角色模板与计划](14-role-templates-and-roadmap.md)，以及 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md) / [记录 08](records/2026-11-16-08-discussion-mode.md) / [记录 09](records/2026-11-16-09-role-templates.md) / [记录 10](records/2026-11-16-10-autonomy-bugfix.md) / [记录 12](records/2026-11-16-12-permissions-triage-usage.md)。
 
 ## 15. 待确认
 

@@ -19,7 +19,7 @@
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/设置页可选模板、预览、工具开关。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
-  - **成本护栏**：规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`，full 可手动给 reviewer 写权限。
+  - **成本护栏**：规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`，full 可手动给 reviewer 写权限；每 agent `dailyBudgetUsd`（超预算 PASS + `budget_skip`）。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
 - 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
@@ -132,7 +132,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 ## 下一步
 
 1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；27 tests。
-2. **下一步（优先）**：成本控制 v1 已做（规则 triage/用量）；待做 USD 日预算/硬停、triage 参数 UI、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
+2. **下一步（优先）**：成本控制 v2 已做（规则 triage/用量/每日 USD 预算）；待做 triage 参数 UI、全局预算、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
 3. 流式输出 + 工具审批；`tool_use` 已经能抓到，approval 还没有。
 4. 房间/agent 管理：删除/暂停 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改角色/显示名/wakePolicy 已完成）。
 5. 历史搜索：现在每房间最近 100 条子串匹配；做分页/索引（Matrix `/search` 或本地索引）。

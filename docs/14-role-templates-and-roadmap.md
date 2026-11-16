@@ -1,6 +1,6 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量视图**；自定义模板、团队模板、O*NET/ESCO 导入、USD 预算待做。
+- 状态：2026-11-16 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算**；自定义模板、团队模板、O*NET/ESCO 导入、triage 参数 UI 待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -123,7 +123,7 @@
 | 协议/引擎/Matrix | ✅ 可用 | 并行化、更多测试 | 1–2d |
 | 产品 UI（会话/群/私聊/媒体/搜索/设置/资料） | ✅ 可用 | 细节、键盘/移动端打磨 | 1–2d |
 | 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
-| 成本控制 | ⚠️ v1 已做 | 规则 triage（ack/冷却/30 turn/h）、用量视图；USD 日预算、参数 UI、per-thread 预算待做 | 1–2d |
+| 成本控制 | ⚠️ v2 已做 | 规则 triage、用量视图、每 agent 每日 USD 预算；triage 参数 UI、全局预算、per-thread 预算待做 | 1–2d |
 | 工具审批/沙箱/流式 | ⚠️ 部分 | 审批 UI、流式输出、真正沙箱（现在只有 dontAsk + prompt） | 3–5d |
 | Agent/房间生命周期 | ⚠️ 部分 | 删除/暂停/改名 agent、移除成员、邀请第二个人类 | 2–3d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
@@ -141,7 +141,7 @@
 **第 1 周：角色与成本**
 
 1. ✅ 角色模板库 + 创建向导（13 个模板、知识包、API/UI）。
-2. 成本控制：**v1 已做**规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）+ `triage_skip` 审计 + `GET /api/usage`/设置页用量。待做 USD 日预算、triage 参数 UI、per-thread 预算。**triage** = 跑完整模型 turn 前，用规则或便宜小模型判断这条消息需不需要该 agent 回/该谁处理，减少 `human_all` 下 N 个完整 turn。
+2. 成本控制：**v2 已做**规则 triage（直接 @ 必跑；ack/15s 冷却/30 turn/h 跳过 ambient）+ `triage_skip` 审计 + `GET /api/usage`/设置页用量 + 每 agent `dailyBudgetUsd`（超预算 PASS/`budget_skip`）。待做 triage 参数 UI、全局预算、per-thread 预算。**triage** = 跑完整模型 turn 前，用规则或便宜小模型判断这条消息需不需要该 agent 回/该谁处理，减少 `human_all` 下 N 个完整 turn。
 3. 把“讨论轮次/链上限”变成可配置的护栏，不做强制。
 
 **第 2 周：工具与治理**

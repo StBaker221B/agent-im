@@ -33,6 +33,15 @@
 - 这是**逻辑初筛**，不是 LLM 判断；不额外花钱。语义复杂的取舍仍交给 agent 自己。
 - 实测：群里发“谢谢”，人类消息 +1，两个 agent 都没有跑；audit 里两条 `triage_skip: ack`。
 
+## 每日 USD 预算
+
+- 每个 agent 增加 `dailyBudgetUsd`（0 = 不限，默认 0）。
+- Gateway 启动时从 `audit.jsonl` 的 usage 事件恢复“今天已花”；每个 turn 前检查：
+  - 已花 >= 预算 → 不调用模型，直接 `agentAct(pass)` 释放 floor，写 `audit.budget_skip`（spent/cap）。
+  - 跨 UTC 日会清空当天累计（内存）。
+- 设置页每个 agent 有“每日预算 USD（0 = 不限）”输入；用量表可以直接对比今天花费。
+- 实测：把 claude-dev 预算设成 $0.01（今天已花 $0.8376），DM 发消息 → 没有 agent 消息，`budget_skip spent=0.8376 cap=0.01`；随后恢复 0。
+
 ## 用量视图
 
 - `GET /api/usage` 聚合 `app/data/audit.jsonl` 的 usage 事件，按 agent 汇总今天/累计 turns 和 USD。

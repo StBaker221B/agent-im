@@ -64,6 +64,39 @@ npm run say -- --text "@claude-dev 你好"                  # 用人类身份发
 - 一个 agent 一个 Matrix 账号/token；DM 用单独房间；gateway 只绑本机 loopback。
 - 不提交 `.tmp/matrix-config.json` / `matrix-users.json`。
 
+### 2.4 本地网页控制台
+
+```bash
+cd d:/Git/learn/agent-im/spike
+npm run ui                 # http://127.0.0.1:8787
+npm run ui -- --port 8899  # 端口冲突时
+```
+
+- 单页 `spike/ui/index.html` + `scripts/ui-server.mjs`；Node 代理人类 token，浏览器拿不到 token，只绑 loopback。
+- 群聊/私聊切换、参与者、@ 高亮、等待回复提示；需要 Tuwunel 和 `matrix-gateway` 同时运行。
+- 定位是调试/演示控制台，不是数据平台；正式聊天客户端仍可用 Element。
+
+### 2.5 MVP（产品 UI + 控制面，2026-11-16）
+
+```bash
+# 1. 确保 Tuwunel 在 8008（见 2.3 / docs/12）
+# 2. 停掉旧的 spike gateway（同一个 agent token 不能双开）
+# 3. 启动控制面 + gateway + Web API
+cd d:/Git/learn/agent-im/app
+npm start                          # http://127.0.0.1:8790
+
+# 4. Web
+cd d:/Git/learn/agent-im/web
+npm install                        # 首次
+npm run build                      # 由 app 托管；开发用 npm run dev (5173)
+```
+
+- 首次启动从 `spike/.tmp/` 导入 human/agent/room 到 `app/data/state.json`。
+- 产品行为：会话列表（DM/群混排）、新建私聊/群聊/agent、Agents 页、@ 自动补全、未读。
+- 唤醒默认 `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；链上限 3。
+- 数据/API/限制见 [13 MVP 架构](13-mvp-architecture.md)；运行与排障见 `agent-im/app/README.md`。
+- **不要**同时跑 `spike` 的 `matrix-gateway` 和 `app`：会重复回复。
+
 ## 3. Linux 环境（不需要 WSL）
 
 如果 Matrix 跑在 Linux（VPS、办公机 Linux、或 Linux VM）：

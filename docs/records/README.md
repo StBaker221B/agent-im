@@ -32,3 +32,6 @@
 | 06 | [2026-11-16 暂停点](2026-11-16-02-pause.md) | 明天继续的入口、环境状态、待拍板、下一步 |
 | 07 | [2026-11-16 Transport + Gateway](2026-11-16-03-transport-gateway.md) | transport 抽象、gateway、真实 Claude 端到端、Tuwunel/WSL2 决定 |
 | 08 | [2026-11-16 真实 Matrix E2E](2026-11-16-04-matrix-e2e.md) | WSL2 导入、Tuwunel 2.0.0 安装、真实 Matrix 五条验收、成本与遗留 |
+| 09 | [2026-11-16 MVP](2026-11-16-05-mvp.md) | 控制面 + React 产品 UI、创建 agent/DM/群、human_all、成本与坑 |
+| 10 | [2026-11-16 MVP 第二轮](2026-11-16-06-mvp-round2.md) | 跨房间记忆、邀请成员、新建入口拆分、删除会话、图片/文件 |
+| 11 | [2026-11-16 MVP 第三轮](2026-11-16-07-mvp-round3.md) | agent 读图、列表删除、头像资料、历史搜索、设置页、researcher 回复规则 |

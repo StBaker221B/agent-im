@@ -1,20 +1,24 @@
 # NEXT SESSION — Agent IM
 
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
-> **真实 Matrix E2E 已通过：WSL2 + Tuwunel 2.0.0 + 真实 Claude，群 @ / DM / PASS / 静默收敛 / 停机重启去重全部验证。25 tests。下一步可做工具审批、流式输出、第二个 runtime 或数据平台最小版。不要跳过 00 合同和 09 协议。**
+> **MVP 第三轮已跑通：跨房间记忆、agent 真正读图、邀请/列表删除、头像资料、历史搜索、设置页；27 tests。下一步是成本控制、搜索索引、流式/审批、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
 
-## 当前暂停点（2026-11-16 上午，真实 Matrix E2E 通过）
+## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
-- 最近功能提交：`0e91c3c`（transport/gateway/Matrix client，分支 `agent-im/matrix-e2e`）；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[2026-11-16-04 真实 Matrix E2E](docs/records/2026-11-16-04-matrix-e2e.md)、[03 Transport + Gateway](docs/records/2026-11-16-03-transport-gateway.md)。
+- 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
+- 记录：[07 第三轮](docs/records/2026-11-16-07-mvp-round3.md)、[06 第二轮](docs/records/2026-11-16-06-mvp-round2.md)、[05 MVP](docs/records/2026-11-16-05-mvp.md)。
 - 已完成：
-  - `spike/src/fake-bus.mjs`、`matrix-transport.mjs`、`gateway.mjs`、`supervisor.mjs`、`script-peer.mjs`、`mock-runtime.mjs`、`audit.mjs`。
-  - `ClaudeAdapter` session 持久化（agent home `sessions/claude.json`）；`scripts/setup-matrix.mjs`、`scripts/say.mjs`。
-  - **25 tests pass**（13 引擎 + 2 adapter + 4 gateway + 4 Matrix transport + 1 setup + 1 gateway×Matrix 集成）。
-  - **真实 Matrix E2E 通过**：Tuwunel 2.0.0 跑在 WSL2 `agentim`，监听 `127.0.0.1:8008`；`setup-matrix` 一次成功；群 @claude-dev → Claude 回复 @script-peer → peer 回复 → Claude PASS → quiescent；DM 自动 direct；不 @ 不唤醒；停机重启只处理新消息。
-  - 真实 Claude 成本：本轮 4 个 turn 约 **$0.029**；更早的 gateway-demo-claude 是 $0.059228。
-- Matrix 宿主：**本机 WSL2 + Tuwunel 单二进制**（不是 Docker Desktop）；安装与实测结果见 [12 Matrix 宿主](docs/12-matrix-host-wsl.md)。
-- WSL 状态：3.0.5，发行版 `agentim`（Ubuntu 24.04.4，VHDX 在 `D:\WSL\agentim`）；**Tuwunel 用 `nohup` 常驻，没有开机自启**——Windows 重启后需要手动拉起（见下）。
+  - `spike/`：协议引擎 + 27 tests；`human_all`、`maxAgentChain=3`、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
+  - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
+  - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、设置页、深链。
+  - **图片理解 PASS**：上传 `VISION-OK 42`，agent 读到本地缓存并描述出来。
+  - **researcher 回复 PASS**：`@研究员` 正确解析；直接提问必回（不再 PASS 回避）。
+  - 搜索 `海豚`、PATCH 设置、列表删除均已验证。
+  - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
+  - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
+- 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
+- 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
+- Matrix 宿主：WSL2 + Tuwunel 单二进制；**Tuwunel 用 `nohup` 常驻，没有开机自启**。
 
 ## 开机后先做什么
 
@@ -32,18 +36,17 @@ nohup /opt/tuwunel/usr/sbin/tuwunel -c /etc/tuwunel/tuwunel.toml > /var/log/tuwu
 EOF
 ```
 
-2. 在 Windows：
+2. 启动 MVP（**不要**同时跑 `spike` 的 matrix-gateway）：
 
 ```bash
 cd d:/Git/learn && git status
-cd agent-im/spike && node --test
-npm run matrix-gateway
-# 另开终端：
-npm run say -- --text "@claude-dev 你好"
+cd agent-im/spike && node --test          # 27 tests
+cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 ```
 
-3. 想重跑初始化：`npm run setup-matrix -- --registration-token "$(cat .tmp/matrix-registration-token.txt)"`（幂等）。
-4. 之后：工具审批/流式输出 → 第二个 runtime（OpenClaw/Codex）→ 数据平台最小版。
+3. 改了前端：`cd d:/Git/learn/agent-im/web && npm run build`（dev 用 `npm run dev`，5173 代理 `/api`）。
+4. 想重跑 spike 初始化：`npm run setup-matrix -- --registration-token "$(cat .tmp/matrix-registration-token.txt)"`（幂等）。
+5. 之后：成本控制（triage/冷却/预算）→ 流式/审批 → 删除/暂停/邀请人类 → 第二 runtime → 数据平台。
 
 ## 读什么
 
@@ -51,23 +54,38 @@ npm run say -- --text "@claude-dev 你好"
 
 1. [00 需求合同](docs/00-requirements-contract.md) — 唯一需求口径
 2. [09 Agent 协议](docs/09-agent-protocol.md) — 消息/floor/收敛/共识/adapter；§14 是当前实现状态
-3. [12 Matrix 宿主：WSL2 + Tuwunel](docs/12-matrix-host-wsl.md) — 已安装；§12 是本次实测记录和排障
-4. [10 开发环境与复现](docs/10-dev-setup.md) — 本机/办公机、spike 命令
-5. [11 本地部署与无公网 IP 组网](docs/11-local-networking.md) — EasyTier/Tailscale/VPS；Tuwunel 更新
-6. [2026-11-16 真实 Matrix E2E 记录](docs/records/2026-11-16-04-matrix-e2e.md)
-7. [2026-11-16 Transport + Gateway 记录](docs/records/2026-11-16-03-transport-gateway.md)
-8. [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
-9. [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
-10. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
-11. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-02-clarifications.md)
-12. [01 需求](docs/01-requirements.md) · [03 架构](docs/03-architecture.md) · [04 Agent 接入](docs/04-agent-integration.md)
-13. [06 待确认问题](docs/06-open-questions.md)
+3. [13 MVP 架构](docs/13-mvp-architecture.md) — 组件、数据、API、流程、唤醒、限制
+4. [CLAUDE.md](CLAUDE.md) — 给后续 agent 的工作笔记（布局/命令/不变量/坑）
+5. [12 Matrix 宿主：WSL2 + Tuwunel](docs/12-matrix-host-wsl.md) — 已安装；§12 是实测记录和排障
+6. [10 开发环境与复现](docs/10-dev-setup.md) — 本机/办公机、spike/MVP 命令
+7. [11 本地部署与无公网 IP 组网](docs/11-local-networking.md) — EasyTier/Tailscale/VPS；Tuwunel 更新
+8. [2026-11-16 MVP 记录](docs/records/2026-11-16-05-mvp.md)
+9. [2026-11-16 真实 Matrix E2E 记录](docs/records/2026-11-16-04-matrix-e2e.md)
+10. [2026-11-16 Transport + Gateway 记录](docs/records/2026-11-16-03-transport-gateway.md)
+11. [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
+12. [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
+13. [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
+14. [2026-11-15 需求澄清（过程记录，含用户批注）](docs/records/2026-11-15-02-clarifications.md)
+15. [01 需求](docs/01-requirements.md) · [03 架构](docs/03-architecture.md) · [04 Agent 接入](docs/04-agent-integration.md)
+16. [06 待确认问题](docs/06-open-questions.md)
 
 > 文档约定：正式文档 = `docs/0X-*.md`；过程记录 = `docs/records/`（可追加/修改）。
 
-## 当前状态（2026-11-16 真实 Matrix E2E 通过）
+## 当前状态（2026-11-16 MVP 第三轮）
 
-- 阶段：**00/09/10/11/12 + 本地 spike + Claude adapter + transport/gateway + 真实 Matrix E2E 完成**；25 tests；真实 Claude 在真实 Tuwunel 上跑通。
+- 阶段：**00/09/10/11/12/13 + spike 协议 + 真实 Matrix + MVP（app/web）第二轮完成**；27 tests；真实 Claude 在真实 Tuwunel 上跑通；网页可直接聊天。
+- MVP 行为：
+  - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
+  - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
+  - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。
+  - 创建 agent = 注册 Matrix 用户 + 写 state + 动态 attach 到 gateway；创建后自动开 DM。
+  - `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；`maxAgentChain=3`；直接提问/私聊必须回应。
+  - **同一个 agent 一个 session（`sessionScope="agent"`）**：群聊和私聊共享记忆；私聊隐私靠系统提示。
+  - `@` 支持 localpart 和中文 displayName（`@研究员`）。
+  - 数据在 `app/data/state.json`（token/密码/房间/已读），首次从 `spike/.tmp` 导入。
+- MVP 实测：
+  - 第一轮：新建 researcher → DM 回复；群「讨论组」不 @ → claude-dev + researcher 都回复；4 turn 约 $0.146。
+  - 第二轮：群里说 `海豚-7` → 私聊答出；私聊暗号在群里记得但拒绝复述；邀请 researcher、SVG 图片、删除测试群均通过；4 turn 约 $0.112。
 - Claude adapter 实测：首轮 / 同进程连续 / kill+`--resume` 都通过；session id 现在持久化到 agent home，gateway 重启也能 resume。
 - Gateway 实测：
   - 回复先落 Matrix（fake bus / 真实 homeserver）拿 event id，再 `agentAct`；txn id 由 `(agent, trigger)` 派生，重试不重复。
@@ -87,6 +105,7 @@ npm run say -- --text "@claude-dev 你好"
   - **agent 身份绑 agent home**（config/memory/sessions/workspace），runtime 是可替换 worker；1 个 gateway 进程内多 agent worker。
   - 薄 adapter 契约；ACP 只是 adapter，不是主协议。
   - **投递 vs 唤醒分离**：所有房间成员收到消息；`@` 只是注意力信号；wakePolicy 决定谁跑模型。
+  - **同一个 agent 跨房间一份记忆**：`sessionScope="agent"`；但私聊内容不主动带到群聊，靠系统提示约束。
   - **自由发言 + 单写者 floor + 静默收敛 + 显式共识/升级**；不是固定轮流。
   - 人类消息是高优先级输入，不是自动打断；内容可反驳，控制命令必须执行。
   - 角色/升级链：task owner → facilitator → agent owner → admin；`can_invite` 由 gateway 强制。
@@ -102,16 +121,23 @@ npm run say -- --text "@claude-dev 你好"
 
 ## 下一步
 
-1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport 抽象、gateway、Matrix client、setup 脚本、25 tests、gateway demos。
-2. **已完成（2026-11-16）**：真实 Matrix E2E —— WSL2 + Tuwunel、`setup-matrix`、`matrix-gateway`；群 @、DM、pass、静默收敛、重启去重全部验证。
-3. **下一步**：工具审批/真正的流式输出；`tool_use` 已经能抓到，approval 还没有。
-4. 加第二个 runtime（本机 OpenClaw 或 Codex）验证异构；worktree + 数据平台最小版。
-5. 最后做“单 Claude + subagent”对比，作为 kill criterion。
-6. 可选的运维项：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element Desktop 登录实测。
+1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**；27 tests。
+2. **下一步（优先）**：成本控制。`human_all` 下每条人类消息触发 N 个 Claude turn；实测 4 turn 约 $0.146。加廉价 triage / 每 agent 冷却 / 每 thread 预算，或者让 agent 只在被叫到时用完整模型。
+3. 流式输出 + 工具审批；`tool_use` 已经能抓到，approval 还没有。
+4. 房间/agent 管理：删除/暂停 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改角色/显示名/wakePolicy 已完成）。
+5. 历史搜索：现在每房间最近 100 条子串匹配；做分页/索引（Matrix `/search` 或本地索引）。
+6. 跨房间记忆的隐私硬化：现在是系统提示级；可做 memory 摘要 + 每房间 session，或给 agent 受控 memory 文件。
+7. 加第二个 runtime（本机 OpenClaw 或 Codex）验证异构。
+8. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
+9. 最后做“单 Claude + subagent”对比，作为 kill criterion。
+10. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
 
 ## 不要做什么
 
-- 不要跳过 00 合同 / 09 协议直接写产品代码；Matrix E2E 已完成，下一步是审批/流式/第二 runtime。
+- 不要跳过 00 合同 / 09 协议直接写产品代码；MVP 骨架已完成，下一步是成本控制/审批/流式/管理面。
+- **不要同时跑 `spike` 的 `matrix-gateway` 和 `app`**：同一个 agent token 只能有一个 sync 客户端，否则重复回复。
+- 不要重新做会话列表/新建会话/agent 创建——`web/` 和 `app/` 已经有了；在它上面迭代。
+- 不要提交 `app/data/state.json`、`gateway-state.json`、`audit.jsonl`、`agents/`（含 token/密码）。
 - 不要重新做 GitHub 调研（结果在 02 / sources / 11）；Tuwunel 替换 Conduit 的结论在 12。
 - 不要重新安装 EGM / interview-me / codegraphcontext / spec-driven-development。
 - 不要默认启用 ECC。

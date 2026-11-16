@@ -1,7 +1,7 @@
 # 03 架构
 
-- 状态：推荐方案（2026-11-15）
-- 关联：[需求](01-requirements.md) · [Agent 接入](04-agent-integration.md) · [待确认问题](06-open-questions.md)
+- 状态：推荐方案（2026-11-15）；**MVP 实现见 [13 MVP 架构](13-mvp-architecture.md)（2026-11-16）**
+- 关联：[需求](01-requirements.md) · [Agent 接入](04-agent-integration.md) · [09 协议](09-agent-protocol.md) · [13 MVP](13-mvp-architecture.md) · [待确认问题](06-open-questions.md)
 
 ## 1. 推荐方案
 

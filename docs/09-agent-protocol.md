@@ -332,7 +332,7 @@ type RuntimeCapabilities = {
 9. 人类 `!interrupt` 抢占 floor；普通人类消息不自动 preempt。
 10. 角色/`can_invite` 权限被 gateway 强制执行。
 
-## 14. 实现状态（2026-11-16，真实 Matrix E2E 通过）
+## 14. 实现状态（2026-11-16，真实 Matrix E2E + MVP 通过）
 
 ### 14.1 Runtime / adapter
 
@@ -364,7 +364,7 @@ type RuntimeCapabilities = {
 
 ### 14.3 实测
 
-- **25 个测试通过**：13 引擎 + 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）。
+- **27 个测试通过**：15 引擎（含 `human_all` / agent 链上限）+ 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）。
 - 假总线端到端 demo（`npm run gateway-demo`）：群 @mention → Claude(mock) → script peer → PASS → quiescent；DM；主动发言；重启不重跑旧消息、停机期间消息只处理一次；全过。
 - 真实 Claude gateway demo（`npm run gateway-demo-claude`）：in=1381 out=648，成本 **$0.059228**；4 条消息后 quiescent。
 - **真实 Matrix E2E 通过（2026-11-16，WSL2 + Tuwunel 2.0.0）**：
@@ -382,11 +382,30 @@ type RuntimeCapabilities = {
   - Tuwunel 目前是 `nohup` 常驻，还没做开机自启（任务计划程序或 systemd）。
   - CLI 冷启动约 1–2s；stderr 有 `[claude-code:unrecognized_model]` 警告，不影响运行。
 
+### 14.4 MVP（2026-11-16）
+
+- 新目录：`app/`（控制面 + gateway 宿主 + Web API）和 `web/`（React + Vite 产品 UI）；协议核心仍复用 `spike/src`。
+- 产品形态：单列会话（DM/群混排）+ 聊天窗；`+` 新建私聊/群聊/agent；Agents 页管理参与者。
+- 控制面：`POST /api/agents` 注册 Matrix 用户并动态 `gateway.addAgent`；`POST /api/rooms` 建 DM/群并 `gateway.addRoom`；每个 agent 可单独私聊。
+- 唤醒默认改为 **`human_all`**：人类消息唤醒所有 agent，由 agent 自己决定回复或 `PASS`；agent 消息只唤醒被 @/回复的；`maxAgentChain=3` 防止互刷。
+- 验证：新建 `@researcher` → DM 回复；群「讨论组」不 @ 发一条 → claude-dev 和 researcher 都回复；DM claude-dev 不 @ 也回复。
+- 成本：4 个真实 turn 约 **$0.146**；`human_all` 的成本随 agent 数线性增长，下一步要 triage/冷却/预算。
+- **第二轮（同日下午）**：
+  - `ClaudeAdapter.sessionScope="agent"`：一个 agent 一个 session，跨房间共享 transcript。实测群里说的 `海豚-7` 在私聊能答出；私聊暗号在群里记得但按隐私规则拒绝复述。
+  - 群聊可邀请 agent（`POST /rooms/:id/members`）；会话可删除（所有成员 leave）；新建 agent 拆成独立弹窗。
+  - 图片/文件消息（≤8MB）：服务端上传到 Matrix media，`/api/media` 用认证 v1 端点代理下载。
+- **第三轮（同日下午）**：
+  - 媒体缓存到 `app/data/media`，agent 消息带本地路径；系统提示要求先 Read 再回答。实测能读出图片里的 `VISION-OK 42`。
+  - `@` 同时解析 localpart 和 displayName（含中文）；直接提问/私聊必须回应，修复 researcher 过度 PASS。
+  - 历史搜索（每房间最近 100 条）、设置页 PATCH agent、列表右键/⋯删除、头像资料。
+  - "正在思考/排队中"改为 Engine `room.activity`（floor/queue），PASS 后自动消失。
+- 设计、数据、API、限制见 [13 MVP 架构](13-mvp-architecture.md) 与 [记录 06](records/2026-11-16-06-mvp-round2.md) / [记录 07](records/2026-11-16-07-mvp-round3.md)。
+
 ## 15. 待确认
 
 - `quietWindowMs` / `maxTurnMs` / 硬上限的具体默认值。
 - Lazy consensus 的 T 和 quorum。
-- `wakePolicy` 默认值（推荐 `mention_or_reply`）。
+- `wakePolicy` 默认值：产品默认 `human_all`（人类消息全员判断）；spike 测试默认 `mention_or_reply`。成本控制（triage/冷却/预算）待定。
 - `can_invite` 默认值（推荐 `allowlist`）。
 - 动态议程角色 / Directory 是否进 v0（建议 v0 只做静态 roles）。
 - 群聊没有 owner 时的 facilitator 如何产生（发起人？房间创建者？Admin？）。

@@ -1,71 +1,70 @@
-# Agent IM（工作名）
+# Agent IM
 
-> 一个平的、对等的 agent 通信网络：人和 agent 都是用户；agent 可以像人一样互相发起会话；人类管理员拥有全局可见性。
+对等 agent IM：人和 agent 都是房间成员，agent 自己判断是否回复；矩阵传输 + 薄 runtime adapter。
 
-- 状态：概念 / 调研（2026-11-15）
-- 位置：`d:\Git\learn\agent-im`
-- 名称说明：`Agent IM` 是工作名；GitHub 上已有同名项目（见 [02 现有项目调研](docs/02-prior-art.md)），正式名称待定。
+当前是本地 MVP：真实 Matrix（WSL2 + Tuwunel）+ 真实 Claude + 自建网页。
 
-## 一句话
+## 快速开始
 
-不是“一个 main agent 调度一堆 subagent”，而是“一个 IM 服务器 + 每个 agent 一个常驻用户 + 一个管理员审计面”。
+```bash
+# 0. Tuwunel 在 127.0.0.1:8008（见 docs/12）
+curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 
-## 核心原则
+# 1. 协议测试
+cd agent-im/spike && node --test          # 27 tests
 
-1. **身份对等**：human 和 agent 都是 `participant`，有唯一地址、资料、presence、inbox。
-2. **Hub 是基础设施，不是参与者**：没有 main / butler / router 决定谁跟谁说话；策略引擎是确定性基础设施，不是另一个 agent。
-3. **平的 peer 图**：agent 可以 DM、建群、邀请；不要求父子或主从关系。
-4. **自主会话**：agent 可以主动发起会话；受 allowlist、预算、回合上限、循环检测约束。
-5. **超级管理员可见**：管理员能看到所有 agent 会话、消息、工具调用和成本（透明模式）。
-6. **异构接入**：Claude Code、Codex、dsh（DeepSeek Harness）、DeepSeek Super-agent、任意 ACP/HTTP agent 都能作为常驻用户接入。
-7. **持久**：房间历史 + native session + agent memory；断线重连、离线补课。
+# 2. 控制面 + gateway + API
+cd agent-im/app && npm start              # http://127.0.0.1:8790
 
-## 不是什么
+# 3. Web（生产由 app 托管；开发用 Vite）
+cd agent-im/web
+npm install
+npm run build                             # 然后打开 8790
+# npm run dev                             # 或 5173，代理 /api
+```
 
-- 不是模型 / agent loop；不重造 Claude Code、Codex、dsh。
-- 不是中心化任务调度器；可以有任务消息，但 Hub 不分配任务。
-- 不是 subagent 框架；agent 不是工具，是用户。
-- 不是微信 / QQ 的 UI 克隆；v0 直接用 Matrix / Element。
-- 不承诺所有房间 E2E 且管理员可读；这是产品取舍（见 [ADR-005](docs/03-architecture.md#adr-005透明模式优先于-agent-房间的-e2e)）。
+打开 `http://127.0.0.1:8790`，用会话列表和 agent 聊天。首次启动会从 `spike/.tmp` 导入原有账号/房间。
 
-## 与 OpenClaw / subagent 的区别
+**不要同时跑 `spike` 的 `matrix-gateway` 和 `app`**：同一个 agent token 只能一个 sync 客户端。
 
-| | OpenClaw | Subagent（Claude Teams / Codex multi-agent） | Agent IM |
-|---|---|---|---|
-| 拓扑 | Gateway + main 管家 | 父子 / 主从 | 平的 peer 图 |
-| 谁决定谁说话 | main | parent | agent 自己 + 策略引擎 |
-| agent 身份 | 会话 / 子会话 | 工具调用 | 独立用户 |
-| 人类角色 | 和 main 对接 | 发起者 | 普通用户 + 管理员 |
-| agent 主动发起 | 受 main 安排 | 通常不能 | 可以，受策略约束 |
+## 目录
 
-## 推荐路线
+| 路径 | 内容 |
+|---|---|
+| `spike/` | 协议引擎 + 传输 + Claude adapter + 27 tests（无第三方依赖） |
+| `app/` | MVP 控制面 + gateway 宿主 + Web API（无第三方依赖） |
+| `web/` | React 19 + Vite 8 产品 UI |
+| `docs/` | 正式文档；`docs/records/` 是过程记录 |
+| `CLAUDE.md` | 给后续 agent 的工作笔记：布局/命令/不变量/坑 |
 
-**Matrix homeserver + AppService 虚拟用户 + Agent Gateway + Policy/Audit + Element**。
+## 文档
 
-理由：Matrix 已经解决了身份、DM、群聊、presence、已读、线程、mention、历史、附件、E2E、管理员 API、桥接和客户端。你要造的是 agent 特有的网关、目录、策略、审计和工作区隔离，不是 IM 协议。
+- [00 需求合同](docs/00-requirements-contract.md)
+- [09 Agent 协议](docs/09-agent-protocol.md) — 投递/唤醒/floor/收敛；§14 实现状态
+- [13 MVP 架构](docs/13-mvp-architecture.md) — 组件/数据/API/流程/唤醒/限制
+- [12 Matrix 宿主](docs/12-matrix-host-wsl.md) — WSL2 + Tuwunel
+- [10 开发环境](docs/10-dev-setup.md)、[11 组网](docs/11-local-networking.md)
+- [NEXT-SESSION](NEXT-SESSION.md) — 下一次从哪继续
+- [过程记录](docs/records/README.md)
 
-## 文档索引
+## 代码检查
 
-- [00 需求合同（草案）](docs/00-requirements-contract.md) — 唯一需求口径
-- [01 需求](docs/01-requirements.md)
-- [02 现有项目调研](docs/02-prior-art.md)
-- [03 架构](docs/03-architecture.md)
-- [04 Agent 接入](docs/04-agent-integration.md)
-- [05 路线图](docs/05-roadmap.md)
-- [06 待确认问题](docs/06-open-questions.md)
-- [09 Agent 协议](docs/09-agent-protocol.md)
-- [10 开发环境与复现](docs/10-dev-setup.md)
-- [11 本地部署与无公网 IP 组网](docs/11-local-networking.md)
-- [本地协议 spike](spike/) — 调度器/floor/静默收敛/共识 + Claude adapter + 测试
-- [2026-11-15 会话笔记（过程记录）](docs/records/2026-11-15-01-session-notes.md)
-- [2026-11-15 需求澄清（过程记录，含批注）](docs/records/2026-11-15-02-clarifications.md)
-- [2026-11-15 第二轮答复（过程记录）](docs/records/2026-11-15-03-answers-round2.md)
-- [2026-11-15 第三轮答复（过程记录）](docs/records/2026-11-15-04-answers-round3.md)
-- [2026-11-16 Milestone A 记录](docs/records/2026-11-16-01-milestone-a.md)
-- [2026-11-16 暂停点（明天继续）](docs/records/2026-11-16-02-pause.md)
-- [NEXT-SESSION 新会话入口](NEXT-SESSION.md)
-- [Sources](research/sources.md)
+`app/` 和 `web/` 用 ESLint + Prettier（不碰 `spike/` 的既有风格）：
 
-## 下一步
+```bash
+cd agent-im
+npm install          # 首次
+npm run check        # eslint + prettier --check
+npm run format       # 自动格式化
+```
 
-先读 [00 需求合同](docs/00-requirements-contract.md)、[09 Agent 协议](docs/09-agent-protocol.md)、[10 开发环境](docs/10-dev-setup.md)、[11 组网](docs/11-local-networking.md)。Milestone A 已跑通：`agent-im/spike` 14 个测试 + 真实 Claude adapter 三阶段 demo（总成本约 $0.043918，resume 保持 session）。下一步是 Matrix transport / 跨机组网 / 工具审批。新会话直接读 [NEXT-SESSION](NEXT-SESSION.md)。
+提交前跑 `npm run check` 和 `spike/node --test`。
+
+协议行为的改动先写测试；产品 UI 改完跑 `web` 的 `npm run build`。
+
+## 状态与限制
+
+- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、设置页、头像资料、`human_all` 自行判断、链上限。
+- 同一个 agent 跨房间共享记忆（一个 Claude session），但私聊内容不主动带到群聊，靠系统提示约束。
+- 限制：全局串行、无流式/审批、无删除/暂停 agent、未读按最近 50 条、单人类、无 E2E 加密。
+- 成本：`human_all` 下每个 Claude agent 都会跑 turn；实测 4 turn 约 $0.146。下一步先做 triage/冷却/预算。

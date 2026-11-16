@@ -4,6 +4,7 @@ import Icon from "./Icon";
 const STATUS = {
   idle: "空闲",
   working: "思考中",
+  paused: "已暂停",
   offline: "离线",
 };
 

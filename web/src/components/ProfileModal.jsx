@@ -2,7 +2,7 @@ import Avatar from "./Avatar";
 import Icon from "./Icon";
 import { useDialogFocus } from "../useDialogFocus";
 
-const STATUS = { idle: "空闲", working: "思考中", offline: "离线" };
+const STATUS = { idle: "空闲", working: "思考中", paused: "已暂停", offline: "离线" };
 const WAKE = {
   human_all: "每条人类消息都会判断",
   mention_only: "只被 @ 时回复",

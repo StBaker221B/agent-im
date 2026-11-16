@@ -16,6 +16,7 @@ function engineProfile(agent, humanId) {
     name: agent.name,
     displayName: agent.displayName,
     role: agent.role,
+    paused: agent.status === "paused",
     owner: humanId,
     roles: agent.roles ?? [],
     domains: agent.domains ?? [],
@@ -213,6 +214,7 @@ export async function createHost({ store, dataDir, kinds: sharedKinds = null, lo
     },
 
     agentStatus(agentId) {
+      if (engine.agents.get(agentId)?.paused) return "paused";
       if (!runtimes.has(agentId)) return "offline";
       for (const thread of engine.threads.values()) {
         const state = thread.states.get(agentId);

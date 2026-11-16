@@ -20,6 +20,10 @@ function AgentSettings({ agent, templates, onSave }) {
   const [wakePolicy, setWakePolicy] = useState(agent.wakePolicy ?? "human_all");
   const [toolsMode, setToolsMode] = useState(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
   const [dailyBudgetUsd, setDailyBudgetUsd] = useState(Number(agent.dailyBudgetUsd ?? 0));
+  const [status, setStatus] = useState(agent.status ?? "active");
+  const [cooldownSec, setCooldownSec] = useState(Math.round((agent.triage?.cooldownMs ?? 15000) / 1000));
+  const [maxTurns, setMaxTurns] = useState(agent.triage?.maxTurnsPerHour ?? 30);
+  const [skipAcks, setSkipAcks] = useState(agent.triage?.skipAcks ?? true);
   const [systemPrompt, setSystemPrompt] = useState(agent.systemPrompt ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -32,6 +36,10 @@ function AgentSettings({ agent, templates, onSave }) {
     setWakePolicy(agent.wakePolicy ?? "human_all");
     setToolsMode(agent.toolsMode ?? (agent.toolsEnabled ? "template" : "off"));
     setDailyBudgetUsd(Number(agent.dailyBudgetUsd ?? 0));
+    setStatus(agent.status ?? "active");
+    setCooldownSec(Math.round((agent.triage?.cooldownMs ?? 15000) / 1000));
+    setMaxTurns(agent.triage?.maxTurnsPerHour ?? 30);
+    setSkipAcks(agent.triage?.skipAcks ?? true);
     setSystemPrompt(agent.systemPrompt ?? "");
   }, [agent]);
 
@@ -47,6 +55,12 @@ function AgentSettings({ agent, templates, onSave }) {
         wakePolicy,
         toolsMode,
         dailyBudgetUsd,
+        status,
+        triage: {
+          cooldownMs: Math.max(0, Number(cooldownSec) || 0) * 1000,
+          maxTurnsPerHour: Math.max(0, Number(maxTurns) || 0),
+          skipAcks,
+        },
         systemPrompt,
       });
       if (ok) {
@@ -125,6 +139,45 @@ function AgentSettings({ agent, templates, onSave }) {
           </p>
         </div>
       )}
+
+      <div className="field-row">
+        <label className="field">
+          <span>状态</span>
+          <select name="status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="active">启用</option>
+            <option value="paused">暂停（收到消息也不跑）</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>triage 冷却（秒）</span>
+          <input
+            type="number"
+            name="cooldownSec"
+            min="0"
+            step="1"
+            value={cooldownSec}
+            onChange={(e) => setCooldownSec(e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="field-row">
+        <label className="field">
+          <span>每小时上限（0 = 不限）</span>
+          <input
+            type="number"
+            name="maxTurns"
+            min="0"
+            step="1"
+            value={maxTurns}
+            onChange={(e) => setMaxTurns(e.target.value)}
+          />
+        </label>
+        <label className="check-inline">
+          <input type="checkbox" checked={skipAcks} onChange={(e) => setSkipAcks(e.target.checked)} />
+          <span>跳过纯 ack / emoji</span>
+        </label>
+      </div>
 
       <div className="field-row">
         <label className="field">

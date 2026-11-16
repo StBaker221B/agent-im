@@ -277,6 +277,24 @@ function toolArgsFor(template, mode, runtime) {
   return ["--permission-mode", "dontAsk", "--allowedTools", allow.join(",")];
 }
 
+function normalizeTriage(input = {}) {
+  const out = {};
+  if (input.cooldownMs !== undefined) {
+    const value = Number(input.cooldownMs);
+    if (!Number.isFinite(value) || value < 0 || value > 600_000)
+      throw Object.assign(new Error("bad triage.cooldownMs"), { status: 400 });
+    out.cooldownMs = value;
+  }
+  if (input.maxTurnsPerHour !== undefined) {
+    const value = Number(input.maxTurnsPerHour);
+    if (!Number.isInteger(value) || value < 0 || value > 1000)
+      throw Object.assign(new Error("bad triage.maxTurnsPerHour"), { status: 400 });
+    out.maxTurnsPerHour = value;
+  }
+  if (input.skipAcks !== undefined) out.skipAcks = Boolean(input.skipAcks);
+  return out;
+}
+
 function toolsModeOf(body, fallback = "template") {
   if (TOOL_MODES.has(body.toolsMode)) return body.toolsMode;
   if (body.toolsEnabled === false) return "off";
@@ -333,6 +351,7 @@ async function createAgent(body) {
     toolsMode,
     toolsEnabled,
     dailyBudgetUsd: Math.max(0, Number(body.dailyBudgetUsd) || 0),
+    triage: normalizeTriage(body.triage),
     extraArgs: toolArgsFor(template, toolsMode, runtime),
     status: "active",
     agentHome: join(dataDir, "agents", username),
@@ -354,6 +373,7 @@ async function createAgent(body) {
     toolsMode: agent.toolsMode,
     toolsEnabled: agent.toolsEnabled,
     dailyBudgetUsd: Number(agent.dailyBudgetUsd ?? 0),
+    triage: agent.triage ?? {},
     status: "idle",
   };
 }
@@ -417,6 +437,14 @@ async function updateAgent(agentId, body) {
       throw Object.assign(new Error("bad dailyBudgetUsd"), { status: 400 });
     patch.dailyBudgetUsd = value;
   }
+  if (body.status !== undefined) {
+    if (!["active", "paused"].includes(body.status))
+      throw Object.assign(new Error("bad status"), { status: 400 });
+    patch.status = body.status;
+  }
+  if (body.triage !== undefined) {
+    patch.triage = { ...(agent.triage ?? {}), ...normalizeTriage(body.triage) };
+  }
   Object.assign(agent, patch);
   if (patch.displayName) {
     for (const room of store.rooms) {
@@ -430,6 +458,7 @@ async function updateAgent(agentId, body) {
     if (patch.displayName) engineAgent.displayName = patch.displayName;
     if (patch.roles) engineAgent.roles = patch.roles;
     if (patch.wakePolicy) engineAgent.wakePolicy = patch.wakePolicy;
+    if (patch.status) engineAgent.paused = patch.status === "paused";
     if (templateChanged) engineAgent.role = template.role;
   }
   if (promptChanged || templateChanged || toolsChanged) await host.updateAgent(agent);
@@ -447,6 +476,7 @@ async function updateAgent(agentId, body) {
     toolsMode: agent.toolsMode,
     toolsEnabled: Boolean(agent.toolsEnabled),
     dailyBudgetUsd: Number(agent.dailyBudgetUsd ?? 0),
+    triage: agent.triage ?? {},
     wakePolicy: agent.wakePolicy,
     status: host.agentStatus(agent.id),
   };

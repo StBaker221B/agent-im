@@ -463,6 +463,15 @@ export class Gateway {
 
   async #runTurn(agentId, runtime, envelope) {
     const { roomId, threadId = envelope.message.threadId ?? "main", id: triggerId } = envelope.message;
+    const profile = this.engine.agents.get(agentId);
+    if (profile?.paused) {
+      this.audit.write({ kind: "paused_skip", agentId, roomId, threadId });
+      const res = this.engine.agentAct(roomId, threadId, agentId, {
+        id: `paused-${fnv1a(agentId + ":" + triggerId)}`,
+        type: "pass",
+      });
+      return res.granted ?? null;
+    }
     const budget = this.budgetCheck?.(agentId);
     if (budget?.exceeded) {
       this.audit.write({
@@ -620,15 +629,16 @@ export class Gateway {
   /** Return a skip reason, or null when the agent may take a turn. */
   #triageSkip(agent, message, attention) {
     if (["direct_mention", "reply", "task_owner"].includes(attention)) return null;
-    if (this.triage.skipAcks && message.senderKind === "human" && this.#isAck(message.text)) {
+    const cfg = { ...this.triage, ...(agent.triage ?? {}) };
+    if (cfg.skipAcks && message.senderKind === "human" && this.#isAck(message.text)) {
       return "ack";
     }
     const now = this.now();
     const last = this.lastTurnAt.get(agent.id);
-    if (last !== undefined && now - last < this.triage.cooldownMs) return "cooldown";
+    if (last !== undefined && now - last < cfg.cooldownMs) return "cooldown";
     const times = (this.turnTimes.get(agent.id) ?? []).filter((t) => t > now - 3_600_000);
     this.turnTimes.set(agent.id, times);
-    if (times.length >= this.triage.maxTurnsPerHour) return "hourly_cap";
+    if (cfg.maxTurnsPerHour > 0 && times.length >= cfg.maxTurnsPerHour) return "hourly_cap";
     return null;
   }
 

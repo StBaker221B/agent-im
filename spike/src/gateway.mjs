@@ -53,6 +53,8 @@ export class Gateway {
     budgetCheck = null,
     onUsage = null,
     onEvent = null,
+    onTaskCreate = null,
+    onTaskDone = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -75,6 +77,8 @@ export class Gateway {
     this.budgetCheck = budgetCheck;
     this.onUsage = onUsage;
     this.onEvent = onEvent;
+    this.onTaskCreate = onTaskCreate;
+    this.onTaskDone = onTaskDone;
     this.lastTurnAt = new Map();
     this.turnTimes = new Map();
 
@@ -487,7 +491,12 @@ export class Gateway {
   }
 
   async #runTurn(agentId, runtime, envelope) {
-    const { roomId, threadId = envelope.message.threadId ?? "main", id: triggerId } = envelope.message;
+    const {
+      roomId,
+      threadId = envelope.message.threadId ?? "main",
+      id: triggerId,
+      taskId,
+    } = envelope.message;
     const profile = this.engine.agents.get(agentId);
     if (profile?.paused) {
       this.audit.write({ kind: "paused_skip", agentId, roomId, threadId });
@@ -569,8 +578,39 @@ export class Gateway {
         intent: "tool_request",
         tool: action.tool,
       };
+    } else if (action.type === "task") {
+      let created = null;
+      try {
+        created = await this.onTaskCreate?.({
+          agentId,
+          roomId,
+          threadId,
+          title: action.title,
+        });
+      } catch (err) {
+        this.audit.write({ kind: "task_create_error", agentId, error: String(err) });
+      }
+      outbound = {
+        type: "task",
+        text: `已记录任务：${action.title}${created?.id ? `（${created.id}）` : ""}`,
+        intent: "task",
+      };
+      if (created?.id) this.audit.write({ kind: "task_create", agentId, taskId: created.id });
     } else if (action.type === "done") {
       outbound = { type: "done", reason: action.reason, text: action.reason, intent: "done" };
+      if (taskId) {
+        try {
+          const done = await this.onTaskDone?.({
+            taskId,
+            agentId,
+            roomId,
+            summary: action.reason,
+          });
+          if (done) this.audit.write({ kind: "task_done", agentId, taskId });
+        } catch (err) {
+          this.audit.write({ kind: "task_done_error", agentId, taskId, error: String(err) });
+        }
+      }
     } else {
       outbound = { type: "message", text: action.text, intent: "chat" };
     }

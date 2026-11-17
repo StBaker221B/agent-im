@@ -100,7 +100,15 @@ function broadcastLive(event) {
   }
 }
 
-const host = await createHost({ store, dataDir, kinds, onEvent: broadcastLive, log });
+const host = await createHost({
+  store,
+  dataDir,
+  kinds,
+  onEvent: broadcastLive,
+  onTaskCreate: taskCreatedByAgent,
+  onTaskDone: taskDoneByAgent,
+  log,
+});
 await host.start();
 
 // Dispatch due tasks once shortly after startup, then every 30s. Tasks are
@@ -667,6 +675,41 @@ function taskRoom(roomId) {
   return room;
 }
 
+async function taskCreatedByAgent({ agentId, roomId, title }) {
+  taskAgent(agentId);
+  taskRoom(roomId);
+  const clean = String(title ?? "").trim();
+  if (!clean) throw new Error("empty task title");
+  const task = tasks.create({
+    title: clean,
+    description: `由 ${agentId} 通过 TASK: 标记创建`,
+    owner: agentId,
+    roomId,
+    dueAt: null,
+    createdBy: agentId,
+  });
+  tasks.addCheckpoint(task.id, `created via TASK by ${agentId}`, agentId);
+  log(`[app] task created by agent ${agentId}: ${task.id} ${clean}`);
+  return taskView(task);
+}
+
+async function taskDoneByAgent({ taskId, agentId, summary }) {
+  const task = tasks.get(taskId);
+  if (!task) return null;
+  if (task.owner && task.owner !== agentId) {
+    tasks.addCheckpoint(task.id, `DONE ignored: ${agentId} is not owner`, agentId);
+    return null;
+  }
+  if (task.intervalMinutes > 0) {
+    tasks.addCheckpoint(task.id, `agent DONE: ${summary}`, agentId);
+    return null;
+  }
+  if (task.status === "done" || task.status === "cancelled") return null;
+  tasks.addCheckpoint(task.id, `agent DONE: ${summary}`, agentId);
+  const updated = tasks.update(task.id, { status: "done" });
+  return updated ? taskView(updated) : null;
+}
+
 async function createTask(body) {
   try {
     taskAgent(body.owner);
@@ -727,6 +770,8 @@ async function dispatchTask(task, by = "human") {
       threadId: "main",
       text,
       mentions: owner ? [owner.id] : [],
+      taskId: task.id,
+      taskOwner: task.owner,
     });
     log(`[app] task dispatched ${task.id} room=${room.id}`);
     return { task: taskView(tasks.get(task.id)), eventId: sent.eventId };

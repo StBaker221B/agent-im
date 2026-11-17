@@ -67,6 +67,8 @@ export async function createHost({
   dataDir,
   kinds: sharedKinds = null,
   onEvent = null,
+  onTaskCreate = null,
+  onTaskDone = null,
   log = console.log,
 }) {
   const humanId = store.human.id;
@@ -156,6 +158,8 @@ export async function createHost({
     budgetCheck,
     onUsage,
     onEvent,
+    onTaskCreate,
+    onTaskDone,
     log,
   });
 

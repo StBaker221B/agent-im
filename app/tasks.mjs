@@ -21,6 +21,13 @@ function normalizeDueAt(value) {
   return new Date(time).toISOString();
 }
 
+function normalizeInterval(value) {
+  if (value === null || value === undefined || value === "") return 0;
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes < 0 || minutes > 10_080) throw new Error("bad intervalMinutes");
+  return minutes;
+}
+
 export class TaskStore {
   constructor(path) {
     this.path = path;
@@ -56,6 +63,7 @@ export class TaskStore {
     owner = null,
     roomId = null,
     dueAt = null,
+    intervalMinutes = 0,
     priority = 0,
     createdBy = null,
   }) {
@@ -68,6 +76,7 @@ export class TaskStore {
       owner: owner || null,
       roomId: roomId || null,
       dueAt: normalizeDueAt(dueAt),
+      intervalMinutes: normalizeInterval(intervalMinutes),
       priority: Number(priority) || 0,
       status: "pending",
       createdAt: nowIso(),
@@ -94,6 +103,7 @@ export class TaskStore {
     if (patch.owner !== undefined) task.owner = patch.owner || null;
     if (patch.roomId !== undefined) task.roomId = patch.roomId || null;
     if (patch.dueAt !== undefined) task.dueAt = normalizeDueAt(patch.dueAt);
+    if (patch.intervalMinutes !== undefined) task.intervalMinutes = normalizeInterval(patch.intervalMinutes);
     if (patch.priority !== undefined) task.priority = Number(patch.priority) || 0;
     if (patch.status !== undefined) {
       if (!STATUS_SET.has(patch.status)) throw new Error("bad status");
@@ -119,11 +129,22 @@ export class TaskStore {
   dispatch(id, by = "scheduler") {
     const task = this.get(id);
     if (!task) return null;
-    task.status = "active";
-    task.lastDispatchedAt = nowIso();
+    const now = nowIso();
+    task.lastDispatchedAt = now;
     task.lastError = null;
-    task.checkpoints.push({ ts: nowIso(), by, text: `dispatched at ${nowIso()}` });
-    task.updatedAt = nowIso();
+    if (task.intervalMinutes > 0) {
+      task.dueAt = new Date(Date.now() + task.intervalMinutes * 60_000).toISOString();
+      task.status = "pending";
+      task.checkpoints.push({
+        ts: now,
+        by,
+        text: `recurring dispatch; next ${task.dueAt}`,
+      });
+    } else {
+      task.status = "active";
+      task.checkpoints.push({ ts: now, by, text: `dispatched at ${now}` });
+    }
+    task.updatedAt = now;
     this.save();
     return task;
   }

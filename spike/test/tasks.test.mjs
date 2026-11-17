@@ -41,6 +41,26 @@ test("due tasks dispatch once and become active", () => {
   }
 });
 
+test("recurring tasks schedule the next run after dispatch", () => {
+  const { dir, store } = tempStore();
+  try {
+    const task = store.create({
+      title: "巡检",
+      dueAt: new Date(Date.now() - 1000).toISOString(),
+      intervalMinutes: 30,
+    });
+    store.dispatch(task.id);
+    const next = store.get(task.id);
+    assert.equal(next.status, "pending");
+    assert.ok(Date.parse(next.dueAt) > Date.now());
+    assert.equal(store.due().length, 0);
+    assert.match(next.checkpoints.at(-1).text, /next/);
+    assert.throws(() => store.update(task.id, { intervalMinutes: -1 }), /bad intervalMinutes/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("checkpoints append and invalid updates are rejected", () => {
   const { dir, store } = tempStore();
   try {

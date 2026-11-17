@@ -677,6 +677,7 @@ async function createTask(body) {
       owner: body.owner,
       roomId: body.roomId,
       dueAt: body.dueAt,
+      intervalMinutes: body.intervalMinutes,
       priority: body.priority,
       createdBy: store.human.id,
     });

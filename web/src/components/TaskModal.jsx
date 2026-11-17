@@ -13,6 +13,7 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
   const [owner, setOwner] = useState("");
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
   const [dueAt, setDueAt] = useState(defaultDueInput());
+  const [intervalMinutes, setIntervalMinutes] = useState(0);
   const dialogRef = useDialogFocus(onClose);
   const canSubmit = title.trim() && roomId && !busy;
 
@@ -45,6 +46,7 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 owner: owner || null,
                 roomId,
                 dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+                intervalMinutes: Math.max(0, Number(intervalMinutes) || 0),
               });
             }}
           >
@@ -93,18 +95,31 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 </select>
               </label>
             </div>
-            <label className="field">
-              <span>到期时间（到期后自动派发）</span>
-              <input
-                type="datetime-local"
-                name="dueAt"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-              />
-            </label>
+            <div className="field-row">
+              <label className="field">
+                <span>首次到期（到期后自动派发）</span>
+                <input
+                  type="datetime-local"
+                  name="dueAt"
+                  value={dueAt}
+                  onChange={(e) => setDueAt(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>重复间隔（分钟，0 = 一次性）</span>
+                <input
+                  type="number"
+                  name="intervalMinutes"
+                  min="0"
+                  step="1"
+                  value={intervalMinutes}
+                  onChange={(e) => setIntervalMinutes(e.target.value)}
+                />
+              </label>
+            </div>
             <p className="form-note">
-              任务会持久化到 app/data/tasks.json；到期派发一次后变“进行中”，重启不会重复派发。当前不做 turn
-              级恢复。
+              任务会持久化到 app/data/tasks.json。一次性任务派发后变“进行中”；重复任务派发后按间隔排下一次，
+              重启不会重复派发。当前不做 turn 级恢复。
             </p>
             <button type="submit" className="primary wide" disabled={!canSubmit}>
               {busy ? "创建中…" : "创建任务"}

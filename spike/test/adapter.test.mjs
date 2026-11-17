@@ -19,7 +19,7 @@ test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
   assert.deepEqual(parseReply("普通回复"), { type: "message", text: "普通回复" });
 });
 
-test("buildAgentPrompt includes room, sender, attention, and markers", () => {
+test("buildAgentPrompt includes timestamps, room, sender, attention, and markers", () => {
   const prompt = buildAgentPrompt({
     message: {
       roomId: "r1",
@@ -28,12 +28,17 @@ test("buildAgentPrompt includes room, sender, attention, and markers", () => {
       senderKind: "human",
       mentions: ["claude-dev"],
       text: "hello",
+      createdAt: Date.parse("2026-11-17T08:11:00+08:00"),
     },
-    recentMessages: [{ sender: "human", text: "hello" }],
+    recentMessages: [
+      { sender: "human", text: "hello", createdAt: Date.parse("2026-11-17T08:11:00+08:00") },
+    ],
     attention: "direct_mention",
   });
+  assert.match(prompt, /Current time:/);
   assert.match(prompt, /Room r1, thread t1/);
-  assert.match(prompt, /from human \(human\)/);
+  assert.match(prompt, /2026[/-]11[/-]17/);
+  assert.match(prompt, /from human \(human\) at /);
   assert.match(prompt, /direct_mention/);
   assert.match(prompt, /PASS/);
   assert.match(prompt, /ASK_HUMAN/);

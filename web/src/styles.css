@@ -1133,6 +1133,12 @@ button {
   color: var(--muted);
 }
 
+.agent-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .agent-status.working {
   color: var(--warn);
 }
@@ -1500,6 +1506,16 @@ button {
   margin: 2px 0 14px;
   color: var(--faint);
   font-size: 12px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.profile-actions .primary {
+  flex: 1;
 }
 
 .profile-facts {

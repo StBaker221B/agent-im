@@ -3,6 +3,7 @@ import { api } from "./api";
 import Sidebar from "./components/Sidebar";
 import ChatView from "./components/ChatView";
 import AgentsView from "./components/AgentsView";
+import AgentSettingsView from "./components/AgentSettingsView";
 import NewChatModal from "./components/NewChatModal";
 import NewAgentModal from "./components/NewAgentModal";
 import TeamModal from "./components/TeamModal";
@@ -41,6 +42,7 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [view, setView] = useState("chat");
+  const [settingsAgentId, setSettingsAgentId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [modal, setModal] = useState(null); // chat | agent | invite
   const [profile, setProfile] = useState(null);
@@ -116,13 +118,18 @@ export default function App() {
           next.text = "";
           next.tools = [];
           next.active = true;
+          next.doneAt = null;
         } else if (event.type === "text_delta") {
           next.text = (next.text ?? "") + event.text;
           next.active = true;
         } else if (event.type === "tool_use") {
           next.tools = [...(next.tools ?? []), { name: event.name, input: event.input }];
           next.active = true;
-        } else if (event.type === "turn_end" || event.type === "skip") {
+        } else if (event.type === "turn_end") {
+          next.text = event.text || next.text;
+          next.active = false;
+          next.doneAt = Date.now();
+        } else if (event.type === "skip") {
           const copy = { ...prev };
           delete copy[key];
           return copy;
@@ -131,6 +138,24 @@ export default function App() {
       });
     };
     return () => source.close();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLive((prev) => {
+        const now = Date.now();
+        let changed = false;
+        const next = { ...prev };
+        for (const [key, item] of Object.entries(prev)) {
+          if (item.doneAt && now - item.doneAt > 2200) {
+            delete next[key];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 700);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -181,6 +206,10 @@ export default function App() {
       if (match) {
         setActiveRoomId(match[1]);
         setView("chat");
+        setMobilePane("chat");
+      } else if (/^\/agents\/.+\/settings$/.test(path)) {
+        setSettingsAgentId(decodeURIComponent(path.split("/")[2] ?? ""));
+        setView("agent-settings");
         setMobilePane("chat");
       } else if (path === "/agents") {
         setView("agents");
@@ -243,6 +272,19 @@ export default function App() {
     setView("settings");
     setMobilePane("chat");
     setHash("#/settings");
+  }
+
+  function openAgentSettings(agentId) {
+    setSettingsAgentId(agentId);
+    setView("agent-settings");
+    setMobilePane("chat");
+    setHash(`#/agents/${encodeURIComponent(agentId)}/settings`);
+  }
+
+  function backToAgents() {
+    setView("agents");
+    setMobilePane("chat");
+    setHash("#/agents");
   }
 
   async function deleteRoomById(roomId) {
@@ -425,12 +467,20 @@ export default function App() {
       />
 
       <main className="main" id="main" tabIndex={-1}>
-        {view === "agents" ? (
+        {view === "agent-settings" ? (
+          <AgentSettingsView
+            agent={settingsAgentId ? agentsById.get(settingsAgentId) : null}
+            templates={templates}
+            onSave={saveAgent}
+            onBack={backToAgents}
+          />
+        ) : view === "agents" ? (
           <AgentsView
             agents={data?.agents ?? []}
             onNew={() => openModal("agent")}
             onNewTeam={() => openModal("team")}
             onDm={handleCreateDm}
+            onConfigure={openAgentSettings}
             onProfile={openProfile}
             onBack={() => setMobilePane("list")}
           />
@@ -442,12 +492,7 @@ export default function App() {
             onBack={() => setMobilePane("list")}
           />
         ) : view === "settings" ? (
-          <SettingsView
-            data={data}
-            templates={templates}
-            onSave={saveAgent}
-            onBack={() => setMobilePane("list")}
-          />
+          <SettingsView data={data} onBack={() => setMobilePane("list")} />
         ) : activeRoom ? (
           <ChatView
             key={activeRoom.id}
@@ -534,6 +579,14 @@ export default function App() {
               ? (agentId) => {
                   setProfile(null);
                   handleCreateDm(agentId);
+                }
+              : null
+          }
+          onConfigure={
+            profile.kind === "agent"
+              ? (agentId) => {
+                  setProfile(null);
+                  openAgentSettings(agentId);
                 }
               : null
           }

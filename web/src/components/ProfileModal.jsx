@@ -11,7 +11,7 @@ const WAKE = {
   digest: "只收摘要",
 };
 
-export default function ProfileModal({ profile, onClose, onDm }) {
+export default function ProfileModal({ profile, onClose, onDm, onConfigure }) {
   const dialogRef = useDialogFocus(onClose);
 
   if (!profile) return null;
@@ -87,10 +87,19 @@ export default function ProfileModal({ profile, onClose, onDm }) {
             <p className="profile-note">这个 agent 在群聊和私聊共享同一份记忆，但会把私聊内容留在私聊。</p>
           )}
 
-          {isAgent && onDm && (
-            <button type="button" className="primary wide" onClick={() => onDm(profile.id)}>
-              私聊
-            </button>
+          {isAgent && (onDm || onConfigure) && (
+            <div className="profile-actions">
+              {onConfigure && (
+                <button type="button" className="ghost" onClick={() => onConfigure(profile.id)}>
+                  设置
+                </button>
+              )}
+              {onDm && (
+                <button type="button" className="primary" onClick={() => onDm(profile.id)}>
+                  私聊
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

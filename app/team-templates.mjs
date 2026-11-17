@@ -4,16 +4,23 @@ export const TEAM_TEMPLATES = {
   "software-squad": {
     id: "software-squad",
     name: "软件小队",
-    description: "产品经理 + 架构师 + 工程师 + 评审 + 测试；从需求到验证的最小梯队。",
+    description: "产品经理 + 业务分析师 + 架构师 + 工程师 + 评审 + 测试；从需求到验证的梯队。",
     groupName: "软件小队",
-    roles: ["product-manager", "architect", "coder", "reviewer", "qa"],
+    roles: ["product-manager", "business-analyst", "architect", "coder", "reviewer", "qa"],
   },
   "review-squad": {
     id: "review-squad",
-    name: "评审小队",
-    description: "研究员 + 评审 + 安全；适合方案/风险评审。",
-    groupName: "评审小队",
-    roles: ["researcher", "reviewer", "security"],
+    name: "方案评审小队",
+    description: "架构师 + 评审 + 安全；评审方案可行性、风险和安全隐患。",
+    groupName: "方案评审小队",
+    roles: ["architect", "reviewer", "security"],
+  },
+  "research-squad": {
+    id: "research-squad",
+    name: "调研小队",
+    description: "研究员 + 技术写作者；一个查证，一个把结论写成可读材料。",
+    groupName: "调研小队",
+    roles: ["researcher", "tech-writer"],
   },
 };
 

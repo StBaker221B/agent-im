@@ -2,17 +2,26 @@
 // Kept separate from the Claude adapter so the gateway and script peers use
 // exactly the same marker grammar as a real runtime.
 
+function formatTime(ts) {
+  if (!ts) return "unknown";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "unknown";
+  return date.toLocaleString("zh-CN", { hour12: false });
+}
+
 export function buildAgentPrompt(envelope) {
   const m = envelope.message;
   const recent = (envelope.recentMessages ?? [])
     .slice(-8)
-    .map((x) => `[${x.sender}] ${x.text}`)
+    .map((x) => `[${formatTime(x.createdAt)}] [${x.sender}] ${x.text}`)
     .join("\n");
-  return `Room ${m.roomId}, thread ${m.threadId}.
-Recent messages:
+  return `Current time: ${formatTime(Date.now())} (local server time).
+Room ${m.roomId}, thread ${m.threadId}.
+Recent messages (timestamped):
 ${recent || "(none)"}
 
-Newest message from ${m.sender} (${m.senderKind}); mentions=${JSON.stringify(m.mentions ?? [])}; your attention=${envelope.attention}.
+Newest message from ${m.sender} (${m.senderKind}) at ${formatTime(m.createdAt)}; mentions=${JSON.stringify(m.mentions ?? [])}; your attention=${envelope.attention}.
+Use the timestamps above for dates. If an older memory has no timestamp, say you are unsure instead of guessing.
 Reply as yourself, in one message max. Do not prefix with your name.
 If you have nothing to add, reply exactly: PASS
 If you need a human decision, reply exactly: ASK_HUMAN: <question>

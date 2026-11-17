@@ -8,7 +8,7 @@ const STATUS = {
   offline: "离线",
 };
 
-export default function AgentsView({ agents, onNew, onNewTeam, onDm, onProfile, onBack }) {
+export default function AgentsView({ agents, onNew, onNewTeam, onDm, onConfigure, onProfile, onBack }) {
   return (
     <section className="agents-view">
       <header className="view-head">
@@ -69,9 +69,14 @@ export default function AgentsView({ agents, onNew, onNewTeam, onDm, onProfile, 
               <span className={`status-dot ${agent.status}`} aria-hidden="true" />
               {STATUS[agent.status] ?? agent.status}
             </div>
-            <button type="button" className="ghost" onClick={() => onDm(agent.id)}>
-              私聊
-            </button>
+            <div className="agent-actions">
+              <button type="button" className="ghost" onClick={() => onConfigure(agent.id)}>
+                设置
+              </button>
+              <button type="button" className="ghost" onClick={() => onDm(agent.id)}>
+                私聊
+              </button>
+            </div>
           </article>
         ))}
 

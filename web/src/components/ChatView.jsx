@@ -411,7 +411,7 @@ export default function ChatView({
                     <span className="msg-name" style={{ color: colorFor(member?.name ?? name) }}>
                       {name}
                     </span>
-                    <span className="msg-time">实时</span>
+                    <span className="msg-time">{item.doneAt ? "刚输出" : "实时"}</span>
                   </div>
                   {item.text ? (
                     <div className="bubble live-bubble">

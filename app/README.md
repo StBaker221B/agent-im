@@ -83,6 +83,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`
 - `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`
+- `DELETE /api/agents/:id` — 软删除 agent：离开群、删 DM、隐藏、停 sync；账号/历史保留
 - `POST /api/agents/:id/approve-tool` `{tool,roomId}` — 加单工具到 `approvedTools`、重建 runtime、人类消息 @ agent 继续
 - `GET /api/events` — SSE：turn/text_delta/tool_use/tool_result/turn_end/skip
 - `GET /api/search?q=` — 每个房间最近 100 条

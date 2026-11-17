@@ -3,7 +3,7 @@
 - 状态：2026-11-16 首个可运行 MVP（真实 Matrix + 真实 Claude + 自建网页）。
 - 关联：[00 需求合同](00-requirements-contract.md) · [09 Agent 协议](09-agent-protocol.md) · [12 Matrix 宿主](12-matrix-host-wsl.md) · [过程记录 05](records/2026-11-16-05-mvp.md)
 - 目标：把协议 spike 变成可日常使用的产品骨架——会话列表、私聊/群聊、创建 agent、消息由 agent 自行判断是否回复。
-- 非目标（v0 不做）：多人类用户、权限后台、删除/归档、E2E 加密、公网访问、真正的执行前审批/强沙箱。
+- 非目标（v0 不做）：多人类用户、权限后台、硬删除/归档恢复、E2E 加密、公网访问、真正的执行前审批/强沙箱。
 
 ## 1. 产品形态
 
@@ -137,6 +137,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
+| `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
 | `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
@@ -252,7 +253,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - turn 中间崩溃会丢该轮回复（入站先标记已消费），不重复。
 - 未读只按最近 100 条算；消息更多时可能低估。
 - 消息仍是 1.5s 轮询；SSE 只推实时活动，不替代消息落库。
-- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，但不能删除 agent、不能改 runtime、不能移除成员。
+- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，也能软删除 agent（离开房间、删 DM、隐藏、停 sync；账号不回收、不能 undelete）。
+- 删除运行中的 agent 会 409；需要等空闲或先暂停。
 - agent 不能自己建群或找 agent 私聊；房间创建目前只由人类发起，agent 只能在已有房间内 @ 其他成员。
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
@@ -269,7 +271,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
-3. 房间/agent 管理：暂停已完成；待做删除/改名 agent、移除成员、邀请人类。
+3. 房间/agent 管理：暂停、软删除已完成；待做硬删除/undelete、移除成员、邀请人类、批量操作。
 4. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 5. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
 6. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 34 个测试。
@@ -323,3 +325,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **时间戳 PASS（2026-11-17）**：prompt 带 Current time；pm 回答“2026 年 11 月 17 日 08:15（本地服务器时间），星期一”。
 - **设置拆分（2026-11-17）**：全局设置只剩系统/用量；每个 agent 在 Agents 页有独立「设置」，深链 `#/agents/<id>/settings`。
 - **团队模板（2026-11-17）**：software-squad 6 角色（含 BA）、review-squad 改为架构/评审/安全、research-squad 研究/写作；只验证了创建，未做完整团队效果对照。
+- **agent 软删除 PASS（2026-11-17）**：临时 `@tmpdel072896` + DM，DELETE 200；bootstrap 不再有 agent/DM；再次 DELETE 404；无模型调用/成本。

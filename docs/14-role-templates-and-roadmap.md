@@ -137,7 +137,7 @@
 | 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
 | 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、worktree/容器沙箱待做 | 2–4d |
-| Agent/房间生命周期 | ⚠️ 部分 | 暂停已完成；删除/改名 agent、移除成员、邀请第二个人类待做 | 2–3d |
+| Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名已完成；硬删除/undelete、移除成员、邀请第二个人类、批量操作待做 | 1–2d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台最小版 | ⏳ 未做 | 审计/用量/会话检索/治理视图 | 2–4d |
 | 第二 runtime / worktree | ⏳ 未做 | OpenClaw/Codex adapter、worktree 隔离 | 3–5d |
@@ -160,7 +160,7 @@
 
 4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准已做；执行前审批、按 thread/过期授权、coder worktree/reviewer 只读沙箱待做。
 5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
-6. Agent/房间生命周期：暂停已完成（`paused_skip`）；删除/改名 agent、移除成员待做。
+6. Agent/房间生命周期：暂停（`paused_skip`）和软删除已完成；硬删除/undelete、移除成员、邀请人类、批量操作待做。
 7. 数据平台最小版：审计/用量/会话检索。
 
 **第 3 周：异构与多用户**

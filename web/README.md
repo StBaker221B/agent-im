@@ -45,7 +45,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
 - 新建 agent / 该 agent 设置页的工具权限选择 `template/full/off`；全局设置页用量表来自 `/api/usage`（今天/累计 turns + USD），agent 设置页可设每日 USD 预算、triage 冷却/每小时上限/skipAcks、暂停/启用、撤销已批准工具。
 - 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具，`turn_end` 后保留 2.2s；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮。
-- 每个 agent 设置页深链：`#/agents/<agentId>/settings`。
+- 每个 agent 设置页深链：`#/agents/<agentId>/settings`；页面底部可软删除 agent。
 
 ## 设计
 

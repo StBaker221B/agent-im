@@ -44,3 +44,4 @@
 | 18 | [2026-11-17 流式与工具审批](2026-11-17-14-streaming-and-tool-approval.md) | text_delta/SSE、REQUEST_TOOL、单工具 grant、off `--tools ""` 硬拒绝 |
 | 19 | [2026-11-17 设置/团队/时间](2026-11-17-15-settings-teams-time.md) | 全局/agent 设置拆分、记忆时间戳、团队模板调整、流式保留 |
 | 20 | [2026-11-17 团队 pilot](2026-11-17-16-team-pilot.md) | 单 coder vs coder+reviewer：3× 成本/4.7× 时间，质量相同，评审提供独立证据 |
+| 21 | [2026-11-17 Agent 软删除](2026-11-17-17-agent-delete.md) | 离开房间、删 DM、隐藏 agent、停 sync；账号保留 |

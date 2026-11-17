@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)。
+- 记录：[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)、[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)。
 - 已完成：
   - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -19,7 +19,7 @@
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/agent 设置页可选模板、预览、工具开关。
   - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
   - **团队 pilot**：同一小 bug，单 coder 1 turn/$0.2237/~16s；coder+reviewer 2 turns/$0.6690/~75s；都 5/5。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势；6 人小队未做完整对照。
-  - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）。
+  - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
@@ -139,7 +139,7 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；34 tests。
 2. **成本控制 v2 已做**（规则 triage/用量/每日预算/参数 UI）；待做全局预算、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
 3. **流式 + 工具审批 v1 已做**（单工具 grant、DSML 兜底、off 硬拒绝）；待做执行前工具审批、按 thread/过期授权、worktree/容器沙箱、SSE 断线补发。
-4. 房间/agent 管理：删除/改名 agent、移除成员、邀请第二个人类（会话删除、邀请 agent、改模板/工具/预算、暂停/启用已完成）。
+4. 房间/agent 管理：软删除/改显示名已完成；待做硬删除/undelete、移除成员、邀请第二个人类、批量操作（会话删除、邀请 agent、改模板/工具/预算、暂停/启用已完成）。
 5. 历史搜索：现在每房间最近 100 条子串匹配；做分页/索引（Matrix `/search` 或本地索引）。
 6. 跨房间记忆的隐私硬化：现在是系统提示级；可做 memory 摘要 + 每房间 session，或给 agent 受控 memory 文件。
 7. **角色真正的异构 + 工具沙箱**：现在 cwd/工具白名单只写在本地 state，reviewer 的只读靠 prompt；要给 coder worktree、reviewer 只读权限、researcher 资料/搜索，并做真正的沙箱/审批。

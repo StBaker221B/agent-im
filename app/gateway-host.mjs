@@ -231,6 +231,10 @@ export async function createHost({
       await gateway.syncRoom(roomId);
     },
 
+    async removeRoomMember(roomId, agentId) {
+      gateway.removeRoomMember(roomId, agentId);
+    },
+
     async removeRoom(roomId) {
       roomModes.delete(roomId);
       await gateway.removeRoom(roomId);

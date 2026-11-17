@@ -1790,9 +1790,29 @@ button {
   margin-top: 10px;
 }
 
-.primary.small {
+.primary.small,
+.ghost.small {
   padding: 5px 10px;
   font-size: 12px;
+}
+
+.member-manage {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.member-row .check-name {
+  flex: 1;
 }
 
 .activity-view {

@@ -222,6 +222,14 @@ export class Gateway {
     return Boolean(client);
   }
 
+  /** Drop a member from an engine room after their Matrix leave succeeded. */
+  removeRoomMember(roomId, agentId) {
+    const room = this.engine.rooms.get(roomId);
+    if (room) room.members = room.members.filter((member) => member !== agentId);
+    this.roomClients.delete(roomId);
+    this.log(`[gateway] room member removed ${agentId} from ${roomId}`);
+  }
+
   /** Register a room created after startup and hydrate it into the engine. */
   async addRoom(roomId) {
     if (!this.rooms.includes(roomId)) this.rooms.push(roomId);

@@ -497,6 +497,17 @@ export default function App() {
       setModal(null);
     });
 
+  async function handleRemoveMember(agentId) {
+    if (!activeRoomId) return;
+    try {
+      await api.removeMember(activeRoomId, agentId);
+      await loadBootstrap();
+      notify("成员已移除");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   const handleNewAgent = () => {
     setModalError("");
     setModal("agent");
@@ -670,6 +681,7 @@ export default function App() {
             if (!busy) setModal(null);
           }}
           onInvite={handleInvite}
+          onRemove={handleRemoveMember}
         />
       )}
 

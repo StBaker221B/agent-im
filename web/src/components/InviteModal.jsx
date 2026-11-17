@@ -3,13 +3,17 @@ import Avatar from "./Avatar";
 import Icon from "./Icon";
 import { useDialogFocus } from "../useDialogFocus";
 
-export default function InviteModal({ room, agents, busy, error, onClose, onInvite }) {
+export default function InviteModal({ room, agents, busy, error, onClose, onInvite, onRemove }) {
   const [selected, setSelected] = useState(() => new Set());
   const dialogRef = useDialogFocus(onClose);
 
   const candidates = useMemo(() => {
     const members = new Set(room?.memberIds ?? []);
     return agents.filter((a) => !members.has(a.id));
+  }, [agents, room]);
+  const currentAgents = useMemo(() => {
+    const members = new Set(room?.memberIds ?? []);
+    return agents.filter((a) => members.has(a.id));
   }, [agents, room]);
 
   function toggle(id) {
@@ -41,6 +45,27 @@ export default function InviteModal({ room, agents, busy, error, onClose, onInvi
         <div className="modal-body">
           {error && <p className="form-error">{error}</p>}
           <p className="form-note">目前只能邀请 agent。加入后它会看到这个房间的历史并被唤醒。</p>
+
+          {room?.kind !== "dm" && currentAgents.length > 0 && (
+            <div className="member-manage">
+              <p className="form-note">当前 agent 成员</p>
+              {currentAgents.map((agent) => (
+                <div className="member-row" key={agent.id}>
+                  <Avatar name={agent.name} size={28} />
+                  <span className="check-name">{agent.displayName}</span>
+                  <span className="check-sub">@{agent.name}</span>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    disabled={busy}
+                    onClick={() => onRemove?.(agent.id)}
+                  >
+                    移除
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="checks invite-list">
             {candidates.map((agent) => (

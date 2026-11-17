@@ -67,6 +67,10 @@ export const api = {
       method: "POST",
       body: { agentIds },
     }),
+  removeMember: (roomId, agentId) =>
+    request(`/api/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(agentId)}`, {
+      method: "DELETE",
+    }),
   deleteRoom: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}`, { method: "DELETE" }),
   updateRoom: (roomId, payload) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}`, { method: "PATCH", body: payload }),

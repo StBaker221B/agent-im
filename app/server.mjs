@@ -947,6 +947,25 @@ async function addMembers(roomId, body) {
   return { room: await roomSummary(store.room(roomId)), added: agents.map((a) => a.id) };
 }
 
+async function removeMember(roomId, agentId) {
+  const room = store.room(roomId);
+  if (!room) throw Object.assign(new Error("room not found"), { status: 404 });
+  if (room.kind === "dm") throw Object.assign(new Error("私聊请直接删除会话"), { status: 400 });
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (!room.memberIds.includes(agent.id))
+    throw Object.assign(new Error("agent 不在这个房间里"), { status: 404 });
+  if (host.agentStatus(agent.id) === "working")
+    throw Object.assign(new Error("agent 正在运行，等这一轮结束或先暂停再移除"), { status: 409 });
+  await admin.leave(agent.accessToken, roomId);
+  room.memberIds = room.memberIds.filter((id) => id !== agent.id);
+  store.save();
+  await host.removeRoomMember(roomId, agent.id);
+  log(`[app] room ${roomId} removed ${agent.id}`);
+  return { room: await roomSummary(store.room(roomId)), removed: agent.id };
+}
+
 async function deleteAgent(agentId) {
   const agent = store.agent(agentId);
   if (!agent || agent.status === "deleted")
@@ -1223,6 +1242,10 @@ async function handleApi(req, res, url) {
     const roomId = decodeURIComponent(parts[2]);
     const body = await readBody(req);
     return json(res, 200, await addMembers(roomId, body));
+  }
+
+  if (req.method === "DELETE" && parts[1] === "rooms" && parts[3] === "members" && parts.length === 5) {
+    return json(res, 200, await removeMember(decodeURIComponent(parts[2]), decodeURIComponent(parts[4])));
   }
 
   if (req.method === "DELETE" && parts[1] === "rooms" && parts.length === 3) {

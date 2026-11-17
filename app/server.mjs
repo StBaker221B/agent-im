@@ -107,6 +107,8 @@ const host = await createHost({
   onEvent: broadcastLive,
   onTaskCreate: taskCreatedByAgent,
   onTaskDone: taskDoneByAgent,
+  onTaskBlocked: taskBlockedByAgent,
+  onTaskFailed: taskFailedByAgent,
   log,
 });
 await host.start();
@@ -709,6 +711,27 @@ async function taskDoneByAgent({ taskId, agentId, summary }) {
   tasks.addCheckpoint(task.id, `agent DONE: ${summary}`, agentId);
   const updated = tasks.update(task.id, { status: "done" });
   return updated ? taskView(updated) : null;
+}
+
+async function setTaskStatusByAgent({ taskId, agentId, summary, status }) {
+  const task = tasks.get(taskId);
+  if (!task) return null;
+  if (task.owner && task.owner !== agentId) {
+    tasks.addCheckpoint(task.id, `${status.toUpperCase()} ignored: ${agentId} is not owner`, agentId);
+    return null;
+  }
+  if (task.status === "done" || task.status === "cancelled") return null;
+  tasks.addCheckpoint(task.id, `agent ${status.toUpperCase()}: ${summary}`, agentId);
+  const updated = tasks.update(task.id, { status, lastError: summary });
+  return updated ? taskView(updated) : null;
+}
+
+async function taskBlockedByAgent(payload) {
+  return setTaskStatusByAgent({ ...payload, status: "blocked" });
+}
+
+async function taskFailedByAgent(payload) {
+  return setTaskStatusByAgent({ ...payload, status: "failed" });
 }
 
 async function createTask(body) {

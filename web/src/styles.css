@@ -1718,8 +1718,13 @@ button {
   border-left-color: var(--own);
 }
 
-.task-card.status-blocked {
+.task-card.status-blocked,
+.task-card.status-failed {
   border-left-color: var(--danger);
+}
+
+.task-card.status-failed {
+  background: color-mix(in srgb, var(--danger) 5%, var(--panel));
 }
 
 .task-card.status-done {
@@ -1758,7 +1763,8 @@ button {
   color: var(--own);
 }
 
-.task-status.status-blocked {
+.task-status.status-blocked,
+.task-status.status-failed {
   color: var(--danger);
 }
 

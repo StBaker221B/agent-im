@@ -11,6 +11,8 @@ test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
     reason: "需要保存文件",
   });
   assert.deepEqual(parseReply("TASK: 每周对账"), { type: "task", title: "每周对账" });
+  assert.deepEqual(parseReply("BLOCK: 缺少权限"), { type: "block", reason: "缺少权限" });
+  assert.deepEqual(parseReply("FAIL: 测试仍失败"), { type: "fail", reason: "测试仍失败" });
   assert.deepEqual(parseReply("REQUEST_ROOM: dm @researcher 私下确认"), {
     type: "room_request",
     body: "dm @researcher 私下确认",

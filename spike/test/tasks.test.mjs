@@ -67,6 +67,8 @@ test("checkpoints append and invalid updates are rejected", () => {
     const task = store.create({ title: "长任务", dueAt: new Date().toISOString() });
     store.addCheckpoint(task.id, "完成第一步", "@human");
     assert.equal(store.get(task.id).checkpoints.length, 1);
+    store.update(task.id, { status: "failed" });
+    assert.equal(store.get(task.id).status, "failed");
     assert.throws(() => store.update(task.id, { status: "nope" }), /bad status/);
     assert.throws(() => store.update(task.id, { dueAt: "not-a-date" }), /bad dueAt/);
   } finally {

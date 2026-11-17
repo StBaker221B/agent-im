@@ -55,6 +55,8 @@ export class Gateway {
     onEvent = null,
     onTaskCreate = null,
     onTaskDone = null,
+    onTaskBlocked = null,
+    onTaskFailed = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -79,6 +81,8 @@ export class Gateway {
     this.onEvent = onEvent;
     this.onTaskCreate = onTaskCreate;
     this.onTaskDone = onTaskDone;
+    this.onTaskBlocked = onTaskBlocked;
+    this.onTaskFailed = onTaskFailed;
     this.lastTurnAt = new Map();
     this.turnTimes = new Map();
 
@@ -628,6 +632,33 @@ export class Gateway {
           intent: "room_request",
           room: { kind, name, agentIds: targets },
         };
+      }
+    } else if (action.type === "block" || action.type === "fail") {
+      const failed = action.type === "fail";
+      outbound = {
+        type: failed ? "failed" : "blocked",
+        text: `${failed ? "任务失败" : "任务阻塞"}：${action.reason}`,
+        intent: failed ? "failed" : "blocked",
+      };
+      if (taskId) {
+        try {
+          const updated = await (failed ? this.onTaskFailed : this.onTaskBlocked)?.({
+            taskId,
+            agentId,
+            roomId,
+            summary: action.reason,
+          });
+          if (updated) {
+            this.audit.write({ kind: failed ? "task_failed" : "task_blocked", agentId, taskId });
+          }
+        } catch (err) {
+          this.audit.write({
+            kind: "task_status_error",
+            agentId,
+            taskId,
+            error: String(err),
+          });
+        }
       }
     } else if (action.type === "done") {
       outbound = { type: "done", reason: action.reason, text: action.reason, intent: "done" };

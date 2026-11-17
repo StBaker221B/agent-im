@@ -16,7 +16,7 @@ export function buildAgentPrompt(envelope) {
     .map((x) => `[${formatTime(x.createdAt)}] [${x.sender}] ${x.text}`)
     .join("\n");
   const taskLine = m.taskId
-    ? `This message is task ${m.taskId}${m.taskOwner ? ` owned by ${m.taskOwner}` : ""}. When you finish, reply exactly: DONE: <summary>.`
+    ? `This message is task ${m.taskId}${m.taskOwner ? ` owned by ${m.taskOwner}` : ""}. When you finish, reply exactly: DONE: <summary>; if blocked reply BLOCK: <reason>; if failed reply FAIL: <reason>.`
     : "If you need to record a long-running task, reply exactly: TASK: <title>.";
   const roomLine =
     'If you need a side room, reply exactly: REQUEST_ROOM: dm @agent <reason> or REQUEST_ROOM: group "name" @a @b <reason>. You never create rooms yourself; a human approves.';
@@ -46,6 +46,8 @@ export function parseReply(text) {
     return { type: "tool_request", tool: tool ?? "", reason: rest.join(" ") };
   }
   if (/^TASK\s*:/i.test(t)) return { type: "task", title: t.replace(/^TASK\s*:/i, "").trim() };
+  if (/^BLOCK\s*:/i.test(t)) return { type: "block", reason: t.replace(/^BLOCK\s*:/i, "").trim() };
+  if (/^FAIL\s*:/i.test(t)) return { type: "fail", reason: t.replace(/^FAIL\s*:/i, "").trim() };
   if (/^REQUEST_ROOM\s*:/i.test(t)) {
     const body = t.replace(/^REQUEST_ROOM\s*:/i, "").trim();
     const kind = /^dm\b/i.test(body) ? "dm" : /^group\b/i.test(body) ? "group" : "";

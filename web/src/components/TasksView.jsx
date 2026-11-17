@@ -6,6 +6,7 @@ const STATUS = {
   pending: "待处理",
   active: "进行中",
   blocked: "阻塞",
+  failed: "失败",
   done: "完成",
   cancelled: "已取消",
 };
@@ -147,7 +148,7 @@ export default function TasksView({ data, onNew, onOpenRoom, onBack }) {
                     阻塞
                   </button>
                 )}
-                {(task.status === "done" || task.status === "cancelled") && (
+                {(task.status === "done" || task.status === "cancelled" || task.status === "failed") && (
                   <button
                     type="button"
                     className="ghost"

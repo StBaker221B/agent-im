@@ -69,6 +69,8 @@ export async function createHost({
   onEvent = null,
   onTaskCreate = null,
   onTaskDone = null,
+  onTaskBlocked = null,
+  onTaskFailed = null,
   log = console.log,
 }) {
   const humanId = store.human.id;
@@ -160,6 +162,8 @@ export async function createHost({
     onEvent,
     onTaskCreate,
     onTaskDone,
+    onTaskBlocked,
+    onTaskFailed,
     log,
   });
 

@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-export const TASK_STATUSES = ["pending", "active", "blocked", "done", "cancelled"];
+export const TASK_STATUSES = ["pending", "active", "blocked", "failed", "done", "cancelled"];
 const STATUS_SET = new Set(TASK_STATUSES);
 
 function nowIso() {

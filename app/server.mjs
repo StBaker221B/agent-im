@@ -209,11 +209,14 @@ async function roomSummary(room) {
 async function bootstrap() {
   const rooms = await Promise.all(store.rooms.map((room) => roomSummary(room)));
   rooms.sort((a, b) => (b.lastMessage?.createdAt ?? 0) - (a.lastMessage?.createdAt ?? 0));
-  const agents = store.publicAgents().map((a) => ({
-    ...a,
-    kind: "agent",
-    status: host.agentStatus(a.id),
-  }));
+  const agents = store
+    .publicAgents()
+    .filter((a) => a.status !== "deleted")
+    .map((a) => ({
+      ...a,
+      kind: "agent",
+      status: host.agentStatus(a.id),
+    }));
   return {
     human: { id: store.human.id, name: store.human.name, displayName: store.human.displayName },
     homeserver: store.homeserver,
@@ -391,7 +394,8 @@ const WAKE_POLICIES = new Set(["human_all", "mention_only", "all", "mention_or_r
 
 async function updateAgent(agentId, body) {
   const agent = store.agent(agentId);
-  if (!agent) throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
   const patch = {};
   if (typeof body.displayName === "string" && body.displayName.trim())
     patch.displayName = body.displayName.trim();
@@ -559,7 +563,8 @@ async function createTeam(teamId, body) {
 
 async function createDm(body) {
   const agent = store.agent(String(body.agentId ?? ""));
-  if (!agent) throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
   const existing = store.dmWith(agent.id);
   if (existing) return { room: await roomSummary(existing), existing: true };
 
@@ -590,7 +595,7 @@ async function createGroup(body) {
   const ids = [...new Set(rawIds.map(String))];
   if (!name) throw Object.assign(new Error("群聊需要一个名字"), { status: 400 });
   if (!ids.length) throw Object.assign(new Error("至少选择一个 agent"), { status: 400 });
-  const agents = ids.map((id) => store.agent(id)).filter(Boolean);
+  const agents = ids.map((id) => store.agent(id)).filter((a) => a && a.status !== "deleted");
   if (agents.length !== ids.length) throw Object.assign(new Error("有 agent 不存在"), { status: 404 });
 
   const roomId = await admin.createRoom(store.human.accessToken, {
@@ -642,6 +647,35 @@ async function addMembers(roomId, body) {
   await host.syncRoom(roomId);
   log(`[app] room ${roomId} invited ${agents.map((a) => a.id).join(",")}`);
   return { room: await roomSummary(store.room(roomId)), added: agents.map((a) => a.id) };
+}
+
+async function deleteAgent(agentId) {
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (host.agentStatus(agent.id) === "working")
+    throw Object.assign(new Error("agent 正在运行，等这一轮结束或先暂停再删除"), { status: 409 });
+
+  const rooms = store.rooms.filter((room) => room.memberIds.includes(agent.id));
+  for (const room of rooms) {
+    if (room.kind === "dm" && room.peerId === agent.id) {
+      // A DM exists only for this agent; remove the room from the human's list.
+      await deleteRoom(room.id).catch((err) => log(`[app] delete DM ${room.id} failed: ${err.message}`));
+      continue;
+    }
+    await admin
+      .leave(agent.accessToken, room.id)
+      .catch((err) => log(`[app] ${agent.name} leave ${room.id} failed: ${err.message}`));
+    room.memberIds = room.memberIds.filter((id) => id !== agent.id);
+    store.save();
+  }
+
+  agent.status = "deleted";
+  agent.deletedAt = new Date().toISOString();
+  store.save();
+  await host.removeAgent(agent.id);
+  log(`[app] agent removed ${agent.id}`);
+  return { ok: true };
 }
 
 async function deleteRoom(roomId) {
@@ -866,6 +900,10 @@ async function handleApi(req, res, url) {
     const agentId = decodeURIComponent(parts[2]);
     const body = await readBody(req);
     return json(res, 200, await updateAgent(agentId, body));
+  }
+
+  if (req.method === "DELETE" && parts[1] === "agents" && parts.length === 3) {
+    return json(res, 200, await deleteAgent(decodeURIComponent(parts[2])));
   }
 
   if (req.method === "POST" && parts[1] === "agents" && parts[3] === "approve-tool" && parts.length === 4) {

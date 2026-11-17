@@ -213,6 +213,10 @@ export async function createHost({
       }
     },
 
+    async removeAgent(agentId) {
+      await gateway.removeAgent(agentId);
+    },
+
     async attachRoom(roomId, mode = "brief") {
       roomModes.set(roomId, mode);
       await gateway.addRoom(roomId);

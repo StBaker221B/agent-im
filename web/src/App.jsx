@@ -324,6 +324,23 @@ export default function App() {
     setFocusMessageId(messageId);
   }
 
+  async function deleteAgentById(agentId) {
+    if (!window.confirm("删除这个 agent？它会退出所有房间并从列表隐藏；Matrix 历史保留，账号不回收。")) {
+      return;
+    }
+    try {
+      await api.deleteAgent(agentId);
+      setActiveRoomId(null);
+      setMessages([]);
+      markKeyRef.current = "";
+      await loadBootstrap();
+      backToAgents();
+      notify("agent 已删除");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function saveAgent(agentId, payload) {
     try {
       await api.updateAgent(agentId, payload);
@@ -472,6 +489,7 @@ export default function App() {
             agent={settingsAgentId ? agentsById.get(settingsAgentId) : null}
             templates={templates}
             onSave={saveAgent}
+            onDelete={deleteAgentById}
             onBack={backToAgents}
           />
         ) : view === "agents" ? (

@@ -1,7 +1,7 @@
 import AgentSettings from "./AgentSettings";
 import Icon from "./Icon";
 
-export default function AgentSettingsView({ agent, templates = [], onSave, onBack }) {
+export default function AgentSettingsView({ agent, templates = [], onSave, onDelete, onBack }) {
   if (!agent) {
     return (
       <section className="settings-view">
@@ -38,6 +38,20 @@ export default function AgentSettingsView({ agent, templates = [], onSave, onBac
       <div className="settings-section">
         <AgentSettings agent={agent} templates={templates} onSave={onSave} />
       </div>
+
+      {onDelete && (
+        <div className="settings-section danger-zone">
+          <div>
+            <h3>删除 agent</h3>
+            <p className="settings-note">
+              退出所有房间并从列表隐藏；Matrix 历史保留，账号不回收。正在运行的 agent 需要先等它空闲或暂停。
+            </p>
+          </div>
+          <button type="button" className="danger" onClick={() => onDelete(agent.id)}>
+            删除这个 agent
+          </button>
+        </div>
+      )}
     </section>
   );
 }

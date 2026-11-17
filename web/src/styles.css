@@ -1304,6 +1304,29 @@ button {
   line-height: 1.6;
 }
 
+.danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+}
+
+.danger {
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--line));
+  background: transparent;
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
 .approved-tools {
   display: flex;
   flex-wrap: wrap;

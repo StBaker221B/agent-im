@@ -196,6 +196,28 @@ export class Gateway {
     return { added: true };
   }
 
+  /** Stop syncing and remove an agent from the engine (soft delete helper). */
+  async removeAgent(agentId) {
+    const client = this.clients.get(agentId);
+    const runtime = this.runtimes.get(agentId);
+    this.clients.delete(agentId);
+    this.runtimes.delete(agentId);
+    try {
+      await runtime?.close?.();
+    } catch {
+      // runtime is best-effort
+    }
+    this.engine.agents.delete(agentId);
+    for (const room of this.engine.rooms.values()) {
+      room.members = room.members.filter((member) => member !== agentId);
+    }
+    for (const [roomId, roomClient] of this.roomClients) {
+      if (roomClient === client) this.roomClients.delete(roomId);
+    }
+    this.log(`[gateway] agent removed ${agentId}`);
+    return Boolean(client);
+  }
+
   /** Register a room created after startup and hydrate it into the engine. */
   async addRoom(roomId) {
     if (!this.rooms.includes(roomId)) this.rooms.push(roomId);
@@ -246,7 +268,7 @@ export class Gateway {
       try {
         const since = this.since.get(agentId);
         const { events, nextToken } = await client.sync(since, { timeoutMs: this.syncTimeoutMs });
-        if (!this.running) break;
+        if (!this.running || !this.clients.has(agentId)) break;
         for (const ev of events) {
           await this.#enqueue(() => this.#ingest(ev, client));
         }

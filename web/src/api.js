@@ -36,6 +36,7 @@ export const api = {
   createAgent: (payload) => request("/api/agents", { method: "POST", body: payload }),
   updateAgent: (agentId, payload) =>
     request(`/api/agents/${encodeURIComponent(agentId)}`, { method: "PATCH", body: payload }),
+  deleteAgent: (agentId) => request(`/api/agents/${encodeURIComponent(agentId)}`, { method: "DELETE" }),
   approveTool: (agentId, tool, roomId) =>
     request(`/api/agents/${encodeURIComponent(agentId)}/approve-tool`, {
       method: "POST",

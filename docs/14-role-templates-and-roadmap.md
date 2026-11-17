@@ -1,6 +1,6 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -143,7 +143,7 @@
 | 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、worktree/容器沙箱待做 | 2–4d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名、移除群成员已完成；硬删除/undelete、邀请第二个人类、批量操作待做 | 1–2d |
 | 团队 benchmark | ⚠️ v1 已做 | fixture + runner、single/pair 各两次、squad 一次；更多任务/外部基线/质量指标待做 | 2–3d |
-| 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE、重启不重发；cron/补跑、失败/阻塞标记、重试、未完成 turn 恢复、进程守护待做 | 3–4d |
+| 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE、重启不重发；cron/补跑、失败重试/升级、未完成 turn 恢复、进程守护待做 | 3–4d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v1 已做 | 活动/审计只读页、用量、全局暂停；导出/回放/硬 kill/告警/会话检索待做 | 2–3d |
 | 第二 runtime / worktree | ⏳ 未做 | OpenClaw/Codex adapter、worktree 隔离 | 3–5d |
@@ -167,7 +167,7 @@
 4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准已做；执行前审批、按 thread/过期授权、coder worktree/reviewer 只读沙箱待做。
 5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
 6. Agent/房间生命周期：暂停（`paused_skip`）、软删除、移除群成员、agent 申请房间已完成；硬删除/undelete、邀请人类、批量操作待做。
-7. 长期驻守/intake：需求在 [16](16-long-running-and-intake.md)；v1 有 `@intake`、任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE、重启不重发；待做 cron/补跑、失败/阻塞标记、重试、turn 恢复、按 `RECOMMEND` 一键建队。
+7. 长期驻守/intake：需求在 [16](16-long-running-and-intake.md)；v1 有 `@intake`、任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE、重启不重发；待做 cron/补跑、失败重试/升级、turn 恢复、按 `RECOMMEND` 一键建队。
 7. 数据平台/治理：活动/审计只读页、用量、全局暂停已完成；待导出/回放、硬 kill、预算/失败告警、会话检索。
 
 **第 3 周：异构与多用户**

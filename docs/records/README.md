@@ -53,3 +53,4 @@
 | 27 | [2026-11-17 运维脚本与审计导出](2026-11-17-23-ops.md) | start/backup/restore 脚本、audit JSONL 导出 |
 | 28 | [2026-11-17 群成员移除](2026-11-17-24-member-removal.md) | DELETE member、群 leave、engine 成员清理、邀请 modal 移除 |
 | 29 | [2026-11-17 Agent 申请房间](2026-11-17-25-agent-room-requests.md) | `REQUEST_ROOM`、人类批准、建群/去重、人类可见 |
+| 30 | [2026-11-17 BLOCK/FAIL 任务标记](2026-11-17-26-task-block-fail.md) | agent 阻塞/失败写回 blocked/failed、checkpoint、UI |

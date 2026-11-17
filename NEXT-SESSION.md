@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)。
+- 记录：[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)。
 - 已完成：
   - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -17,7 +17,8 @@
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
   - **自由讨论**：链上限 10（防死循环），prompt 允许 agent 互相 @ 接话；旧讨论模式 toggle 已移除；`#dispatch` 去重避免重复 PASS。
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/agent 设置页可选模板、预览、工具开关。
-  - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。团队效果只验证过 coder/reviewer。
+  - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
+  - **团队 pilot**：同一小 bug，单 coder 1 turn/$0.2237/~16s；coder+reviewer 2 turns/$0.6690/~75s；都 5/5。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势；6 人小队未做完整对照。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。

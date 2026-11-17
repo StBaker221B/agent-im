@@ -120,7 +120,9 @@
   - `research-squad`：researcher + tech-writer；一个查证、一个把结论写成材料。
 - `GET /api/team-templates`；`POST /api/team-templates/:id/create {prefix,groupName}`：注册 N 个用户、创建 N 个 agent、建群并拉入；ID 形如 `squad-pm`。
 - Agents 页「创建小队」→ 选模板、ID 前缀、群名 → 创建后打开群。实测 `demo` 旧版 review-squad 创建成功。
-- **有效性验证**：coder→reviewer 的角色协作和自主修测试实验验证过；团队模板本身只验证了创建流程，没有跑完整的 6 人团队任务对比。
+- **有效性验证**：coder→reviewer 的角色协作和自主修测试实验验证过；2026-11-17 又跑了单 coder vs coder+reviewer 的 pilot：
+  - 同一小 bug，单 coder 1 turn/$0.2237/~16s，coder+reviewer 2 turns/$0.6690/~75s；都 5/5，test 未改。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势，reviewer 提供的是独立复验。
+  - 6 人软件小队仍未做完整对照；结论是“简单任务单人更划算，团队用于需要独立评审/风险取舍的任务”。详见[记录 16](records/2026-11-17-16-team-pilot.md)。
 
 待做：自定义角色/团队模板另存、O*NET/ESCO 自动生成、删除/归档实验 agent。
 

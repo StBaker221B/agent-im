@@ -30,7 +30,7 @@
   - 只做方案/风险评审，不做调研；security 用于安全相关方案，不是所有评审都需要。
 - 新增 `research-squad`：researcher + tech-writer。
   - 一个 researcher 足够查证；writer 把结论写成可读材料。
-- 有效性：coder→reviewer 协作和自主修测试实验验证过；团队模板只验证了创建，未做完整团队效果对照。
+- 有效性：coder→reviewer 协作和自主修测试实验验证过；2026-11-17 的单 coder vs coder+reviewer pilot 见[记录 16](2026-11-17-16-team-pilot.md)：简单 bug 上团队成本 3×、耗时 4.7×，质量相同；6 人小队仍未做完整对照。
 
 ## 流式可见性
 

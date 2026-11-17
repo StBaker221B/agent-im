@@ -47,7 +47,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具，`turn_end` 后保留 2.2s；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮。
 - Agents 页「评估需求」：输入问题 → 打开 `@intake` 需求顾问 DM，返回单点 vs 小团队建议和 `RECOMMEND` 标签，不自动建团队。
 - 侧栏「活动」：最近 audit 事件的只读视图（消息/工具/成本/跳过/错误），可按 agent/类型筛选，3s 刷新。
-- 侧栏「任务」：持久任务台账；新建（owner/房间/到期）、派发、完成/阻塞/取消/重开、打开房间。
+- 侧栏「任务」：持久任务台账；新建（owner/房间/到期/重复间隔）、派发、完成/阻塞/取消/重开、打开房间。
 - 全局设置「全局控制」：暂停/恢复所有 agent（软暂停，当前轮跑完）。
 - 每个 agent 设置页深链：`#/agents/<agentId>/settings`；页面底部可软删除 agent。
 

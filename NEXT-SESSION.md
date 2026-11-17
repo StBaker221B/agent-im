@@ -1,14 +1,14 @@
 # NEXT SESSION — Agent IM
 
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
-> **MVP 已通：跨房间记忆、媒体、邀请/删除、搜索、设置拆分、13 角色模板 + 3 团队模板、triage/预算、流式、单工具审批、Agent 软删除、可重复 benchmark；37 tests。下一步是更多团队任务/squad 对照、agent 自主房间、worktree 沙箱、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
+> **MVP 已通：跨房间记忆、媒体、邀请/删除、搜索、设置拆分、13 角色模板 + 3 团队模板、triage/预算、流式、单工具审批、Agent 软删除、可重复 benchmark；38 tests。下一步是更多团队任务/squad 对照、agent 自主房间、worktree 沙箱、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
 
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
 - 记录：[21 持久任务台账](docs/records/2026-11-17-21-task-ledger.md)、[20 活动/审计与全局暂停](docs/records/2026-11-17-20-activity-and-global-pause.md)、[19 长期驻守与 intake](docs/records/2026-11-17-19-long-running-intake.md)、[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)、[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)。
 - 已完成：
-  - `spike/`：协议引擎 + 37 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
+  - `spike/`：协议引擎 + 38 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
   - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、全局设置 + agent 独立设置页、深链。
   - **图片理解 PASS**：上传 `VISION-OK 42`，agent 读到本地缓存并描述出来。
@@ -22,7 +22,7 @@
   - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；squad 一次 362s 超时/5 turns/$2.547；都 5/5、测试未改；单 Claude+subagent 基线未跑。
   - **长期驻守/intake v0**：`@intake` 需求顾问 + `POST /api/intake` + Agents 页「评估需求」；输出重述/推荐/成本/风险/最小验证/`RECOMMEND`，不自动建团队；重启后 agent/DM/消息保留、不重复回复。任务台账/调度/检查点/未完成 turn 恢复未做。
   - **活动/审计 + 全局暂停**：`GET /api/audit` + 侧栏「活动」（最近 250 条、3s 刷新、按 agent/类型筛选）；设置页暂停/恢复所有 agent（软暂停，当前轮跑完）。仍无导出/回放/硬 kill。
-  - **持久任务台账 v1**：`app/data/tasks.json` + 侧栏「任务」；新建 owner/房间/到期，30s tick 到期派发一次，重启不重发 active；checkpoint/blocked/完成。仍无 recurring、agent 任务标记、自动完成、turn 恢复。
+  - **持久任务台账 v1**：`app/data/tasks.json` + 侧栏「任务」；新建 owner/房间/到期/重复间隔，30s tick 到期派发；一次性 active，重复任务回 pending 排下一次；重启不重发 active；checkpoint/blocked/完成。仍无 cron/补跑、agent 任务标记、自动完成、turn 恢复。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
@@ -54,7 +54,7 @@ EOF
 
 ```bash
 cd d:/Git/learn && git status
-cd agent-im/spike && node --test          # 37 tests
+cd agent-im/spike && node --test          # 38 tests
 cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 # 另开终端：可重复团队 benchmark（需 app 在跑，真实成本）
 cd d:/Git/learn/agent-im && node bench/run.mjs --task money-rounding --arms single,pair --runs 2
@@ -90,7 +90,7 @@ cd d:/Git/learn/agent-im && node bench/run.mjs --task money-rounding --arms sing
 
 ## 当前状态（2026-11-16 MVP 第三轮）
 
-- 阶段：**00/09/10/11/12/13 + spike 协议 + 真实 Matrix + MVP（app/web）第二轮完成**；37 tests；真实 Claude 在真实 Tuwunel 上跑通；网页可直接聊天。
+- 阶段：**00/09/10/11/12/13 + spike 协议 + 真实 Matrix + MVP（app/web）第二轮完成**；38 tests；真实 Claude 在真实 Tuwunel 上跑通；网页可直接聊天。
 - MVP 行为：
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
@@ -142,7 +142,7 @@ cd d:/Git/learn/agent-im && node bench/run.mjs --task money-rounding --arms sing
 
 ## 下一步
 
-1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；37 tests。
+1. **已完成**：09 协议、10 开发环境、11 组网调研、12 宿主方案、本地协议 spike、真实 Claude adapter、transport/gateway、真实 Matrix E2E、**MVP（app + web）三轮**、**13 个角色模板 + 知识包 + 创建/设置 UI**；38 tests。
 2. **成本控制 v2 已做**（规则 triage/用量/每日预算/参数 UI）；待做全局预算、per-thread 预算。`human_all` 下每条人类消息仍可能触发 N 个 Claude turn。
 3. **流式 + 工具审批 v1 已做**（单工具 grant、DSML 兜底、off 硬拒绝）；待做执行前工具审批、按 thread/过期授权、worktree/容器沙箱、SSE 断线补发。
 4. 房间/agent 管理：软删除/改显示名已完成；待做硬删除/undelete、移除成员、邀请第二个人类、批量操作（会话删除、邀请 agent、改模板/工具/预算、暂停/启用已完成）。

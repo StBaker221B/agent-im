@@ -26,6 +26,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
   "owner": "@agent:localhost",
   "roomId": "!room:localhost",
   "dueAt": "2026-11-17T10:29:14.476Z",
+  "intervalMinutes": 0,
   "priority": 0,
   "status": "pending | active | blocked | done | cancelled",
   "createdAt": "...",
@@ -38,6 +39,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 ```
 
 - `dueAt` 为空 = 不自动派发，可手动“派发”。
+- `intervalMinutes > 0` = 重复任务：派发后按间隔排下一次，status 回到 pending；`0` 为一次性任务（派发后 active）。
 - 状态由人/UI 更新；v1 不自动根据 agent 回复判完成。
 
 ## 3. API
@@ -45,8 +47,8 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 | API | 行为 |
 |---|---|
 | `GET /api/tasks` | 列出任务（附 owner/room 显示名） |
-| `POST /api/tasks` | `{title,description,owner,roomId,dueAt,priority}`；创建 pending |
-| `PATCH /api/tasks/:id` | 改 title/description/owner/roomId/dueAt/status/priority |
+| `POST /api/tasks` | `{title,description,owner,roomId,dueAt,intervalMinutes,priority}`；创建 pending |
+| `PATCH /api/tasks/:id` | 改 title/description/owner/roomId/dueAt/intervalMinutes/status/priority |
 | `POST /api/tasks/:id/checkpoints` | `{text}` 追加检查点 |
 | `POST /api/tasks/:id/dispatch` | 立即派发（人工触发） |
 
@@ -55,11 +57,13 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 - 服务启动 5s 后和第 30s 周期执行一次 `tickTasks()`；
 - 只派发 `status=pending` 且 `dueAt <= now` 的任务；
 - 派发 = 以人类身份往 `roomId` 发一条消息，`mentions=[owner]`（有 owner 时）；
-- 派发**先把任务置 active 并写 checkpoint**，再发送：
-  - 成功：active，`lastDispatchedAt` 记录；
+- 派发**先更新任务状态并写 checkpoint**，再发送：
+  - 一次性：active；重复任务：pending，`dueAt = now + intervalMinutes`；
+  - 成功：`lastDispatchedAt` 记录；
   - 失败：blocked，`lastError` 记录；
   - owner 已暂停：直接 blocked，不发送；
 - 重启后 active/blocked 不会被重新派发；pending 且到期的会在启动 tick 补发一次。
+- 重复任务不做错过补跑：如果服务停机跨过多个周期，恢复后只按新的下一次 dueAt 执行一次。
 - 不恢复进行中的 agent turn；只恢复任务状态。
 
 ## 5. UI
@@ -77,11 +81,14 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
   - 30s tick 后 status=active，`lastDispatchedAt` 写入，checkpoint +1，房间收到任务消息；
   - 重启 app 后任务仍存在，8 秒内消息数不变、`lastDispatchedAt` 不变，没有重复派发；
   - 手动标记 done。
-- 新增 3 个 TaskStore 单测：持久化、due/dispatch、checkpoint/非法更新；spike 共 **37 tests**。
+- 重复任务 `task-mwktdsqw-83eeb5`（interval 1 分钟，手动派发）：
+  - 派发后 status 回到 pending，`dueAt` 约 1 分钟后，checkpoint 记录 `recurring dispatch; next ...`；
+  - 不会在 next due 前重复派发；随后取消。
+- 新增 4 个 TaskStore 单测：持久化、due/dispatch、recurring next、checkpoint/非法更新；spike 共 **38 tests**。
 
 ## 7. 边界
 
-- 没有 recurring/cron 表达式；每次任务只能派发一次。
+- 只有固定分钟间隔，没有 cron 表达式、工作日/时区规则；停机跨周期不补跑。
 - 没有 agent 侧创建/更新任务的 marker；目前人类/API 创建。
 - 没有自动检测完成；需要人类或 UI 标记。
 - 没有重试队列/退避；失败即 blocked，人工重开。
@@ -90,7 +97,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 
 ## 8. 下一步
 
-1. Recurring：`every`/cron、下一次 `nextRunAt`、错过补跑策略。
+1. 固定间隔重复已完成；待做 cron/工作日/时区、错过补跑策略。
 2. Agent 任务标记：`TASK:` / `DONE:` 与服务端任务关联。
 3. 自动完成/失败：agent `DONE`、超时、连续失败升级。
 4. 通知/告警：到期、失败、预算、审批。

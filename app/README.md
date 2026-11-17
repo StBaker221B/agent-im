@@ -50,6 +50,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 
 ### Agent workspace / tools（本地实验）
 
+`cwd` 可把 agent 指到共享沙箱/benchmark workspace；默认是自己的 `data/agents/<name>/workspace`。
+
 `toolsMode` 三档：`template`（按角色推荐，默认）、`full`（全部本地工具，含 Edit/Write，手动放开）、`off`（`--tools "" --permission-mode dontAsk` 硬拒绝）。`approvedTools` 是单工具持久授权（设置页可撤销），与 toolsMode 独立。规则 triage 会跳过 ack/冷却/超频的 ambient turn，并写 `triage_skip` 审计；`dailyBudgetUsd`（0=不限）超预算时 turn 前直接 PASS，写 `budget_skip`；用量在 `GET /api/usage`。工具申请走 `REQUEST_TOOL` → `tool_request` 消息 → `approve-tool`；流式活动在 `/api/events`。
 
 `state.json` 的 agent 可选带 `cwd` 和 `extraArgs`，用于把 agent 指到共享沙箱并限制工具：
@@ -81,8 +83,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `GET /api/team-templates` — software-squad / review-squad / research-squad
 - `POST /api/team-templates/:id/create` `{prefix,groupName}` — 一次创建一组 agent + 群
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
-- `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`
-- `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`
+- `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`
+- `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`
 - `DELETE /api/agents/:id` — 软删除 agent：离开群、删 DM、隐藏、停 sync；账号/历史保留
 - `POST /api/agents/:id/approve-tool` `{tool,roomId}` — 加单工具到 `approvedTools`、重建 runtime、人类消息 @ agent 继续
 - `GET /api/events` — SSE：turn/text_delta/tool_use/tool_result/turn_end/skip

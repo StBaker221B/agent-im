@@ -123,6 +123,9 @@
 - **有效性验证**：coder→reviewer 的角色协作和自主修测试实验验证过；2026-11-17 又跑了单 coder vs coder+reviewer 的 pilot：
   - 同一小 bug，单 coder 1 turn/$0.2237/~16s，coder+reviewer 2 turns/$0.6690/~75s；都 5/5，test 未改。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势，reviewer 提供的是独立复验。
   - 6 人软件小队仍未做完整对照；结论是“简单任务单人更划算，团队用于需要独立评审/风险取舍的任务”。详见[记录 16](records/2026-11-17-16-team-pilot.md)。
+- **可重复 benchmark（已落地）**：`bench/tasks/money-rounding` + `bench/run.mjs`，固定 fixture、新建 agent/session、独立 workspace、自动看测试/成本/turns、跑完软删。
+  - 两次 fresh run：single 均值约 $0.115/35.5s；pair 均值约 $0.788/155s（成本 6.8×、耗时 4.4×），都 5/5、测试未改。
+  - 波动大（pair $0.65–$0.93），单次不能下结论；squad 和“单 Claude+subagent”基线还没跑。详见[记录 18](records/2026-11-17-18-repeatable-benchmark.md)。
 
 待做：自定义角色/团队模板另存、O*NET/ESCO 自动生成、删除/归档实验 agent。
 
@@ -138,6 +141,7 @@
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
 | 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、worktree/容器沙箱待做 | 2–4d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名已完成；硬删除/undelete、移除成员、邀请第二个人类、批量操作待做 | 1–2d |
+| 团队 benchmark | ⚠️ v1 已做 | fixture + runner、single/pair 各两次；更多任务/squad/单 Claude+subagent/质量指标待做 | 2–3d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台最小版 | ⏳ 未做 | 审计/用量/会话检索/治理视图 | 2–4d |
 | 第二 runtime / worktree | ⏳ 未做 | OpenClaw/Codex adapter、worktree 隔离 | 3–5d |
@@ -199,6 +203,6 @@
 - triage 用规则还是小模型；预算/冷却默认值。
 - 真正沙箱/审批的边界（worktree/容器/工具白名单）。
 - 角色模板是否要版本化和团队共享。
-- **团队有效性**：还没有 6 人团队 vs 单 Claude/subagent 的同任务对照；需要设计 benchmark（质量/成本/人类干预）。
+- **团队有效性**：已有可重复 runner，但只跑了 single/pair 的 money-rounding 任务；6 人 squad 和“单 Claude+subagent”基线还没跑，质量指标也只有测试通过/未改。
 - **agent 自主建群/私聊**：现在房间只能人类创建，agent 只能在已有房间 @ 其他成员；是否允许 agent 发起 DM/群、需不需要人类批准，未定。
 - **agent 设置页拆分**：已从全局设置移到 Agents 页每个 agent 的「设置」；后续可做模板另存和批量操作。

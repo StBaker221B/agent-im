@@ -13,6 +13,9 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 # 1. 协议测试
 cd agent-im/spike && node --test          # 34 tests
 
+# 1b. 可重复团队 benchmark（需 app 在跑，真实成本）
+cd agent-im && node bench/run.mjs --task money-rounding --arms single,pair --runs 2
+
 # 2. 控制面 + gateway + API
 cd agent-im/app && npm start              # http://127.0.0.1:8790
 
@@ -34,6 +37,7 @@ npm run build                             # 然后打开 8790
 | `spike/` | 协议引擎 + 传输 + Claude adapter + 34 tests（无第三方依赖） |
 | `app/` | MVP 控制面 + gateway 宿主 + Web API（无第三方依赖） |
 | `web/` | React 19 + Vite 8 产品 UI |
+| `bench/` | 可重复团队 benchmark runner + 任务 fixture |
 | `docs/` | 正式文档；`docs/records/` 是过程记录 |
 | `CLAUDE.md` | 给后续 agent 的工作笔记：布局/命令/不变量/坑 |
 
@@ -65,7 +69,7 @@ npm run format       # 自动格式化
 
 ## 状态与限制
 
-- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、全局设置 + agent 独立设置页、头像资料、`human_all` 自行判断、自由讨论、**13 个角色模板 + 角色知识包 + 3 个团队模板 + 工具权限三档 + triage/用量/预算/暂停 + token 流 + 工具申请/批准 + 消息时间戳**、**自主修测试实验（工具 + coder/reviewer 闭环）**。
+- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、全局设置 + agent 独立设置页、头像资料、`human_all` 自行判断、自由讨论、**13 个角色模板 + 角色知识包 + 3 个团队模板 + 工具权限三档 + triage/用量/预算/暂停 + token 流 + 工具申请/批准 + 消息时间戳 + agent 软删除 + 可重复 benchmark**、**自主修测试实验（工具 + coder/reviewer 闭环）**。
 - 同一个 agent 跨房间共享记忆（一个 Claude session），但私聊内容不主动带到群聊，靠系统提示约束。
 - 限制：全局串行、执行前审批/强沙箱未做、不能硬删除/恢复 agent、不能移除成员、agent 不能自己建群/私聊、单人类、无 E2E 加密。
 - 成本：`human_all` 下每个 Claude agent 都会跑 turn；实测 4 turn 约 $0.146；triage/冷却/每日预算已做。

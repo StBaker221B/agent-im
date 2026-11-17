@@ -36,6 +36,9 @@ cd agent-im/web && npm install
 npm run dev                               # 5173，/api 代理到 8790
 npm run build                             # dist/，由 app 托管
 
+# 可重复团队 benchmark（需 app 在跑；会真实调用 Claude / 产生成本）
+cd agent-im && node bench/run.mjs --task money-rounding --arms single,pair --runs 2
+
 # 代码检查（app + web；spike 不参与格式化）
 cd agent-im && npm install                # 首次
 npm run check                             # eslint + prettier --check
@@ -67,6 +70,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - 成本：USD 来自 Claude CLI result 的 `total_cost_usd`，不是本地 token 单价换算；audit usage 求和。
 - agent 不能自己建群/找 agent 私聊；房间只由人类创建，agent 只能在已有房间 @ 其他成员。
 - Agent 软删除：`DELETE /api/agents/:id`；运行中 409；群 leave、DM 连人类一起 leave 并移除房间；status=deleted 隐藏，账号/Matrix 历史保留；Gateway removeAgent 停 sync/删 runtime/engine 成员。
+- Benchmark：`bench/run.mjs` 新建 agent/session、`cwd` 指向独立 workspace；只发一条人类任务，轮询测试+房间空闲，统计 audit 的 turns/USD/tools，跑完删房间/软删 agent。结果在 `app/data/bench/<runId>/results.json`（gitignored）。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 工具策略集中在 `app/tool-policy.mjs`：`toolsMode=off` 传 `--tools "" --permission-mode dontAsk`（`dontAsk` 单独仍会放行 Read）；可用集合由 `--tools` 决定，`--allowedTools` 同步；Gateway 建 runtime 时用 `mergeToolArgs` 重新应用，清理 state 里过期的工具 flag。批准的工具进 `agent.approvedTools`（单工具、持久，设置页可撤销），不改 `toolsMode`。
 - 流式：ClaudeAdapter `--include-partial-messages` 产出 `text_delta`；Gateway `onEvent` → Server SSE `GET /api/events` → UI 实时气泡。消息本身仍靠 Matrix + 轮询落库。
@@ -99,6 +103,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 数据/导入/默认提示/拼装 | `app/store.mjs`（`composeSystemPrompt`） |
 | 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
 | 团队模板 | `app/team-templates.mjs`（software-squad / review-squad / research-squad）+ `/api/team-templates` |
+| 团队 benchmark | `bench/run.mjs` + `bench/tasks/<id>/`；固定 fixture、fresh agent/session、自动评分/清理 |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 工具/workspace | `app/tool-policy.mjs` + state 里 agent 的 `cwd`/`extraArgs` |
 | 流式/SSE | `spike/src/claude-adapter.mjs` + `spike/src/gateway.mjs`（onEvent）+ `app/server.mjs` `/api/events` + `web/src/App.jsx` |

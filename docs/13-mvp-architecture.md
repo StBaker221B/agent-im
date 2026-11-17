@@ -135,8 +135,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
 | `GET /api/team-templates` | 团队模板（software-squad / review-squad / research-squad） |
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
-| `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
-| `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
+| `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
+| `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`；template/工具/提示/cwd 变更会重建 runtime；status/triage 即时生效 |
 | `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
 | `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
@@ -265,18 +265,20 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 工具权限仍是弱隔离；`full` 模式可写，reviewer 的只读靠 prompt，不是强沙箱。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
-- agent 的 cwd 默认是各自的空 workspace；实验时可以配共享沙箱，但要让它改真实仓库需要 worktree。
+- agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
+- benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次，squad 和“单 Claude+subagent”基线未跑。
 
 ## 10. 下一步
 
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
 3. 房间/agent 管理：暂停、软删除已完成；待做硬删除/undelete、移除成员、邀请人类、批量操作。
-4. 真正的第二 runtime（OpenClaw/Codex），验证异构。
-5. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
-6. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 34 个测试。
+4. 团队 benchmark：runner + money-rounding 已落地；待更多任务、squad、单 Claude+subagent 基线、质量指标。
+5. 真正的第二 runtime（OpenClaw/Codex），验证异构。
+6. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
+7. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 34 个测试。
 
-## 11. 验证记录（2026-11-16）
+## 11. 验证记录（2026-11-16 / 17）
 
 - spike：`node --test` → **34 tests pass**。
 - 真实 Tuwunel + 真实 Claude：
@@ -326,3 +328,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **设置拆分（2026-11-17）**：全局设置只剩系统/用量；每个 agent 在 Agents 页有独立「设置」，深链 `#/agents/<id>/settings`。
 - **团队模板（2026-11-17）**：software-squad 6 角色（含 BA）、review-squad 改为架构/评审/安全、research-squad 研究/写作；只验证了创建，未做完整团队效果对照。
 - **agent 软删除 PASS（2026-11-17）**：临时 `@tmpdel072896` + DM，DELETE 200；bootstrap 不再有 agent/DM；再次 DELETE 404；无模型调用/成本。
+- **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；都 5/5、测试未改，跑完 bench agent/房间为 0。

@@ -1,12 +1,12 @@
 # NEXT SESSION — Agent IM
 
 > 新会话从这里开始。不要重新调研，不要重复安装插件。
-> **MVP 第三轮已跑通：跨房间记忆、agent 真正读图、邀请/列表删除、头像资料、历史搜索、设置页；34 tests。下一步是成本控制、搜索索引、流式/审批、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
+> **MVP 已通：跨房间记忆、媒体、邀请/删除、搜索、设置拆分、13 角色模板 + 3 团队模板、triage/预算、流式、单工具审批、Agent 软删除、可重复 benchmark；34 tests。下一步是更多团队任务/squad 对照、agent 自主房间、worktree 沙箱、第二 runtime、数据平台。不要跳过 00 合同和 09 协议。**
 
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)、[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)。
+- 记录：[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)、[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)、[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)。
 - 已完成：
   - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -19,6 +19,7 @@
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/agent 设置页可选模板、预览、工具开关。
   - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
   - **团队 pilot**：同一小 bug，单 coder 1 turn/$0.2237/~16s；coder+reviewer 2 turns/$0.6690/~75s；都 5/5。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势；6 人小队未做完整对照。
+  - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；都 5/5、测试未改。squad/单 Claude+subagent 基线未跑。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
@@ -52,6 +53,8 @@ EOF
 cd d:/Git/learn && git status
 cd agent-im/spike && node --test          # 34 tests
 cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
+# 另开终端：可重复团队 benchmark（需 app 在跑，真实成本）
+cd d:/Git/learn/agent-im && node bench/run.mjs --task money-rounding --arms single,pair --runs 2
 ```
 
 3. 改了前端：`cd d:/Git/learn/agent-im/web && npm run build`（dev 用 `npm run dev`，5173 代理 `/api`）。
@@ -145,8 +148,9 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
 7. **角色真正的异构 + 工具沙箱**：现在 cwd/工具白名单只写在本地 state，reviewer 的只读靠 prompt；要给 coder worktree、reviewer 只读权限、researcher 资料/搜索，并做真正的沙箱/审批。
 8. 加第二个 runtime（本机 OpenClaw 或 Codex）验证异构。
 9. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
-10. 最后做“单 Claude + subagent”对比，作为 kill criterion。
-11. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
+10. 最后做“单 Claude + subagent”对比，作为 kill criterion；benchmark runner 已有，需要补外部基线 arm。
+11. 团队 benchmark v1 已完成（money-rounding、single/pair 各两次）；待更多任务、squad、外部基线、质量指标。
+12. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
 
 ## 不要做什么
 

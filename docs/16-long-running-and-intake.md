@@ -1,6 +1,6 @@
 # 16. 长期驻守、重启恢复与需求 intake
 
-- 状态：2026-11-17 需求草案 + v0 intake；完整长期运行机制未实现。
+- 状态：2026-11-17 需求草案 + intake v0 + 持久任务台账 v1；完整长期运行机制（recurring/turn 恢复/进程守护）未实现。
 - 关联：[00 合同 §16.2](00-requirements-contract.md) · [13 MVP 架构](13-mvp-architecture.md) · [14 角色与计划](14-role-templates-and-roadmap.md) · [记录 19](records/2026-11-17-19-long-running-intake.md)
 
 ## 1. 为什么
@@ -86,16 +86,17 @@ v0 已实现：`POST /api/intake` 确保一个 `@intake` 需求顾问、打开/�
 
 - `app/data/state.json` 保存 human/agents/rooms；重启恢复；
 - `gateway-state.json` 保存 sync since/processed；重启去重；
-- operator 启动脚本可重新拉起 app/Tuwunel；agent session 存在本地；
-- 已多次重启验证不重复回复。
+- `app/data/tasks.json` 持久任务台账：status/owner/room/dueAt/checkpoints；
+- 任务调度：启动 5s 后 + 每 30s 派发一次 pending+到期任务；active 重启不重发；
+- agent session 存在本地；已多次重启验证不重复回复。
 
 差距：
 
 - 进行中的 turn 崩溃会丢该轮回复（设计选择：不重跑，避免重复）；
-- 没有持久 task ledger / 检查点；
-- 没有定时器/触发/长任务恢复；
+- 任务只会派发一次，没有 recurring/cron、重试/退避、自动完成；
+- 没有 agent 侧 `TASK:`/`DONE:` 任务标记；
 - 没有进程守护/自动重启（可后续用 Windows 任务计划或 WSL systemd）；
-- 预算/暂停是内存 + state 部分，重启后预算花费从 audit 恢复，但任务状态没有。
+- 预算花费重启后从 audit 恢复；任务状态已持久化；但没有 turn 级检查点（只有任务级 checkpoint）。
 
 ## 5. 验收草案
 

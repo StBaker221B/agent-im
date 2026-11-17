@@ -1057,6 +1057,23 @@ async function handleApi(req, res, url) {
     return json(res, 200, await auditEvents(url.searchParams));
   }
 
+  if (req.method === "GET" && url.pathname === "/api/audit/export") {
+    let text;
+    try {
+      text = await readFile(join(dataDir, "audit.jsonl"), "utf8");
+    } catch {
+      text = "";
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    res.writeHead(200, {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Content-Disposition": `attachment; filename="agentim-audit-${stamp}.jsonl"`,
+      "Cache-Control": "no-store",
+    });
+    res.end(text);
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/admin/pause-all") {
     const body = await readBody(req);
     return json(res, 200, await setAllPaused(Boolean(body.paused)));

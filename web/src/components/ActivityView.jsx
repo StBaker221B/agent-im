@@ -101,6 +101,9 @@ export default function ActivityView({ data, onBack }) {
             ? `刷新于 ${new Date(updatedAt).toLocaleTimeString("zh-CN", { hour12: false })}`
             : "加载中…"}
         </span>
+        <a className="ghost activity-export" href="/api/audit/export" download>
+          导出 JSONL
+        </a>
       </div>
 
       {error && <p className="form-error">{error}</p>}

@@ -1,5 +1,6 @@
 # 05 路线图
 
+> **历史文件**：早期 4 周路线图；当前状态与计划见 [19 审视](19-product-and-architecture-review.md) 与 [14 路线图](14-role-templates-and-roadmap.md)。
 - 状态：草案（2026-11-15）
 - 关联：[需求](01-requirements.md) · [架构](03-architecture.md) · [待确认](06-open-questions.md)
 

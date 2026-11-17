@@ -1,0 +1,171 @@
+# 19. 产品与架构审视（2026-11-18）
+
+- 状态：审视结论 + 下一阶段计划。
+- 依据：00/01/03/04/05/06/09/13/14/16/17/18、NEXT-SESSION、README/CLAUDE、近期 records 29；三份只读审计（产品定义、代码架构、功能/路线图）。
+- 关联：[15 术语表](15-glossary.md) · [13 当前架构](13-mvp-architecture.md) · [14 路线图](14-role-templates-and-roadmap.md) · [16 长期驻守](16-long-running-and-intake.md) · [17 任务台账](17-task-ledger.md)
+
+## 0. 结论
+
+- **核心成立**：对等 agent、身份与进程解耦、投递与唤醒分离、透明审计、长期驻守 + 任务台账，这条主线是清楚的。
+- **现状**：M3（gateway + Claude + script peer）已完成；M7 大部分完成（去重、预算 skip、硬 kill）；M1/M2/M4/M5 部分；M6（worktree + merge）缺失。
+- **产品今天更像“单管理员 coding IM”**；长期驻守只到 v1（状态 + 任务台账），还不够可信。
+- **团队价值未证明**：同一小任务 pair 约 6.8× 成本、squad 约 22× 且 362s 超时，质量同为 5/5；在拿到对照数据前，不应继续扩角色/团队模板。
+- **最大风险**：范围漂移成通用 IM/工作流引擎；以及服务端/API/UI/状态层缺乏测试。
+
+## 1. 软件定义（建议以此为准）
+
+**一句话**：Agent IM 是一个本地优先、透明可审计的“人 + 常驻 agent 团队”协作环境；agent 是有永久身份、记忆、任务和预算的参与者，不是一次性工具调用。
+
+**是**：
+
+- 平的 peer 图：人和 agent 都是 participant；没有 main 管家。
+- 常驻身份 + agent home + 跨房间 session；人对 agent 有治理权。
+- 房间对话 + 持久任务台账 + 检查点 + 审计/成本 + 审批/暂停/kill。
+- 一人公司 / 稳定业务流的长期运行环境。
+
+**不是**：
+
+- 不是通用 IM/微信/飞书替代品；
+- 不是 BPM/工作流引擎（任务台账是“持久待办 + 派发”，不是 DAG 编排）；
+- 不是模型网关/推理服务；
+- 不是中心化主 agent 调度器；
+- v0 不是多租户 SaaS、不做 A2A/federation、不做移动优先。
+
+**核心循环**：
+
+```text
+问题 → intake 评估（single/pair/squad） → 人确认
+     → 房间讨论 / 任务台账 → agent turn（工具/审批）
+     → 审计/成本/检查点 → 完成/阻塞/失败
+     → 重启后任务与状态恢复
+```
+
+**成功指标（建议）**：
+
+- 72h soak：3 次重启，0 重复回复、0 静默丢任务；
+- 目标任务完成率/质量不低于单 Claude+subagent，成本 ≤2×，或人类干预更少；
+- 任何停止状态（paused/budget/killed/failed）都有明确恢复动作。
+
+**kill criterion（建议）**：同一组任务（简单修 bug、多文件需求、3 天重复业务流、研究决策）对比单 Claude Code + subagent；若 3/4 任务无质量优势且成本 >2×，或 72h soak 失败，则停止扩团队，转为“单常驻 agent + 治理/可观测层”。
+
+## 2. 需求状态矩阵
+
+| 需求 | 状态 | 缺口 |
+|---|---|---|
+| M1 身份/生命周期 | 部分 | idle/sleeping/disabled、硬删/恢复、multi-instance；agent home 仍偏薄 |
+| M2 DM/群/@/thread/reply/历史 | 部分 | thread 面板、@未读、reaction、搜索分页；reply 已做 |
+| M3 gateway + Claude + script | 完成 | 需要 conformance/更多回归 |
+| M4 自主群聊 | 部分 | decision/proposal/consensus 有引擎/文档，无 UI/持久 artifact |
+| M5 数据平台最小版 | 部分 | 活动/用量/导出/暂停/kill 有；回放、merge/deploy 审批、告警缺 |
+| M6 worktree + merge | **缺失** | 共享 cwd；无 branch/合并人类批准 |
+| M7 重启去重/预算/kill | 大部分 | 硬 kill 有但不持久；预算仍是 PASS skip，不是硬停+通知 |
+| S1/S2 第二 runtime | 缺失 | 仅 Claude/script |
+| S3 Directory/card | 部分 | 模板/roles；无 card API、能力搜索、who_can_help 落地 |
+| S4 Cron/触发 | 部分 | 固定 interval；无 cron/补跑 |
+| S5 审计回放 | 部分 | JSONL 导出；无回放/范围查询 |
+| S6 通知 | 部分 | 桌面未读；无 @/审批/失败/预算/飞书 |
+| 长期任务台账 | v1 | 状态/重复/TASK-DONE-BLOCK-FAIL/重启不重发；无 retry/升级/turn 恢复/守护 |
+| 多用户/auth | 缺失 | 单人类、loopback、无 ACL |
+
+## 3. 文档体系：问题与调整
+
+问题：
+
+- 00 声称唯一口径，但 01/03/04/05/06 仍是 2026-11-15 草案，含已废弃的 Docker/Synapse/AppService/per-agent gateway 方案，没有 superseded 标记。
+- 06 仍写“待回答”，但 Q1/Q2/Q3/Q10 已在 00 确认；01 §9 重复。
+- 状态散落在 00/05/09/13/14/NEXT/README/CLAUDE，互相矛盾（例如 README 仍说不能移除成员；09 §14.3 说无流式/审批；14 用旧 `toolsEnabled`）。
+- 编号 07/08/15 空缺；无 `docs/README.md`；records 的全局序号与按日期文件名规则冲突。
+- 缺 API reference、运维 runbook（RTO/RPO、恢复演练、升级、token 轮换）、独立 glossary、ADR、threat model、UX spec、runtime conformance suite。
+
+本次调整：
+
+- 新增本文 + [15 术语表](15-glossary.md) + [docs/README.md](README.md) 索引。
+- 01/03/04/05/06 加“历史/已废弃，以 00/13/14 为准”标记。
+- 13/14/NEXT/README 的重复状态改为“详见本文 §2”，不再各自维护。
+- 后续：API reference、ops runbook、ADR（Tuwunel 选择、sessionScope、软删除、loopback 无 auth、任务台账边界）。
+
+## 4. 功能设计：过度与缺口
+
+**过度/冻结**：
+
+- 13 角色 + 13 知识包 + 3 团队模板 + 6 人 squad：benchmark 显示过度；冻结扩角色，保留 4–6 个常用。
+- 合作式 post-turn 工具“审批”不是安全边界；不要继续扩 UX，后续要么执行前 gating，要么明确标注“合作式”。
+- 任务台账不要长成 DAG/工作流引擎；保持“待办 + 派发 + 检查点 + 人升级”。
+- intake 一键建队暂缓到推荐准确率/团队收益有数据；保留人类确认。
+- 通用 IM/多用户/飞书/移动/E2E 后置。
+
+**A–F 最小切片**（详见 §7）：
+
+- A 治理：统一事件、审批收件箱、task/thread 回放、预算/失败告警。
+- B 长期：cron/补跑、retry/backoff/升级、turn “需关注”、守护进程、72h soak。
+- C IM：thread 面板、@未读+深链、agent 房间策略、decision/proposal UI。
+- D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
+- E 隔离：worktree/branch、OS 只读 reviewer、merge 审批、一个非 Claude adapter。
+- F UX：onboarding、intake 确认/一键、任务详情、停止状态恢复、搜索分页。
+
+## 5. 代码架构：现状与改进
+
+**热点**：
+
+- `app/server.mjs` 1431 行：单例副作用 + 路由 + 领域操作 + bootstrap + SSE + 审计扫描 + 静态文件，不可注入/测试。
+- `spike/src/gateway.mjs` 866 行：sync/ingest/turn/意图映射/task 回调/triage/媒体/持久化混在一起；全局串行队列。
+- `web/src/App.jsx` 806 行：路由/全量状态/2.5s bootstrap/1.5s 消息轮询/SSE 合并/所有 mutation。
+- `store.mjs` 混合持久化/迁移/spike 导入/prompt/知识 IO；app↔spike 无接口，靠 host switch runtime。
+
+**本次已修（Phase 0）**：
+
+- turn 超时后 `grantNext` 的 grant 没有派发 → 队列会静默卡死；引擎 tick 现在返回 `granted`，gateway 入队 dispatch，并加回归测试。
+- 手动 `dispatch` 忽略任务状态 → 现在只允许 pending/blocked，防重复派发。
+- 硬 kill 恢复会把手动暂停的 agent 也激活 → 现在 kill 前快照状态，恢复按快照。
+- 状态文件非原子写 → store/tasks/gateway 改用 temp+rename 原子写。
+- API 无 Origin/Host 防护 → 现在拒绝非 127.0.0.1/localhost/5173 的 Host/Origin（可用 `AGENT_IM_ALLOWED_ORIGINS` 扩展）。
+- 任务 BLOCK/FAIL 写回、通知、回复、硬 kill 等文档补齐。
+
+**仍待修**：
+
+- Phase 1（2–3d）：拆 `server.mjs` 为 `createApp(deps)` + `http/` + `services/`；store 拆 persistence/migration/prompt/import；API 测试 harness。
+- Phase 2（3–5d）：拆 gateway 为 sync/ingest/turn/outbound/triage/media/state；加 runtime registry；scheduler 先 characterization 再拆。
+- Phase 3：App.jsx → hooks + views；ChatView 拆 header/list/composer。
+- Phase 4：ImTransport contract、workspace_id、role+scope middleware、audit store rotation/query、env config。
+- 不急着动：floor/quiescence/consensus 语义、Matrix wire、角色模板内容、UI 状态库。
+
+## 6. 安全 / 运维 / 测试
+
+- API 目前仍无登录；Origin/Host 只是本机网页防护，不防本机恶意进程。state/backup 含明文 token；audit 含消息/命令；`/api/audit` 可读。多用户前必须做 auth/ACL/token 轮换。
+- 工具隔离仍是 prompt/allowlist；worktree/容器/执行前审批未做。
+- 测试：38→39 个 spike tests；仍无 app API/store/gateway-host/SSE/UI 测试、无 CI。
+- 下一步测试：`createApp` + temp data + MockRuntime；超时→派发、kill/resume 快照、原子写/损坏 JSON、任务状态机；Vitest 覆盖 mergeMessages/路由/审批；一条 env-gated 真实 Tuwunel smoke；后 Playwright happy path。
+- 运维：备份非一致性快照；无定时/异地/加密；恢复不跑 smoke；无守护进程；日志无限增长；401 retry 永不放弃。
+
+## 7. 路线图（建议）
+
+**2 周**
+
+- W1（B）：scheduler v2（nextRunAt/cron、错过补跑一次、retry/backoff、失败升级）、crash-turn “needs attention”、start-agent 守护、72h soak 开始。
+- W2（A + 证明）：事件 schema、审批收件箱、task/thread 回放、预算/失败告警；benchmark 加“单 Claude+subagent”基线 + 2 个任务，N=3，写决策 memo。
+- 里程碑：72h/3 重启/0 重复/0 静默丢任务；kill-criterion 数据存在。
+
+**6 周**
+
+- W3（E）：worktree/branch + merge 审批 + OS 只读；coding pilot。
+- W4（C+D）：thread 面板、@未读/深链、agent 房间策略；API auth/roles（若决定多用户）。
+- W5：一个第二 runtime conformance + onboarding/intake 一键（人类确认）+ workspace_id seam。
+- W6：7 天 soak、完整 benchmark matrix、go/no-go、打包/文档。
+- 顺序：B → A → E → C → D；F 持续穿插。
+
+## 8. 需要你定夺的 5 件事
+
+1. **六周租户模型**：单人类本机（D 后置），还是第二人类/远程（D 提前，auth/ACL/workspace_id 变阻塞）？
+2. **人类离线自治**：哪些动作可无人值守、每日/任务预算上限、审批超时是暂停还是等待？
+3. **agent 主动联系**：allowlist、审批-only、能否 DM 非 owner 人类？（当前实现是审批-only）
+4. **隔离底线**：prompt 只读是否够，还是 resident coding 前必须 worktree/OS 沙箱？M6 是否也适用于非编码业务流？
+5. **kill criterion 数字**：基线、任务集、质量 delta、成本倍数、人类干预阈值、soak 时长。
+
+在回答前，默认按：单人类本机、审批-only、prompt 只读先标注为弱隔离、成本 >2× 且无质量优势即不扩团队。
+
+## 9. 下一步（本次审视后）
+
+1. 先修 Phase 0 关键 bug（本次已修 timeout/manual dispatch/kill snapshot/atomic/Origin）。
+2. 按 W1 做 B 的 scheduler v2 + 72h soak；同时补 API 测试 harness。
+3. W2 做 A 的审批/告警/回放 + benchmark 基线。
+4. 再按 E → C → D，F 穿插。

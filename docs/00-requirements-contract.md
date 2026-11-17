@@ -1,5 +1,7 @@
 # 00 需求合同（草案）
 
+> **2026-11-18 审视**：当前实现状态、已知冲突、待决策和下一阶段计划见 [19](19-product-and-architecture-review.md)；本文件部分 v0 理想条款（M6/worktree、预算硬停、agent 主动建房等）尚未实现，以 19 的状态矩阵为准。
+
 - 状态：草案 2026-11-15（2026-11-16 补充宿主决定）。A–D/F/E/G 已确认；H1 本机先搞；H2 已装 `spec-driven-development`（addyosmani）；Matrix 宿主 = WSL2 + Tuwunel（[12](12-matrix-host-wsl.md)）。
 - 本文是 v0 的唯一需求口径；确认后 01/03/05/06 以本文为准。
 - 来源：[01 需求](01-requirements.md) · [03 架构](03-architecture.md) · [04 接入](04-agent-integration.md) · [过程记录：需求澄清](records/2026-11-15-02-clarifications.md) · [过程记录：第二轮答复](records/2026-11-15-03-answers-round2.md) · [过程记录：第三轮答复](records/2026-11-15-04-answers-round3.md)

@@ -5,10 +5,12 @@
 ## 先读
 
 1. `NEXT-SESSION.md` — 当前暂停点、下一步、不要做什么
-2. `docs/00-requirements-contract.md` — 唯一需求口径
-3. `docs/09-agent-protocol.md` — 投递/唤醒/floor/收敛/共识；§14 是实现状态
-4. `docs/13-mvp-architecture.md` — 当前 MVP 的组件、数据、API、流程
-5. `docs/12-matrix-host-wsl.md` — WSL2 + Tuwunel 安装与排障
+2. `docs/19-product-and-architecture-review.md` — 产品与架构审视、状态矩阵、A–F 计划
+3. `docs/15-glossary.md` — 术语
+4. `docs/00-requirements-contract.md` — 唯一需求口径
+5. `docs/09-agent-protocol.md` — 投递/唤醒/floor/收敛/共识；§14 是实现状态
+6. `docs/13-mvp-architecture.md` — 当前 MVP 的组件、数据、API、流程
+7. `docs/12-matrix-host-wsl.md` — WSL2 + Tuwunel 安装与排障
 
 过程记录在 `docs/records/`，可以追加/修改；正式文档在 `docs/0X-*.md`。
 
@@ -26,7 +28,7 @@ agent-im/
 
 ```bash
 # 协议测试（改 scheduler/gateway/transport 后必跑）
-cd agent-im/spike && node --test          # 38 tests
+cd agent-im/spike && node --test          # 39 tests
 
 # MVP 服务（需要 Tuwunel 在 8008）
 cd agent-im/app && npm start              # http://127.0.0.1:8790

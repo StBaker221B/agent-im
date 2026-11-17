@@ -1,7 +1,7 @@
 # 13 MVP 架构：控制面 + 产品 UI
 
-- 状态：2026-11-16 首个可运行 MVP（真实 Matrix + 真实 Claude + 自建网页）。
-- 关联：[00 需求合同](00-requirements-contract.md) · [09 Agent 协议](09-agent-protocol.md) · [12 Matrix 宿主](12-matrix-host-wsl.md) · [过程记录 05](records/2026-11-16-05-mvp.md)
+- 状态：2026-11-18 当前可运行 MVP；功能/需求状态以 [19 §2](19-product-and-architecture-review.md#2-需求状态矩阵) 为准。
+- 关联：[00 需求合同](00-requirements-contract.md) · [09 Agent 协议](09-agent-protocol.md) · [12 Matrix 宿主](12-matrix-host-wsl.md) · [19 审视](19-product-and-architecture-review.md)
 - 目标：把协议 spike 变成可日常使用的产品骨架——会话列表、私聊/群聊、创建 agent、消息由 agent 自行判断是否回复。
 - 非目标（v0 不做）：多人类用户、权限后台、硬删除/归档恢复、E2E 加密、公网访问、真正的执行前审批/强沙箱。
 
@@ -263,6 +263,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 ## 8. 安全边界
 
 - Tuwunel 只绑 `127.0.0.1:8008`；MVP 服务只绑 `127.0.0.1:8790`；不要 bind `0.0.0.0`。
+- `/api` 增加 Host/Origin 允许列表（127.0.0.1/localhost/5173，`AGENT_IM_ALLOWED_ORIGINS` 可扩展），拒绝 DNS rebinding/跨站网页调用；但**没有登录/ACL**，本机进程仍被信任。
+- `state.json`/`tasks.json`/gateway-state 用 temp+rename 原子写，降低崩溃截断风险；仍无 schema 版本迁移。
 - Matrix token 只在 `app/data/state.json` 和服务端内存；浏览器拿不到。
 - `app/data/` 和 `spike/.tmp/` 都 gitignored。不要把 state.json/日志/token 提交。
 - 注册 token 只用于初始化；需要时可以关闭 `[global.registration] enable`。
@@ -304,11 +306,11 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
 6. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 7. 数据平台最小版：活动/审计只读页、用量、全局暂停已完成；待做导出/回放、硬 kill、预算/失败告警。
-8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 38 个测试。
+8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 39 个测试。
 
 ## 11. 验证记录（2026-11-16 / 17）
 
-- spike：`node --test` → **38 tests pass**。
+- spike：`node --test` → **39 tests pass**。
 - 真实 Tuwunel + 真实 Claude：
   - 新建 agent `@researcher` → 自动建 DM → 发消息 → Claude 回复。
   - 新建群「讨论组」（claude-dev + researcher）→ 不 @ 发一条 → **两个 agent 都收到并各自回复**。
@@ -363,4 +365,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。
 - **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。
 - **消息回复 PASS（2026-11-18）**：script-peer DM 第一条 → 第二条带 replyTo → 消息拉回 replyTo 指向第一条、thread=main、父文本正确。
-- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 4 个单测，spike 38 tests。
+- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 4 个单测，spike 39 tests。

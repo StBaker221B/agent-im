@@ -1,5 +1,6 @@
 # 14 角色模板与开发计划
 
+- 状态矩阵与剩余计划以 [19](19-product-and-architecture-review.md) 为准。
 - 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
@@ -107,7 +108,7 @@
    - 公司经营：operations
 2. 每张卡带：mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria / defaultWakePolicy。
 3. `app/role-knowledge/<id>.md`：13 份角色知识包（工作方法、检查清单、权责、使用者预期、常见失败）。
-4. `GET /api/role-templates`；`POST /api/agents` / `PATCH /api/agents/:id` 接受 `templateId`、`toolsEnabled`。
+4. `GET /api/role-templates`；`POST /api/agents` / `PATCH /api/agents/:id` 接受 `templateId`、`toolsMode`。
 5. 新建 agent：模板选择 + 角色卡预览 + 个人补充 + 工具开关；每个 agent 的设置页支持换模板。
 6. 资料页/Agents 页显示模板名和 mission。
 7. 现有 agent 迁移 `templateId`；`composeSystemPrompt` = base + 角色卡 + 角色知识包 + agent 私有 knowledge。
@@ -168,7 +169,7 @@
 5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
 6. Agent/房间生命周期：暂停（`paused_skip`）、软删除、移除群成员、agent 申请房间已完成；硬删除/undelete、邀请人类、批量操作待做。
 7. 长期驻守/intake：需求在 [16](16-long-running-and-intake.md)；v1 有 `@intake`、任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE、重启不重发；待做 cron/补跑、失败重试/升级、turn 恢复、按 `RECOMMEND` 一键建队。
-7. 数据平台/治理：活动/审计只读页、用量、全局暂停已完成；待导出/回放、硬 kill、预算/失败告警、会话检索。
+8. 数据平台/治理：活动/审计只读页、用量、全局暂停/硬 kill 已完成；待导出/回放、预算/失败告警、会话检索。
 
 **第 3 周：异构与多用户**
 

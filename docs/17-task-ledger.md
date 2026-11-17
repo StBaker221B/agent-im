@@ -95,7 +95,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
   - 不会在 next due 前重复派发；随后取消。
 - Agent 全链路 `task-mwktqtce-4b6c34`：PM 输出 `TASK:` → 任务创建（owner=PM, dueAt=null）→ 手动派发 active → PM 输出 `DONE:` → 任务自动 done，checkpoint 记录 `agent DONE`。
 - 阻塞测试：PM 回 `BLOCK: 缺少信息` → 任务 blocked、lastError=缺少信息、checkpoint `agent BLOCK`、消息 intent=blocked。
-- 新增 4 个 TaskStore 单测：持久化、due/dispatch、recurring next、checkpoint/非法更新；spike 共 **38 tests**。
+- 新增 4 个 TaskStore 单测：持久化、due/dispatch、recurring next、checkpoint/非法更新；spike 共 **39 tests**。
 
 ## 7. 边界
 

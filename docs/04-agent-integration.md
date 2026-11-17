@@ -1,5 +1,6 @@
 # 04 Agent 接入
 
+> **历史文件**：早期 adapter 契约；当前 runtime/adapter 以 [09 协议](09-agent-protocol.md) 与 [13 架构](13-mvp-architecture.md) 为准。
 - 状态：草案（2026-11-15）
 - 关联：[架构](03-architecture.md) · [需求](01-requirements.md)
 

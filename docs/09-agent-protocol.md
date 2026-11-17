@@ -344,7 +344,8 @@ type RuntimeCapabilities = {
   - 解析 `system/init`、`assistant`（text / tool_use）、`user`（tool_result）、`result`（usage / cost）。
 - `spike/src/script-peer.mjs`：确定性脚本 participant，实现同一 runtime 契约。
 - `spike/src/reply.mjs`：共享 `buildAgentPrompt` / `parseReply`（PASS / ASK_HUMAN / DONE）。
-- `capabilities`：`streaming=false`、`interrupt=true`、`resume=true`、`approval=false`、`tools=true`、`multi_session=true`。
+- `capabilities`：`streaming=true`（partial text_delta）、`interrupt=true`、`resume=true`、`approval=true`（合作式工具申请，不是执行前 gating）、`tools=true`、`multi_session=true`。
+- `parseReply` 支持 PASS / ASK_HUMAN / DONE / REQUEST_TOOL / REQUEST_ROOM / TASK / BLOCK / FAIL。
 
 ### 14.2 Transport / gateway（新增）
 
@@ -364,7 +365,7 @@ type RuntimeCapabilities = {
 
 ### 14.3 实测
 
-- **38 个测试通过**：15 引擎（含 `human_all` / agent 链上限）+ 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）+ 7 工具策略（off 硬拒绝/单工具 grant/merge）+ 4 任务台账（持久化/due/checkpoint/重复）。
+- **39 个测试通过**：16 引擎（含 `human_all` / agent 链上限 / timeout 派发）+ 2 adapter 解析 + 4 gateway + 4 Matrix transport + 1 setup-matrix + 1 gateway×Matrix 集成（mock homeserver）+ 7 工具策略（off 硬拒绝/单工具 grant/merge）+ 4 任务台账（持久化/due/checkpoint/重复）。
 - 假总线端到端 demo（`npm run gateway-demo`）：群 @mention → Claude(mock) → script peer → PASS → quiescent；DM；主动发言；重启不重跑旧消息、停机期间消息只处理一次；全过。
 - 真实 Claude gateway demo（`npm run gateway-demo-claude`）：in=1381 out=648，成本 **$0.059228**；4 条消息后 quiescent。
 - **真实 Matrix E2E 通过（2026-11-16，WSL2 + Tuwunel 2.0.0）**：
@@ -378,7 +379,7 @@ type RuntimeCapabilities = {
   - 全局队列：不同 thread 暂不并行。
   - 崩溃在 turn 中间：该轮回复会丢（入站先标记已消费），不会重复；v0 接受。
   - thread root 只水合一条；长 thread 的上下文以 native session 为准。
-  - 工具审批、真正的流式输出还没做；真实 Matrix 上的审批同样没验证。
+  - 工具审批是 turn 后合作式，不是执行前拦截；流式只流最终文本 delta，不流工具参数/思考。
   - Tuwunel 目前是 `nohup` 常驻，还没做开机自启（任务计划程序或 systemd）。
   - CLI 冷启动约 1–2s；stderr 有 `[claude-code:unrecognized_model]` 警告，不影响运行。
 

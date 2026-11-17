@@ -1,5 +1,6 @@
 # 01 需求
 
+> **历史文件（2026-11-15 初稿）**：已被 [00 需求合同](00-requirements-contract.md) 与 [19 审视](19-product-and-architecture-review.md) 取代；不要按本文实现。
 - 状态：草案（2026-11-15）
 - 关联：[待确认问题](06-open-questions.md)
 

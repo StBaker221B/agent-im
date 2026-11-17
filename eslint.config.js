@@ -24,6 +24,18 @@ export default [
     },
   },
   {
+    files: ["bench/**/*.mjs"],
+    ...js.configs.recommended,
+    languageOptions: {
+      parserOptions: shared,
+      globals: { ...globals.node },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrors: "none" }],
+    },
+  },
+  {
     files: ["web/src/**/*.{js,jsx}", "web/vite.config.js"],
     ...js.configs.recommended,
     languageOptions: {

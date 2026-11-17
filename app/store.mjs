@@ -313,6 +313,7 @@ export class Store {
         dailyBudgetUsd: Number(a.dailyBudgetUsd ?? 0),
         triage: a.triage ?? {},
         approvedTools: a.approvedTools ?? [],
+        cwd: a.cwd ?? null,
         status: a.status,
       };
     });

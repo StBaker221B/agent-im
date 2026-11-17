@@ -336,6 +336,11 @@ async function createAgent(body) {
   const roles = [...new Set([template.id, ...tags])];
   const toolsMode = runtime === "claude" ? toolsModeOf(body, "template") : "off";
   const toolsEnabled = toolsMode !== "off";
+  let cwd = null;
+  if (body.cwd) {
+    cwd = resolve(String(body.cwd));
+    if (!existsSync(cwd)) throw Object.assign(new Error("cwd not found"), { status: 400 });
+  }
   validateUsername(username);
 
   const password = randomBytes(18).toString("base64url");
@@ -367,6 +372,7 @@ async function createAgent(body) {
     approvedTools: [],
     status: "active",
     agentHome: join(dataDir, "agents", username),
+    ...(cwd ? { cwd } : {}),
     createdAt: new Date().toISOString(),
   };
   store.addAgent(agent);
@@ -457,6 +463,17 @@ async function updateAgent(agentId, body) {
       throw Object.assign(new Error("bad dailyBudgetUsd"), { status: 400 });
     patch.dailyBudgetUsd = value;
   }
+  let cwdChanged = false;
+  if (body.cwd !== undefined) {
+    if (body.cwd) {
+      const next = resolve(String(body.cwd));
+      if (!existsSync(next)) throw Object.assign(new Error("cwd not found"), { status: 400 });
+      patch.cwd = next;
+    } else {
+      patch.cwd = null;
+    }
+    cwdChanged = true;
+  }
   if (body.status !== undefined) {
     if (!["active", "paused"].includes(body.status))
       throw Object.assign(new Error("bad status"), { status: 400 });
@@ -481,7 +498,7 @@ async function updateAgent(agentId, body) {
     if (patch.status) engineAgent.paused = patch.status === "paused";
     if (templateChanged) engineAgent.role = template.role;
   }
-  if (promptChanged || templateChanged || toolsChanged) await host.updateAgent(agent);
+  if (promptChanged || templateChanged || toolsChanged || cwdChanged) await host.updateAgent(agent);
   log(`[app] agent updated ${agent.id}`);
   return {
     id: agent.id,

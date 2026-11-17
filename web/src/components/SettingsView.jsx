@@ -4,7 +4,7 @@ import Icon from "./Icon";
 
 const USD = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
 
-export default function SettingsView({ data, onPauseAll, onBack }) {
+export default function SettingsView({ data, notifications, onToggleNotifications, onPauseAll, onBack }) {
   const [usage, setUsage] = useState(null);
 
   useEffect(() => {
@@ -58,6 +58,18 @@ export default function SettingsView({ data, onPauseAll, onBack }) {
             </dd>
           </div>
         </dl>
+      </div>
+
+      <div className="settings-section">
+        <h3>通知</h3>
+        <p className="settings-note">
+          开启后，标签页在后台且有新的未读消息时会弹桌面通知；需要浏览器授权。当前不做 @ 单独提醒。
+        </p>
+        <div className="settings-actions">
+          <button type="button" className="ghost" onClick={() => onToggleNotifications?.()}>
+            {notifications ? "关闭桌面通知" : "开启桌面通知"}
+          </button>
+        </div>
       </div>
 
       <div className="settings-section">

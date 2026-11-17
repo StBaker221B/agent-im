@@ -57,9 +57,16 @@ export default function App() {
   const [modalError, setModalError] = useState("");
   const [toast, setToast] = useState("");
   const [mobilePane, setMobilePane] = useState("list");
+  const [notifications, setNotifications] = useState(
+    () =>
+      localStorage.getItem("agentim.notifications") === "1" &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "granted",
+  );
 
   const markKeyRef = useRef("");
   const toastRef = useRef({ msg: "", at: 0 });
+  const notifiedRef = useRef(null);
 
   const notify = useCallback((msg) => {
     const now = Date.now();
@@ -167,6 +174,48 @@ export default function App() {
     const timer = setTimeout(() => setToast(""), 6000);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!notifications || !data || !document.hidden) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    const candidates = data.rooms.filter(
+      (room) => room.unread > 0 && room.lastMessage && room.lastMessage.sender !== data.human.id,
+    );
+    if (!candidates.length) return;
+    const latest = [...candidates].sort(
+      (a, b) => (b.lastMessage.createdAt ?? 0) - (a.lastMessage.createdAt ?? 0),
+    )[0];
+    if (notifiedRef.current === latest.lastMessage.id) return;
+    notifiedRef.current = latest.lastMessage.id;
+    try {
+      new Notification(latest.name, {
+        body: `${latest.lastMessage.displayName || latest.lastMessage.senderName}: ${String(
+          latest.lastMessage.text ?? "",
+        ).slice(0, 140)}`,
+        tag: latest.id,
+      });
+    } catch {
+      // notification permission may have been revoked
+    }
+  }, [data, notifications]);
+
+  async function toggleNotifications() {
+    if (notifications) {
+      setNotifications(false);
+      localStorage.setItem("agentim.notifications", "0");
+      notify("桌面通知已关闭");
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      notify("当前浏览器不支持桌面通知");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    const enabled = permission === "granted";
+    setNotifications(enabled);
+    localStorage.setItem("agentim.notifications", enabled ? "1" : "0");
+    notify(enabled ? "桌面通知已开启" : "未获得通知权限");
+  }
 
   useEffect(() => {
     document.title = data?.totalUnread ? `(${data.totalUnread}) Agent IM` : "Agent IM";
@@ -597,7 +646,13 @@ export default function App() {
             onBack={() => setMobilePane("list")}
           />
         ) : view === "settings" ? (
-          <SettingsView data={data} onPauseAll={pauseAll} onBack={() => setMobilePane("list")} />
+          <SettingsView
+            data={data}
+            notifications={notifications}
+            onToggleNotifications={toggleNotifications}
+            onPauseAll={pauseAll}
+            onBack={() => setMobilePane("list")}
+          />
         ) : activeRoom ? (
           <ChatView
             key={activeRoom.id}

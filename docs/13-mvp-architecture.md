@@ -135,6 +135,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
 | `PATCH /api/rooms/:id` | `{mode}`；legacy 兼容，当前无 UI、不再影响行为（自由讨论默认） |
 | `POST /api/rooms/:id/members` | `{agentIds[]}`；邀请 agent 加入群聊（DM 不允许） |
+| `DELETE /api/rooms/:id/members/:agentId` | 群聊移除 agent；运行中 409；DM 用删除会话 |
 | `DELETE /api/rooms/:id` | human 和所有 agent 离开房间，从 store/engine 移除 |
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
@@ -292,7 +293,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
-3. 房间/agent 管理：暂停、软删除已完成；待做硬删除/undelete、移除成员、邀请人类、批量操作。
+3. 房间/agent 管理：暂停、软删除、移除群成员已完成；待做硬删除/undelete、邀请人类、批量操作。
 4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE/重启不重发已完成；待 cron/补跑、失败/阻塞标记、重试、turn 恢复、进程守护。
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
 6. 真正的第二 runtime（OpenClaw/Codex），验证异构。
@@ -313,6 +314,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 - **跨房间记忆 PASS**：私聊说暗号 → 群里问，它记得但按隐私规则拒绝在群里复述；群里说发布代号 `海豚-7` → 私聊问，直接答出。
 - **邀请成员 PASS**：`POST /api/rooms/:id/members` 把 researcher 加进群，成员表更新。
+- **移除成员 PASS（2026-11-17）**：临时群 human+script-peer+intake，DELETE script-peer 返回 200；bootstrap 成员变为 human+intake；engine 成员同步；随后删除房间。第一次 `syncRoom` 用已离开 client 导致 403，改为 `removeRoomMember` 后复测通过。
 - **图片消息 PASS**：SVG 上传 → `m.image` → `/api/media` 返回 `image/svg+xml` 346 bytes。
 - **删除会话 PASS**：测试群删除后 `bootstrap` 不再出现。
 - **UI**：`+` 只负责新建会话；新建 agent 拆成独立弹窗；群聊头部有「邀请」和删除按钮。

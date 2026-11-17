@@ -75,6 +75,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `POST /api/rooms/:id/read` `{ts}`
 - `POST /api/rooms` `{kind:"dm",agentId}` / `{kind:"group",name,agentIds}`
 - `PATCH /api/rooms/:id` `{mode:"brief"|"discussion"}` — 讨论模式
+- `DELETE /api/rooms/:id/members/:agentId` — 群聊移除 agent（运行中 409；DM 用删除会话）
 - `POST /api/rooms/:id/members` `{agentIds}` — 邀请 agent 进群
 - `DELETE /api/rooms/:id` — 所有本地成员 leave，从列表移除
 - `POST /api/rooms/:id/upload` `{filename,contentType,data(base64)}` — ≤8MB

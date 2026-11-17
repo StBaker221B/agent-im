@@ -1,6 +1,6 @@
 # Agent IM Web
 
-React 19 + Vite 8 的单页产品界面：会话列表、聊天气泡、@ 提及（支持中文显示名）、新建私聊/群聊、独立的新建 agent（13 个角色模板 + 预览 + 工具开关）、创建小队（一次建一组角色 + 群）、SSE 实时输出与工具批准、邀请成员、删除会话（头部/列表右键菜单）、图片/文件消息、头像资料、历史搜索、设置页、Agents 管理。
+React 19 + Vite 8 的单页产品界面：会话列表、聊天气泡、@ 提及（支持中文显示名）、新建私聊/群聊、独立的新建 agent（13 个角色模板 + 预览 + 工具开关）、创建小队（software/review/research）、SSE 实时输出与工具批准、邀请成员、删除会话（头部/列表右键菜单）、图片/文件消息、头像资料、历史搜索、全局设置页、Agents 管理（每个 agent 独立设置页）。
 
 ## 开发
 
@@ -43,8 +43,9 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 群聊和私聊在同一个列表；DM 标题取 peer 的 displayName。
 - 群聊默认自由讨论：agent 可以互相 @ 继续；不再有「讨论模式」toggle。
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
-- 新建/设置页的工具权限选择 `template/full/off`；设置页用量表来自 `/api/usage`（今天/累计 turns + USD），每 agent 可设每日 USD 预算、triage 冷却/每小时上限/skipAcks、暂停/启用。
-- 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮；设置页显示/撤销已批准工具。
+- 新建 agent / 该 agent 设置页的工具权限选择 `template/full/off`；全局设置页用量表来自 `/api/usage`（今天/累计 turns + USD），agent 设置页可设每日 USD 预算、triage 冷却/每小时上限/skipAcks、暂停/启用、撤销已批准工具。
+- 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具，`turn_end` 后保留 2.2s；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮。
+- 每个 agent 设置页深链：`#/agents/<agentId>/settings`。
 
 ## 设计
 

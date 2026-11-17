@@ -42,3 +42,4 @@
 | 16 | [2026-11-16 权限/triage/用量](2026-11-16-12-permissions-triage-usage.md) | toolsMode 三档、规则 triage、usage API/UI、成本观察 |
 | 17 | [2026-11-16 团队模板](2026-11-16-13-team-templates.md) | software-squad/review-squad、一次创建 N 个 agent + 群 |
 | 18 | [2026-11-17 流式与工具审批](2026-11-17-14-streaming-and-tool-approval.md) | text_delta/SSE、REQUEST_TOOL、单工具 grant、off `--tools ""` 硬拒绝 |
+| 19 | [2026-11-17 设置/团队/时间](2026-11-17-15-settings-teams-time.md) | 全局/agent 设置拆分、记忆时间戳、团队模板调整、流式保留 |

@@ -6,22 +6,24 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)、[10 自主修测试](docs/records/2026-11-16-10-autonomy-bugfix.md)。
+- 记录：[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)、[13 团队模板](docs/records/2026-11-16-13-team-templates.md)、[12 权限/triage/用量](docs/records/2026-11-16-12-permissions-triage-usage.md)、[11 角色模板决策](docs/records/2026-11-16-11-role-template-decisions.md)。
 - 已完成：
   - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
-  - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、设置页、深链。
+  - `web/`：单列会话、@（中文显示名）、独立新建会话/agent、邀请、删除（头部+列表右键/⋯）、图片/文件、头像资料、历史搜索、全局设置 + agent 独立设置页、深链。
   - **图片理解 PASS**：上传 `VISION-OK 42`，agent 读到本地缓存并描述出来。
   - **researcher 回复 PASS**：`@研究员` 正确解析；直接提问必回（不再 PASS 回避）。
   - 搜索 `海豚`、PATCH 设置、列表删除均已验证。
   - 思考指示改为 Engine `room.activity`（floor/queue），PASS 后自动消失；侧栏 `⋯` 预留列不再挡字。
   - **自由讨论**：链上限 10（防死循环），prompt 允许 agent 互相 @ 接话；旧讨论模式 toggle 已移除；`#dispatch` 去重避免重复 PASS。
-  - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/设置页可选模板、预览、工具开关。
-  - **团队模板（2 个）**：software-squad（PM/architect/coder/reviewer/qa）、review-squad（researcher/reviewer/security）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
+  - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/agent 设置页可选模板、预览、工具开关。
+  - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。团队效果只验证过 coder/reviewer。
+  - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）。
+  - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
   - **自主工具循环**：沙箱 failing tests + fix-coder/fix-reviewer 的 cwd/工具白名单；1 条人类消息、5 个 agent turn、0 次干预，reviewer 发现测试没覆盖的 `-$5` 解析不对称并推动 coder 再修，5/5 通过，约 $2.16。
-  - **成本护栏**：规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient，参数可在设置页按 agent 调）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`；每 agent `dailyBudgetUsd`（超预算 PASS + `budget_skip`）；`status=paused`（`paused_skip`）。
-  - **流式 + 工具审批**：`--include-partial-messages` → `text_delta` → SSE `/api/events` → UI 实时气泡；系统提示列可用工具，需要时 `REQUEST_TOOL: <tool> <原因>`（或 DSML 兜底）→ intent=`tool_request` → UI 批准 → `approve-tool` 加单工具 + 人类 @ 它继续。`toolsMode=off` 用 `--tools "" --permission-mode dontAsk` 硬拒绝；`approvedTools` 可在设置页撤销。
+  - **成本护栏**：规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient，参数可在 agent 设置页调）+ `triage_skip` 审计；`GET /api/usage` + 设置页用量；`toolsMode=template|full|off`；每 agent `dailyBudgetUsd`（超预算 PASS + `budget_skip`）；`status=paused`（`paused_skip`）。
+  - **流式 + 工具审批**：`--include-partial-messages` → `text_delta` → SSE `/api/events` → UI 实时气泡；系统提示列可用工具，需要时 `REQUEST_TOOL: <tool> <原因>`（或 DSML 兜底）→ intent=`tool_request` → UI 批准 → `approve-tool` 加单工具 + 人类 @ 它继续。`toolsMode=off` 用 `--tools "" --permission-mode dontAsk` 硬拒绝；`approvedTools` 可在 agent 设置页撤销。
   - 成本：第三轮 2 个 turn 约 **$0.041**；整个 MVP 累计 21 turn 约 **$0.577**。
 - 运行：app `127.0.0.1:8790`（托管 `web/dist`）；数据 `app/data/`（gitignored）；Tuwunel `127.0.0.1:8008`。
 - 文档：[13 MVP 架构](docs/13-mvp-architecture.md)、[14 角色模板与开发计划](docs/14-role-templates-and-roadmap.md)、[agent-im/CLAUDE.md](CLAUDE.md)、`app/README.md`、`web/README.md`。
@@ -86,10 +88,10 @@ cd d:/Git/learn/agent-im/app && npm start # http://127.0.0.1:8790
   - 单列会话（DM/群混排）+ 聊天窗；`+` 只新建私聊/群聊；Agents 页独立「新建 agent」；未读；深链。
   - 群聊可邀请 agent；会话可删除（头部/列表右键/⋯）；支持图片/文件（≤8MB）；agent 能读图。
   - 群聊默认自由讨论：agent 可以互相 @ 继续，链上限 10 只是防死循环。
-  - 13 个角色模板 + 角色知识包 + 每个 agent 的私有 `knowledge/*.md`；设置页/新建 agent 可选模板、预览、工具权限三档；Agents 页可创建小队（2 个团队模板）。
+  - 13 个角色模板 + 角色知识包 + 每个 agent 的私有 `knowledge/*.md`；agent 设置页/新建 agent 可选模板、预览、工具权限三档；Agents 页可创建小队（3 个团队模板）。
   - 规则 triage + 用量视图；不额外调用模型。
   - agent 可按需配 `cwd` + `extraArgs`（工具白名单）；目前是本地 state，没有产品 UI，也不是强沙箱。
-  - 头像可看资料；侧栏搜索框回车搜历史；设置页可改显示名/角色/wakePolicy/系统提示。
+  - 头像可看资料；侧栏搜索框回车搜历史；agent 设置页可改显示名/模板/工具/预算/triage/暂停/提示。
   - 创建 agent = 注册 Matrix 用户 + 写 state + 动态 attach 到 gateway；创建后自动开 DM。
   - `human_all`：人类消息所有 Claude agent 都会判断；agent 消息只唤醒被 @/回复的；`maxAgentChain=10`（防死循环）；直接提问/私聊必须回应。
   - **同一个 agent 一个 session（`sessionScope="agent"`）**：群聊和私聊共享记忆；私聊隐私靠系统提示。

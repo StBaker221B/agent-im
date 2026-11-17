@@ -1,6 +1,6 @@
 # 14 角色模板与开发计划
 
-- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 2 个团队模板 + token 流 + 合作式工具审批**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -69,7 +69,7 @@
 
 - 新建 agent：**选模板 → 预览角色卡 → 改 mission/职责/边界/思维风格 → 选知识包/工具 → 创建**。
 - 模板可以“另存为”自定义模板；支持 clone + 微调。
-- 团队模板：一次创建一组角色（如“软件小队”：PM + architect + coder + reviewer + QA）。
+- 团队模板：一次创建一组角色（软件小队：PM + BA + architect + coder + reviewer + QA；方案评审小队；调研小队）。
 - 角色卡在资料页可见，便于人类和 agent 都知道彼此职责。
 
 ## 3. 现成来源与选项（2026-11-16 查过）
@@ -108,15 +108,19 @@
 2. 每张卡带：mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria / defaultWakePolicy。
 3. `app/role-knowledge/<id>.md`：13 份角色知识包（工作方法、检查清单、权责、使用者预期、常见失败）。
 4. `GET /api/role-templates`；`POST /api/agents` / `PATCH /api/agents/:id` 接受 `templateId`、`toolsEnabled`。
-5. 新建 agent：模板选择 + 角色卡预览 + 个人补充 + 工具开关；设置页支持换模板。
+5. 新建 agent：模板选择 + 角色卡预览 + 个人补充 + 工具开关；每个 agent 的设置页支持换模板。
 6. 资料页/Agents 页显示模板名和 mission。
 7. 现有 agent 迁移 `templateId`；`composeSystemPrompt` = base + 角色卡 + 角色知识包 + agent 私有 knowledge。
 
 团队模板（已实现）：
 
-- `app/team-templates.mjs`：`software-squad`（PM/architect/coder/reviewer/qa）、`review-squad`（researcher/reviewer/security）。
+- `app/team-templates.mjs`：
+  - `software-squad`：product-manager + business-analyst + architect + coder + reviewer + qa（PM 负责需求/优先级，BA 负责业务流程/规则/边界）。
+  - `review-squad`：architect + reviewer + security；评审方案可行性、风险和安全；不承担调研。
+  - `research-squad`：researcher + tech-writer；一个查证、一个把结论写成材料。
 - `GET /api/team-templates`；`POST /api/team-templates/:id/create {prefix,groupName}`：注册 N 个用户、创建 N 个 agent、建群并拉入；ID 形如 `squad-pm`。
-- Agents 页「创建小队」→ 选模板、ID 前缀、群名 → 创建后打开群。实测 `demo` review-squad 成功。
+- Agents 页「创建小队」→ 选模板、ID 前缀、群名 → 创建后打开群。实测 `demo` 旧版 review-squad 创建成功。
+- **有效性验证**：coder→reviewer 的角色协作和自主修测试实验验证过；团队模板本身只验证了创建流程，没有跑完整的 6 人团队任务对比。
 
 待做：自定义角色/团队模板另存、O*NET/ESCO 自动生成、删除/归档实验 agent。
 
@@ -193,3 +197,6 @@
 - triage 用规则还是小模型；预算/冷却默认值。
 - 真正沙箱/审批的边界（worktree/容器/工具白名单）。
 - 角色模板是否要版本化和团队共享。
+- **团队有效性**：还没有 6 人团队 vs 单 Claude/subagent 的同任务对照；需要设计 benchmark（质量/成本/人类干预）。
+- **agent 自主建群/私聊**：现在房间只能人类创建，agent 只能在已有房间 @ 其他成员；是否允许 agent 发起 DM/群、需不需要人类批准，未定。
+- **agent 设置页拆分**：已从全局设置移到 Agents 页每个 agent 的「设置」；后续可做模板另存和批量操作。

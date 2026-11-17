@@ -3,7 +3,7 @@
 - 状态：2026-11-16 首个可运行 MVP（真实 Matrix + 真实 Claude + 自建网页）。
 - 关联：[00 需求合同](00-requirements-contract.md) · [09 Agent 协议](09-agent-protocol.md) · [12 Matrix 宿主](12-matrix-host-wsl.md) · [过程记录 05](records/2026-11-16-05-mvp.md)
 - 目标：把协议 spike 变成可日常使用的产品骨架——会话列表、私聊/群聊、创建 agent、消息由 agent 自行判断是否回复。
-- 非目标（v0 不做）：多人类用户、权限后台、删除/归档、文件/图片、E2E 加密、公网访问、流式输出、工具审批。
+- 非目标（v0 不做）：多人类用户、权限后台、删除/归档、E2E 加密、公网访问、真正的执行前审批/强沙箱。
 
 ## 1. 产品形态
 
@@ -31,12 +31,12 @@
 - `+` 菜单：新建私聊（选一个 agent）、新建群聊（起名 + 多选 agent）、新建 agent。
 - Agents 页：所有参与者、runtime、角色模板、状态、一键私聊。
 - 新建 agent 可选 13 个角色模板（软件 / 产品 / 公司经营），预览角色卡，挂角色知识包，按模板启用工具。
-- Agents 页可「创建小队」：选 software-squad / review-squad，一次创建一组角色 + 群。
+- Agents 页可「创建小队」：software-squad（PM/BA/架构/工程/评审/测试）、review-squad（架构/评审/安全）、research-squad（研究/写作），一次创建一组角色 + 群。
 - 群聊里 agent 没有回复也算正常：它在自己的 turn 里输出了 `PASS`。
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
-- 顶部搜索框回车搜历史消息；侧栏「设置」页管理 agent 显示名/角色/唤醒策略/系统提示。
+- 顶部搜索框回车搜历史消息；侧栏「设置」页只放系统信息/用量/全局说明；每个 agent 的显示名/模板/工具/预算/triage/暂停/提示在 Agents 页该 agent 的「设置」里。
 - 群聊默认自由讨论：agent 可以互相 @ 继续；链上限 10 只是防死循环，不是对话轮数限制。
 
 ## 2. 组件
@@ -133,7 +133,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/rooms/:id/upload` | `{filename, contentType, data(base64)}`；≤8MB；发 `m.image` / `m.file` |
 | `GET /api/media?uri=mxc://...` | 服务端带 token 下载并流式返回（浏览器拿不到 token） |
 | `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
-| `GET /api/team-templates` | 团队模板（software-squad / review-squad） |
+| `GET /api/team-templates` | 团队模板（software-squad / review-squad / research-squad） |
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,roles,wakePolicy,systemPrompt}`；template/工具/提示变更会重建 runtime；status/triage 即时生效 |
@@ -200,11 +200,11 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **PASS**：agent 判断没有补充就只输出 PASS，不产生 Matrix 消息，只释放 floor。
 - **quiescence**：30s 无活动后线程静默。
 - **UI 的"正在思考"来自 Engine**：bootstrap 的房间 `activity` 给出当前 floor holder 和排队 agent；不是前端按发送时间猜的。PASS 后 floor 释放，提示自动消失。
-- **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
-- **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；设置页/Agents 页可见。
+- **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。Agent 设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
+- **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；agent 设置页/Agents 页可见。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
-- **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；设置页展示每 agent 今天/累计 turns 和 USD，并可设 `dailyBudgetUsd`（0=不限）。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
-- **成本**：`human_all` 意味着群里一条人类消息会触发 N 个 Claude turn。MVP 实测 4 个 turn 约 **$0.146**（长上下文时单 turn 可达 $0.05+）。下一轮应加：廉价 triage、每 agent 冷却、每 thread 预算。
+- **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；全局设置页展示每 agent 今天/累计 turns 和 USD，agent 设置页可设 `dailyBudgetUsd`（0=不限）。USD 来自 Claude CLI result 的 `total_cost_usd`，不是前端按 token 估算。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
+- **成本**：`human_all` 意味着群里一条人类消息会触发 N 个 Claude turn。MVP 实测 4 个 turn 约 **$0.146**（长上下文时单 turn 可达 $0.05+）；规则 triage、冷却、每日预算已做，成本仍随 agent 数线性。
 
 ### 7.1 同一个 agent 的跨房间记忆
 
@@ -216,6 +216,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
   - 说明是同一份记忆 + 分场合判断，不是简单的"每房间一个新人"。
 - 隐私：私聊原文会进入同一 transcript，靠系统提示约束"私聊内容不主动带到群聊"。更严格的隔离可以改成"共享摘要 + 每房间 session"，或给 agent 一个受控 memory 文件。
 - 代价：transcript 跨房间增长，token 成本更高；切换回 `sessionScope: "room"` 即可恢复每房间独立。
+- **时间**：每轮 prompt 带 `Current time`，recent messages 和新消息都带本地时间戳；没有时间戳的旧记忆要求 agent 说“不确定”，不要猜昨天/今天。2026-11-17 实测 pm 能回答正确日期时间。
 
 ### 7.2 角色模板、角色知识包与私有知识
 
@@ -223,7 +224,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 每张角色卡包含 mission / responsibilities / boundaries / decisionRights / thinkingStyle / communicationStyle / knowledgePacks / tools / handoff / successCriteria。
 - 每个模板对应一份角色知识包 `app/role-knowledge/<id>.md`（工作方法、检查清单、权责、使用者预期、常见失败）。
 - agent 有 `templateId` 和宽泛的 `role`；runtime 的 system prompt = base `systemPrompt` + 角色卡 + 角色知识包 + agent 私有 `knowledge/*.md`（≤12KB）。
-- `GET /api/role-templates` 返回模板；`POST/PATCH /api/agents` 接受 `templateId`、`toolsMode`；设置页/新建 agent 都有模板选择、预览和工具权限；资料页显示模板名/mission。
+- `GET /api/role-templates` 返回模板；`POST/PATCH /api/agents` 接受 `templateId`、`toolsMode`；新建 agent 和该 agent 的设置页都有模板选择、预览和工具权限；资料页显示模板名/mission。
 - 工具预设：generic 只读；coder/qa/writer/ops 可 Edit/Write/PowerShell；reviewer/security 只读+PowerShell。`toolsMode` 决定 `--permission-mode dontAsk --allowedTools ...`；off 也强制 `dontAsk`（无 allowedTools = 全拒）；默认 cwd 是 agent 自己的 workspace。这是**弱隔离**，reviewer 的只读仍靠 prompt。
 - 改 template/工具/systemPrompt 会重建 runtime，下一轮生效。
 - 注意：角色模板是**行为约束**，不是能力隔离；真正的异构要靠不同工具/权限/模型。agent 也可以按需配 `cwd`（共享沙箱仓库）和 `extraArgs`。
@@ -232,8 +233,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 ### 7.3 流式与工具申请
 
-- **流式**：ClaudeAdapter 用 `--include-partial-messages` 取 `text_delta`，Gateway `onEvent` 发 `turn_start / text_delta / tool_use / tool_result / turn_end / skip`；Server 用 SSE `GET /api/events`；UI 在消息末尾显示实时气泡和正在使用的工具，`turn_end` 后移除，等 Matrix 最终消息。
-- **工具申请**：系统提示列出当前可用工具；需要不可用工具时 agent 回复 `REQUEST_TOOL: <tool> <原因>`。Gateway 发一条 intent=`tool_request` 的消息（`com.agentim.tool` 带工具名）；UI 显示「批准并继续」；`POST /api/agents/:id/approve-tool` 把该工具加入 `approvedTools`（单工具、持久）、重建 runtime，并以人类身份 @ 该 agent 让它继续。设置页可撤销。
+- **流式**：ClaudeAdapter 用 `--include-partial-messages` 取 `text_delta`，Gateway `onEvent` 发 `turn_start / text_delta / tool_use / tool_result / turn_end / skip`；Server 用 SSE `GET /api/events`；UI 在消息末尾显示实时气泡和正在使用的工具，`turn_end` 后再保留 2.2s，避免短回复来不及被看到。
+- **工具申请**：系统提示列出当前可用工具；需要不可用工具时 agent 回复 `REQUEST_TOOL: <tool> <原因>`。Gateway 发一条 intent=`tool_request` 的消息（`com.agentim.tool` 带工具名）；UI 显示「批准 X（只开这个工具）」；`POST /api/agents/:id/approve-tool` 把该工具加入 `approvedTools`（单工具、持久）、重建 runtime，并以人类身份 @ 该 agent 让它继续。Agent 设置页可撤销。
 - **硬拒绝**：`toolsMode=off` 用 `--tools "" --permission-mode dontAsk`；只加批准的工具有可用集合。模型在无工具时输出的 DSML/XML tool call 会被 `parseReply` 转成 `tool_request`，不直接发到房间。
 - **边界**：审批是 turn 后合作式，不是执行前拦截；批准是单工具、agent 级持久 grant，不改变 toolsMode；流式只流最终文本 delta，不流工具参数/思考。
 
@@ -251,7 +252,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - turn 中间崩溃会丢该轮回复（入站先标记已消费），不重复。
 - 未读只按最近 100 条算；消息更多时可能低估。
 - 消息仍是 1.5s 轮询；SSE 只推实时活动，不替代消息落库。
-- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，但不能删除 agent、不能改 runtime、不能移除成员。
+- 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，但不能删除 agent、不能改 runtime、不能移除成员。
+- agent 不能自己建群或找 agent 私聊；房间创建目前只由人类发起，agent 只能在已有房间内 @ 其他成员。
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
@@ -318,3 +320,6 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **工具审批 PASS**：pm `toolsMode=off` 时创建 hello3 被拒，回复 `REQUEST_TOOL: PowerShell ...`（intent=`tool_request`、tool=PowerShell）；`approve-tool` 后 agent 继续并创建 `hello3.txt`，`toolsMode` 仍是 off、`approvedTools=["PowerShell"]`。
 - **读取/DSML PASS**：pm off 读 hello4 时输出 DSML，被转成 `tool_request: Read`；批准 Read 后正常读出 `hello4`，没有原始 XML 进房间。
 - **off 漏洞修复**：修复前 off 没传 `dontAsk`，pm 直接创建了 hello/hello2；随后发现 `dontAsk` 仍放行 Read，最终用 `--tools ""`（init tools=[]）彻底关闭；同样的创建/读取请求都被硬拒或转成申请。
+- **时间戳 PASS（2026-11-17）**：prompt 带 Current time；pm 回答“2026 年 11 月 17 日 08:15（本地服务器时间），星期一”。
+- **设置拆分（2026-11-17）**：全局设置只剩系统/用量；每个 agent 在 Agents 页有独立「设置」，深链 `#/agents/<id>/settings`。
+- **团队模板（2026-11-17）**：software-squad 6 角色（含 BA）、review-squad 改为架构/评审/安全、research-squad 研究/写作；只验证了创建，未做完整团队效果对照。

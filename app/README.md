@@ -78,7 +78,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `POST /api/rooms/:id/upload` `{filename,contentType,data(base64)}` — ≤8MB
 - `GET /api/media?uri=mxc://...` — 服务端带 token 下载媒体
 - `GET /api/role-templates` — 13 个角色卡
-- `GET /api/team-templates` — software-squad / review-squad
+- `GET /api/team-templates` — software-squad / review-squad / research-squad
 - `POST /api/team-templates/:id/create` `{prefix,groupName}` — 一次创建一组 agent + 群
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,roles,systemPrompt}`

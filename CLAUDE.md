@@ -61,7 +61,11 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - 成本护栏：Gateway 规则 triage（直接 @ 必跑；ack/冷却/每小时上限跳过 ambient），agent.triage 可按 agent 覆盖；跳过写 `triage_skip`；`GET /api/usage` 聚合 audit，设置页有用量表。
 - 每日预算：`agent.dailyBudgetUsd`（0=不限）；Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS + `budget_skip`；UTC 日切换清空内存累计。
 - 暂停：`agent.status=paused` 时 turn 前直接 PASS + `paused_skip`；engine agent 的 `paused` 由 store 同步。
-- 团队模板：`POST /api/team-templates/:id/create {prefix,groupName}` 注册 N 个 `<prefix>-<shortRole>` 用户、建 agent、建群；失败不回滚，prefix 冲突先检查。
+- 团队模板：`software-squad`（PM/BA/architect/coder/reviewer/qa）、`review-squad`（architect/reviewer/security）、`research-squad`（researcher/tech-writer）；`POST /api/team-templates/:id/create {prefix,groupName}` 注册 N 个 `<prefix>-<shortRole>` 用户、建 agent、建群；失败不回滚，prefix 冲突先检查。团队有效性只验证过 coder/reviewer 角色协作，未做完整团队对照。
+- 设置：全局页只放系统/用量；agent 的角色/工具/预算/triage/暂停/提示在 Agents 页「设置」，深链 `#/agents/<id>/settings`。
+- 时间：`buildAgentPrompt` 带 Current time 和每条消息时间戳；旧 transcript 无时间戳，要求 agent 不猜日期。
+- 成本：USD 来自 Claude CLI result 的 `total_cost_usd`，不是本地 token 单价换算；audit usage 求和。
+- agent 不能自己建群/找 agent 私聊；房间只由人类创建，agent 只能在已有房间 @ 其他成员。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 工具策略集中在 `app/tool-policy.mjs`：`toolsMode=off` 传 `--tools "" --permission-mode dontAsk`（`dontAsk` 单独仍会放行 Read）；可用集合由 `--tools` 决定，`--allowedTools` 同步；Gateway 建 runtime 时用 `mergeToolArgs` 重新应用，清理 state 里过期的工具 flag。批准的工具进 `agent.approvedTools`（单工具、持久，设置页可撤销），不改 `toolsMode`。
 - 流式：ClaudeAdapter `--include-partial-messages` 产出 `text_delta`；Gateway `onEvent` → Server SSE `GET /api/events` → UI 实时气泡。消息本身仍靠 Matrix + 轮询落库。
@@ -87,11 +91,13 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs` |
 | 媒体缓存（agent 读图） | `spike/src/gateway.mjs`（`mediaDir` / `#cacheMedia`） |
 | 历史搜索 | `app/server.mjs` `/api/search` + `web/src/components/SearchView.jsx` |
-| 设置页 | `app/server.mjs` PATCH `/api/agents/:id` + `web/src/components/SettingsView.jsx` |
+| 设置 | 全局 `web/src/components/SettingsView.jsx`；agent 独立页 `AgentSettingsView.jsx` + `AgentSettings.jsx`；API PATCH `/api/agents/:id` |
+| 记忆时间戳 | `spike/src/reply.mjs` `buildAgentPrompt`：Current time + 每条 recent message 时间 |
+| 成本来源 | `spike/src/claude-adapter.mjs` 读 CLI result `total_cost_usd`；`app/server.mjs` usageSummary 求和 |
 | 跨房间记忆/session 作用域 | `spike/src/claude-adapter.mjs`（`sessionScope`） |
 | 数据/导入/默认提示/拼装 | `app/store.mjs`（`composeSystemPrompt`） |
 | 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
-| 团队模板 | `app/team-templates.mjs`（software-squad / review-squad）+ `/api/team-templates` |
+| 团队模板 | `app/team-templates.mjs`（software-squad / review-squad / research-squad）+ `/api/team-templates` |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 工具/workspace | `app/tool-policy.mjs` + state 里 agent 的 `cwd`/`extraArgs` |
 | 流式/SSE | `spike/src/claude-adapter.mjs` + `spike/src/gateway.mjs`（onEvent）+ `app/server.mjs` `/api/events` + `web/src/App.jsx` |

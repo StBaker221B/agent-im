@@ -32,6 +32,7 @@
 - Agents 页：所有参与者、runtime、角色模板、状态、一键私聊。
 - 新建 agent 可选 13 个角色模板（软件 / 产品 / 公司经营），预览角色卡，挂角色知识包，按模板启用工具。
 - Agents 页可「创建小队」：software-squad（PM/BA/架构/工程/评审/测试）、review-squad（架构/评审/安全）、research-squad（研究/写作），一次创建一组角色 + 群。
+- Agents 页「评估需求」→ 输入问题 → `@intake` 需求顾问在 DM 里重述目标/约束，推荐单点/小队，输出成本、风险、最小验证和 `RECOMMEND` 标签；不自动建团队。
 - 群聊里 agent 没有回复也算正常：它在自己的 turn 里输出了 `PASS`。
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
@@ -135,6 +136,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/role-templates` | 13 个角色卡（mission/职责/边界/工具/知识包等） |
 | `GET /api/team-templates` | 团队模板（software-squad / review-squad / research-squad） |
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
+| `POST /api/intake` | `{problem}`；确保 `@intake` 顾问、打开 DM、发送评估 prompt |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`；template/工具/提示/cwd 变更会重建 runtime；status/triage 即时生效 |
 | `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
@@ -266,7 +268,9 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
-- benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次，squad 和“单 Claude+subagent”基线未跑。
+- benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次、squad 一次；单 Claude+subagent 基线未跑。
+- 长期驻守只做到“agent/房间/session/成本记录重启恢复”；没有任务台账、定时/触发、检查点、未完成 turn 恢复或进程守护。详见 [16](16-long-running-and-intake.md)。
+- intake v0 是自由文本建议 + `RECOMMEND` 标签，UI 还没解析并一键创建单点/小队。
 
 ## 10. 下一步
 
@@ -329,3 +333,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **团队模板（2026-11-17）**：software-squad 6 角色（含 BA）、review-squad 改为架构/评审/安全、research-squad 研究/写作；只验证了创建，未做完整团队效果对照。
 - **agent 软删除 PASS（2026-11-17）**：临时 `@tmpdel072896` + DM，DELETE 200；bootstrap 不再有 agent/DM；再次 DELETE 404；无模型调用/成本。
 - **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；squad 一次 362s（timeout）/5 turns/$2.547；都 5/5、测试未改，跑完 bench agent/房间为 0。
+- **intake + 重启恢复 PASS（2026-11-17）**：个人记账问题 → `@intake` 重述目标/约束，推荐 single，给出 pair/squad 重估条件、成本/风险和 2 周最小验证，末行 `RECOMMEND: single`；重启 app 后 agent/DM/2 条消息都在，5s 后仍 2 条，无重复回复。

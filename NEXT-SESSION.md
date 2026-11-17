@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)、[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)、[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)、[14 流式与工具审批](docs/records/2026-11-17-14-streaming-and-tool-approval.md)。
+- 记录：[19 长期驻守与 intake](docs/records/2026-11-17-19-long-running-intake.md)、[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)、[17 Agent 软删除](docs/records/2026-11-17-17-agent-delete.md)、[16 团队 pilot](docs/records/2026-11-17-16-team-pilot.md)、[15 设置/团队/时间](docs/records/2026-11-17-15-settings-teams-time.md)。
 - 已完成：
   - `spike/`：协议引擎 + 34 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。
@@ -20,6 +20,7 @@
   - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
   - **团队 pilot**：同一小 bug，单 coder 1 turn/$0.2237/~16s；coder+reviewer 2 turns/$0.6690/~75s；都 5/5。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势；6 人小队未做完整对照。
   - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；squad 一次 362s 超时/5 turns/$2.547；都 5/5、测试未改；单 Claude+subagent 基线未跑。
+  - **长期驻守/intake v0**：`@intake` 需求顾问 + `POST /api/intake` + Agents 页「评估需求」；输出重述/推荐/成本/风险/最小验证/`RECOMMEND`，不自动建团队；重启后 agent/DM/消息保留、不重复回复。任务台账/调度/检查点/未完成 turn 恢复未做。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。
@@ -151,6 +152,7 @@ cd d:/Git/learn/agent-im && node bench/run.mjs --task money-rounding --arms sing
 10. 最后做“单 Claude + subagent”对比，作为 kill criterion；benchmark runner 已有，需要补外部基线 arm。
 11. 团队 benchmark v1 已完成（money-rounding、single/pair 各两次）；待更多任务、squad、外部基线、质量指标。
 12. 可选运维：Tuwunel 开机自启（任务计划程序或 WSL systemd）、Element 登录实测。
+13. 长期驻守/intake：需求在 `docs/16-long-running-and-intake.md`；v0 有 `@intake` 和重启状态恢复；下一步任务台账/调度/检查点/未完成 turn 恢复，以及按 `RECOMMEND` 一键创建 single/pair/squad。
 
 ## 不要做什么
 

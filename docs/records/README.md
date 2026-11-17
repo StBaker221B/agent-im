@@ -46,3 +46,4 @@
 | 20 | [2026-11-17 团队 pilot](2026-11-17-16-team-pilot.md) | 单 coder vs coder+reviewer：3× 成本/4.7× 时间，质量相同，评审提供独立证据 |
 | 21 | [2026-11-17 Agent 软删除](2026-11-17-17-agent-delete.md) | 离开房间、删 DM、隐藏 agent、停 sync；账号保留 |
 | 22 | [2026-11-17 可重复 benchmark](2026-11-17-18-repeatable-benchmark.md) | runner + fixture；single/pair 各两次；pair 成本 6.8×、耗时 4.4× |
+| 23 | [2026-11-17 长期驻守与 intake](2026-11-17-19-long-running-intake.md) | 需求记录、@intake 顾问、单点 vs 团队建议、重启恢复验证 |

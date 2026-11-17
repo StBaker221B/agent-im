@@ -82,6 +82,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `GET /api/role-templates` — 13 个角色卡
 - `GET /api/team-templates` — software-squad / review-squad / research-squad
 - `POST /api/team-templates/:id/create` `{prefix,groupName}` — 一次创建一组 agent + 群
+- `POST /api/intake` `{problem}` — 确保 `@intake` 顾问、打开 DM、发送评估 prompt（不自动建团队）
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`
 - `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`

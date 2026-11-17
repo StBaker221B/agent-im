@@ -71,6 +71,8 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - agent 不能自己建群/找 agent 私聊；房间只由人类创建，agent 只能在已有房间 @ 其他成员。
 - Agent 软删除：`DELETE /api/agents/:id`；运行中 409；群 leave、DM 连人类一起 leave 并移除房间；status=deleted 隐藏，账号/Matrix 历史保留；Gateway removeAgent 停 sync/删 runtime/engine 成员。
 - Benchmark：`bench/run.mjs` 新建 agent/session、`cwd` 指向独立 workspace；只发一条人类任务，轮询测试+房间空闲，统计 audit 的 turns/USD/tools，跑完删房间/软删 agent。结果在 `app/data/bench/<runId>/results.json`（gitignored）。
+- Intake：`POST /api/intake {problem}` 确保 `@intake`（facilitator、tools off）并打开 DM；prompt 要求重述/推荐 single|pair|squad/角色/成本/最小验证，末行 `RECOMMEND:`；不自动建团队。
+- 长期驻守：state/gateway-state/session 能重启恢复，但**没有任务台账/调度/检查点/未完成 turn 恢复**；进行中 turn 崩溃会丢该轮，设计上不重跑以免重复。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 工具策略集中在 `app/tool-policy.mjs`：`toolsMode=off` 传 `--tools "" --permission-mode dontAsk`（`dontAsk` 单独仍会放行 Read）；可用集合由 `--tools` 决定，`--allowedTools` 同步；Gateway 建 runtime 时用 `mergeToolArgs` 重新应用，清理 state 里过期的工具 flag。批准的工具进 `agent.approvedTools`（单工具、持久，设置页可撤销），不改 `toolsMode`。
 - 流式：ClaudeAdapter `--include-partial-messages` 产出 `text_delta`；Gateway `onEvent` → Server SSE `GET /api/events` → UI 实时气泡。消息本身仍靠 Matrix + 轮询落库。
@@ -104,6 +106,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 角色模板 + 角色知识包 | `app/role-templates.mjs` + `app/role-knowledge/<id>.md` |
 | 团队模板 | `app/team-templates.mjs`（software-squad / review-squad / research-squad）+ `/api/team-templates` |
 | 团队 benchmark | `bench/run.mjs` + `bench/tasks/<id>/`；固定 fixture、fresh agent/session、自动评分/清理 |
+| 长期驻守/intake | `docs/16-long-running-and-intake.md`；`POST /api/intake` + `@intake` 需求顾问 + `IntakeModal.jsx` |
 | 私有知识 | `app/data/agents/<name>/knowledge/*.md`（≤12KB） |
 | 工具/workspace | `app/tool-policy.mjs` + state 里 agent 的 `cwd`/`extraArgs` |
 | 流式/SSE | `spike/src/claude-adapter.mjs` + `spike/src/gateway.mjs`（onEvent）+ `app/server.mjs` `/api/events` + `web/src/App.jsx` |

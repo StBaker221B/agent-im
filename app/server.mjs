@@ -580,6 +580,59 @@ async function ensureIntakeAgent() {
   return agent;
 }
 
+async function setAllPaused(paused) {
+  let count = 0;
+  for (const agent of store.agents) {
+    if (agent.status === "deleted") continue;
+    agent.status = paused ? "paused" : "active";
+    const engineAgent = host.engine.agents.get(agent.id);
+    if (engineAgent) engineAgent.paused = paused;
+    count += 1;
+  }
+  store.save();
+  log(`[app] pause-all=${paused} agents=${count}`);
+  return { ok: true, paused, count };
+}
+
+async function auditEvents(searchParams) {
+  const limit = Math.min(500, Math.max(1, Number(searchParams.get("limit")) || 200));
+  const kind = String(searchParams.get("kind") ?? "").trim();
+  const agentId = String(searchParams.get("agentId") ?? "").trim();
+  let text;
+  try {
+    text = await readFile(join(dataDir, "audit.jsonl"), "utf8");
+  } catch {
+    return { events: [] };
+  }
+  const events = [];
+  for (const line of text.trim().split("\n").slice(-5000)) {
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (kind && entry.kind !== kind) continue;
+    if (agentId && entry.agentId !== agentId) continue;
+    let detail = entry.text ?? entry.reason ?? entry.error ?? "";
+    if (entry.input && typeof entry.input === "object") {
+      detail = entry.input.command ?? entry.input.file_path ?? entry.input.pattern ?? detail;
+    }
+    events.push({
+      ts: entry.ts ?? null,
+      kind: entry.kind ?? "event",
+      agentId: entry.agentId ?? null,
+      roomId: entry.roomId ?? null,
+      type: entry.type ?? null,
+      name: entry.name ?? null,
+      detail: String(detail ?? "").slice(0, 500),
+      costUsd: entry.costUsd ?? null,
+      reason: entry.reason ?? null,
+    });
+  }
+  return { events: events.reverse().slice(0, limit) };
+}
+
 async function intake(body) {
   const problem = String(body.problem ?? "").trim();
   if (problem.length < 5) throw Object.assign(new Error("请把问题描述得具体一点"), { status: 400 });
@@ -827,6 +880,15 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/usage") {
     return json(res, 200, await usageSummary());
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/audit") {
+    return json(res, 200, await auditEvents(url.searchParams));
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/pause-all") {
+    const body = await readBody(req);
+    return json(res, 200, await setAllPaused(Boolean(body.paused)));
   }
 
   if (req.method === "GET" && url.pathname === "/api/search") {

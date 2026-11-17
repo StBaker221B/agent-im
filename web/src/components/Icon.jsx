@@ -67,6 +67,12 @@ export default function Icon({ name, size = 18 }) {
           <path d="M20 11.5 12.3 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.2 4.2l-7.5 7.5a1.5 1.5 0 0 1-2.1-2.1l6.8-6.8" />
         </svg>
       );
+    case "activity":
+      return (
+        <svg {...common}>
+          <path d="M3 12h4l2.2-5 4.2 10 2.2-5H21" />
+        </svg>
+      );
     case "settings":
       return (
         <svg {...common}>

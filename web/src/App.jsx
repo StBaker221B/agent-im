@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import ChatView from "./components/ChatView";
 import AgentsView from "./components/AgentsView";
 import AgentSettingsView from "./components/AgentSettingsView";
+import ActivityView from "./components/ActivityView";
 import NewChatModal from "./components/NewChatModal";
 import NewAgentModal from "./components/NewAgentModal";
 import TeamModal from "./components/TeamModal";
@@ -218,6 +219,9 @@ export default function App() {
       } else if (path === "/settings") {
         setView("settings");
         setMobilePane("chat");
+      } else if (path === "/activity") {
+        setView("activity");
+        setMobilePane("chat");
       } else if (path.startsWith("/search?q=")) {
         setSearchQuery(path.slice("/search?q=".length));
         setView("search");
@@ -275,6 +279,12 @@ export default function App() {
     setHash("#/settings");
   }
 
+  function openActivity() {
+    setView("activity");
+    setMobilePane("chat");
+    setHash("#/activity");
+  }
+
   function openAgentSettings(agentId) {
     setSettingsAgentId(agentId);
     setView("agent-settings");
@@ -323,6 +333,17 @@ export default function App() {
   function openSearchResult(roomId, messageId) {
     openRoom(roomId);
     setFocusMessageId(messageId);
+  }
+
+  async function pauseAll(paused) {
+    if (paused && !window.confirm("暂停所有 agent？当前轮会结束，下一轮不再跑；可随时恢复。")) return;
+    try {
+      await api.pauseAll(paused);
+      await loadBootstrap();
+      notify(paused ? "所有 agent 已暂停" : "所有 agent 已恢复");
+    } catch (err) {
+      notify(err.message);
+    }
   }
 
   async function deleteAgentById(agentId) {
@@ -486,6 +507,7 @@ export default function App() {
           setHash("#/agents");
         }}
         onSettings={openSettings}
+        onActivity={openActivity}
         onSearch={openSearch}
         onProfile={openProfile}
         onDeleteRoom={deleteRoomFromList}
@@ -500,6 +522,8 @@ export default function App() {
             onDelete={deleteAgentById}
             onBack={backToAgents}
           />
+        ) : view === "activity" ? (
+          <ActivityView data={data} onBack={() => setMobilePane("list")} />
         ) : view === "agents" ? (
           <AgentsView
             agents={data?.agents ?? []}
@@ -519,7 +543,7 @@ export default function App() {
             onBack={() => setMobilePane("list")}
           />
         ) : view === "settings" ? (
-          <SettingsView data={data} onBack={() => setMobilePane("list")} />
+          <SettingsView data={data} onPauseAll={pauseAll} onBack={() => setMobilePane("list")} />
         ) : activeRoom ? (
           <ChatView
             key={activeRoom.id}

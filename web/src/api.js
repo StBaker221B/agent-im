@@ -26,6 +26,13 @@ export const api = {
     }),
   intake: (problem) => request("/api/intake", { method: "POST", body: { problem } }),
   usage: () => request("/api/usage"),
+  audit: ({ limit = 200, kind = "", agentId = "" } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (kind) params.set("kind", kind);
+    if (agentId) params.set("agentId", agentId);
+    return request(`/api/audit?${params}`);
+  },
+  pauseAll: (paused) => request("/api/admin/pause-all", { method: "POST", body: { paused } }),
   messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
   send: (roomId, text) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, { method: "POST", body: { text } }),

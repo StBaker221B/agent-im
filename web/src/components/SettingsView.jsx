@@ -4,7 +4,7 @@ import Icon from "./Icon";
 
 const USD = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
 
-export default function SettingsView({ data, onBack }) {
+export default function SettingsView({ data, onPauseAll, onBack }) {
   const [usage, setUsage] = useState(null);
 
   useEffect(() => {
@@ -58,6 +58,22 @@ export default function SettingsView({ data, onBack }) {
             </dd>
           </div>
         </dl>
+      </div>
+
+      <div className="settings-section">
+        <h3>全局控制</h3>
+        <p className="settings-note">
+          {data?.agents?.filter((a) => a.status === "paused").length ?? 0} 个 agent 暂停中，共{" "}
+          {data?.agents?.length ?? 0} 个。暂停只阻止下一轮，当前进行中的 turn 会跑完；可以随时恢复。
+        </p>
+        <div className="settings-actions">
+          <button type="button" className="danger" onClick={() => onPauseAll?.(true)}>
+            暂停所有 agent
+          </button>
+          <button type="button" className="ghost" onClick={() => onPauseAll?.(false)}>
+            恢复所有 agent
+          </button>
+        </div>
       </div>
 
       <div className="settings-section">

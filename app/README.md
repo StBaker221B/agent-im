@@ -85,6 +85,7 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `POST /api/intake` `{problem}` — 确保 `@intake` 顾问、打开 DM、发送评估 prompt（不自动建团队）
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
 - `GET /api/audit` — 最近约 5000 行 audit 的只读视图（limit/kind/agentId）
+- `GET /api/audit/export` — 下载完整 audit.jsonl
 - `POST /api/admin/pause-all` — `{paused}` 全局暂停/恢复所有非 deleted agent（当前轮跑完）
 - `GET/POST /api/tasks`、`PATCH /api/tasks/:id`、`/checkpoints`、`/dispatch` — 持久任务台账、到期派发、intervalMinutes 重复
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`

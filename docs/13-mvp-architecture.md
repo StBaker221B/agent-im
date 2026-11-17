@@ -82,6 +82,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `web/src/App.jsx` | 页面状态、轮询、SSE 订阅、发送、创建、hash 深链 |
 | `web/src/components/` | Sidebar / ChatView（实时气泡/批准）/ AgentsView / NewChatModal / TeamModal / SettingsView / Avatar / Icon |
 | `app/tasks.mjs` | 持久任务台账（tasks.json、状态、检查点、到期查询） |
+| `scripts/` | start/backup/restore PowerShell 运维脚本 |
 | `web/src/components/TasksView.jsx` | 任务列表/派发/完成/新建 |
 | `app/data/` | **gitignored**：state.json、tasks.json、gateway-state.json、audit.jsonl、agents/* |
 
@@ -148,6 +149,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
 | `GET /api/audit` | `limit/kind/agentId`；最近约 5000 行 audit 的只读视图 |
+| `GET /api/audit/export` | 下载完整 audit.jsonl（application/x-ndjson） |
 | `GET/POST /api/tasks` | 任务列表/创建；`PATCH /api/tasks/:id` 改状态/字段 |
 | `POST /api/tasks/:id/checkpoints` | 追加任务检查点 |
 | `POST /api/tasks/:id/dispatch` | 立即派发一次到任务房间 |
@@ -282,7 +284,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
 - benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次、squad 一次；单 Claude+subagent 基线未跑。
 - 长期驻守 v1：agent/房间/session/成本记录 + 持久任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE 可重启恢复；仍没有 cron 表达式/补跑、失败/阻塞标记、自动重试、未完成 turn 恢复或进程守护。详见 [17](17-task-ledger.md)。
-- 活动页只读最近约 5000 行/250 条事件，没有分页/导出/回放；全局暂停不是硬 kill，恢复所有会连手动暂停的一起恢复。
+- 活动页只读最近约 5000 行/250 条事件，现在可导出完整 JSONL，但还没有回放；全局暂停不是硬 kill，恢复所有会连手动暂停的一起恢复。
+- 运维脚本已有一键启动/备份/恢复（[18](18-operations.md)），但不是守护进程；node 崩溃不自启，备份不是一致性快照。
 - intake v0 是自由文本建议 + `RECOMMEND` 标签，UI 还没解析并一键创建单点/小队。
 
 ## 10. 下一步

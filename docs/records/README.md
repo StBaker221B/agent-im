@@ -55,3 +55,4 @@
 | 29 | [2026-11-17 Agent 申请房间](2026-11-17-25-agent-room-requests.md) | `REQUEST_ROOM`、人类批准、建群/去重、人类可见 |
 | 30 | [2026-11-17 BLOCK/FAIL 任务标记](2026-11-17-26-task-block-fail.md) | agent 阻塞/失败写回 blocked/failed、checkpoint、UI |
 | 31 | [2026-11-17 桌面通知](2026-11-17-27-desktop-notifications.md) | 浏览器通知、设置页开关、后台未读、单次去重 |
+| 32 | [2026-11-18 消息回复引用](2026-11-18-28-reply-to.md) | replyTo、气泡引用、composer 草稿、Matrix reply 解析修复 |

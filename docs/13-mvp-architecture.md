@@ -39,6 +39,7 @@
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
+- 消息悬浮「回复」→ composer 引用草稿 → 发送后气泡上方显示引用；
 - 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
 - 侧栏「设置」页放系统信息/用量/桌面通知/全局暂停恢复；每个 agent 的显示名/模板/工具/预算/triage/暂停/提示在 Agents 页该 agent 的「设置」里。
 - 群聊默认自由讨论：agent 可以互相 @ 继续；链上限 10 只是防死循环，不是对话轮数限制。
@@ -131,7 +132,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/bootstrap` | human、agents、rooms（含 members、lastMessage、unread、`activity.floor/queued`）、totalUnread |
 | `GET /api/health` | gateway 是否在跑、已 attach 的房间 |
 | `GET /api/rooms/:id/messages` | 最近 60 条 main thread 消息（已过滤撤回空消息） |
-| `POST /api/rooms/:id/messages` | `{text}`；人类身份发送；解析 `@name` 为 `m.mentions`；返回 eventId |
+| `POST /api/rooms/:id/messages` | `{text,replyTo}`；人类身份发送；解析 `@name` 为 `m.mentions`；可引用消息；返回 eventId |
 | `POST /api/rooms/:id/read` | `{ts}`；更新 human 的 lastReadTs |
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
 | `PATCH /api/rooms/:id` | `{mode}`；legacy 兼容，当前无 UI、不再影响行为（自由讨论默认） |
@@ -288,6 +289,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次、squad 一次；单 Claude+subagent 基线未跑。
 - 长期驻守 v1：agent/房间/session/成本记录 + 持久任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE 可重启恢复；仍没有 cron 表达式/补跑、失败自动重试/升级、未完成 turn 恢复或进程守护。详见 [17](17-task-ledger.md)。
 - 活动页只读最近约 5000 行/250 条事件，现在可导出完整 JSONL，但还没有回放；全局暂停不是硬 kill，恢复所有会连手动暂停的一起恢复。
+- 回复只做 main thread 引用；没有 thread 面板、reaction、单条删除/编辑。
 - 运维脚本已有一键启动/备份/恢复（[18](18-operations.md)），但不是守护进程；node 崩溃不自启，备份不是一致性快照。
 - 桌面通知只覆盖“后台有未读”；没有 @ 单独提醒、点击跳转、静音/摘要/飞书通知。
 - intake v0 是自由文本建议 + `RECOMMEND` 标签，UI 还没解析并一键创建单点/小队。
@@ -359,4 +361,5 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **intake + 重启恢复 PASS（2026-11-17）**：个人记账问题 → `@intake` 重述目标/约束，推荐 single，给出 pair/squad 重估条件、成本/风险和 2 周最小验证，末行 `RECOMMEND: single`；重启 app 后 agent/DM/2 条消息都在，5s 后仍 2 条，无重复回复。
 - **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。
 - **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。
+- **消息回复 PASS（2026-11-18）**：script-peer DM 第一条 → 第二条带 replyTo → 消息拉回 replyTo 指向第一条、thread=main、父文本正确。
 - **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 4 个单测，spike 38 tests。

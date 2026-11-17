@@ -328,4 +328,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **设置拆分（2026-11-17）**：全局设置只剩系统/用量；每个 agent 在 Agents 页有独立「设置」，深链 `#/agents/<id>/settings`。
 - **团队模板（2026-11-17）**：software-squad 6 角色（含 BA）、review-squad 改为架构/评审/安全、research-squad 研究/写作；只验证了创建，未做完整团队效果对照。
 - **agent 软删除 PASS（2026-11-17）**：临时 `@tmpdel072896` + DM，DELETE 200；bootstrap 不再有 agent/DM；再次 DELETE 404；无模型调用/成本。
-- **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；都 5/5、测试未改，跑完 bench agent/房间为 0。
+- **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；squad 一次 362s（timeout）/5 turns/$2.547；都 5/5、测试未改，跑完 bench agent/房间为 0。

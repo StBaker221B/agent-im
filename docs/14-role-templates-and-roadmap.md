@@ -125,7 +125,8 @@
   - 6 人软件小队仍未做完整对照；结论是“简单任务单人更划算，团队用于需要独立评审/风险取舍的任务”。详见[记录 16](records/2026-11-17-16-team-pilot.md)。
 - **可重复 benchmark（已落地）**：`bench/tasks/money-rounding` + `bench/run.mjs`，固定 fixture、新建 agent/session、独立 workspace、自动看测试/成本/turns、跑完软删。
   - 两次 fresh run：single 均值约 $0.115/35.5s；pair 均值约 $0.788/155s（成本 6.8×、耗时 4.4×），都 5/5、测试未改。
-  - 波动大（pair $0.65–$0.93），单次不能下结论；squad 和“单 Claude+subagent”基线还没跑。详见[记录 18](records/2026-11-17-18-repeatable-benchmark.md)。
+  - 一次 squad：5/5，但 362s 超时、5 turns、$2.547（单人约 22×）；简单任务上 6 人队明显过度配置，讨论收敛也太慢。
+  - 波动大（pair $0.65–$0.93），单次不能下结论；“单 Claude+subagent”基线还没跑。详见[记录 18](records/2026-11-17-18-repeatable-benchmark.md)。
 
 待做：自定义角色/团队模板另存、O*NET/ESCO 自动生成、删除/归档实验 agent。
 

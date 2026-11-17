@@ -19,7 +19,7 @@
   - **角色模板库（13 个）**：generic + 软件（architect/coder/reviewer/qa/ops/security）+ 产品（facilitator/PM/BA/researcher/writer）+ 经营（operations）；每张卡有职责/边界/决策权/思维/沟通/交接/成功标准；`app/role-knowledge/*.md` 角色知识包；runtime prompt = base + 角色卡 + 知识包 + 私有 knowledge；新建/agent 设置页可选模板、预览、工具开关。
   - **团队模板（3 个）**：software-squad（PM/BA/architect/coder/reviewer/qa）、review-squad（architect/reviewer/security）、research-squad（researcher/tech-writer）；一次注册 N 个 agent + 建群；Agents 页「创建小队」。
   - **团队 pilot**：同一小 bug，单 coder 1 turn/$0.2237/~16s；coder+reviewer 2 turns/$0.6690/~75s；都 5/5。团队成本约 3×、耗时约 4.7×，这个任务上没有质量优势；6 人小队未做完整对照。
-  - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；都 5/5、测试未改。squad/单 Claude+subagent 基线未跑。
+  - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；squad 一次 362s 超时/5 turns/$2.547；都 5/5、测试未改；单 Claude+subagent 基线未跑。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。

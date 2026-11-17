@@ -98,6 +98,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | Claude 调用/session | `spike/src/claude-adapter.mjs` |
 | 控制面 API / 上传 / 媒体代理 | `app/server.mjs` |
 | 运维/备份 | `scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`；audit 导出 `GET /api/audit/export` |
+| Agent 申请房间 | 回复 `REQUEST_ROOM`；Gateway 发 intent=room_request + `com.agentim.room`；人类批准后 createGroup（人类+发起者+目标），同名同成员幂等 |
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs`；agent 软删除 `DELETE /api/agents/:id` + `gateway.removeAgent`；群移除 `DELETE /api/rooms/:id/members/:agentId` |
 | 活动/审计、全局暂停 | `GET /api/audit` + `ActivityView.jsx`；`POST /api/admin/pause-all` + SettingsView |
 | 任务台账 | `app/tasks.mjs` + `GET/POST/PATCH /api/tasks` + `TasksView.jsx`；30s tick 到期派发 |

@@ -24,6 +24,7 @@ export const api = {
       method: "POST",
       body: payload,
     }),
+  intake: (problem) => request("/api/intake", { method: "POST", body: { problem } }),
   usage: () => request("/api/usage"),
   messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
   send: (roomId, text) =>

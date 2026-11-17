@@ -541,6 +541,63 @@ async function approveTool(agentId, body) {
   return { ok: true, eventId: sent.eventId, toolsMode: agent.toolsMode, approvedTools: agent.approvedTools };
 }
 
+const INTAKE_PROMPT = `你是 Agent IM 的需求评估顾问。人类会把一个问题或想法交给你。
+先重述目标、约束和验收标准；再判断应该单点解决还是小团队运营。
+- 默认优先 single；只有独立性、风险、不同专业或并行收益足够时才推荐 pair/squad。
+- 明确说明团队多花多少成本、换来什么；不要为了热闹组队。
+- 不确定时先给最小验证，而不是直接建大团队。
+输出结构：
+1. 问题重述与验收
+2. 选项与推荐（single / pair / squad）
+3. 理由与风险
+4. 若推荐团队：角色与分工
+5. 最小下一步
+最后单独一行输出：RECOMMEND: single 或 RECOMMEND: pair 或 RECOMMEND: squad。
+不要自己创建房间或团队；人类批准后再做。`;
+
+async function ensureIntakeAgent() {
+  let agent = store.agent("intake");
+  if (agent && agent.status !== "deleted") {
+    if (agent.status === "paused") {
+      agent.status = "active";
+      store.save();
+      const engineAgent = host.engine.agents.get(agent.id);
+      if (engineAgent) engineAgent.paused = false;
+    }
+    return agent;
+  }
+  const username = agent ? `intake-${Date.now().toString().slice(-6)}` : "intake";
+  agent = await createAgent({
+    username,
+    displayName: "需求顾问",
+    runtime: "claude",
+    templateId: "facilitator",
+    toolsMode: "off",
+    roles: "intake,需求评估",
+    systemPrompt: INTAKE_PROMPT,
+    wakePolicy: "human_all",
+  });
+  return agent;
+}
+
+async function intake(body) {
+  const problem = String(body.problem ?? "").trim();
+  if (problem.length < 5) throw Object.assign(new Error("请把问题描述得具体一点"), { status: 400 });
+  if (problem.length > 8000)
+    throw Object.assign(new Error("问题太长，请压缩到 8000 字以内"), { status: 400 });
+  const agent = await ensureIntakeAgent();
+  const dm = await createDm({ agentId: agent.id });
+  const prompt = `请评估下面这个问题，给出“单点解决 / 小团队运营”的建议。\n\n${problem}\n\n请按你的 intake 结构输出，最后给出 RECOMMEND 标签。`;
+  await human.send(dm.room.id, {
+    threadId: "main",
+    text: prompt,
+    mentions: [agent.id],
+  });
+  store.markRead(dm.room.id, Date.now());
+  log(`[app] intake ${agent.id} room=${dm.room.id}`);
+  return { room: dm.room, agent: { id: agent.id, displayName: agent.displayName } };
+}
+
 async function createTeam(teamId, body) {
   const team = getTeamTemplate(teamId);
   if (!team) throw Object.assign(new Error("team template not found"), { status: 404 });
@@ -761,6 +818,11 @@ async function handleApi(req, res, url) {
     const teamId = decodeURIComponent(parts[2]);
     const body = await readBody(req);
     return json(res, 200, await createTeam(teamId, body));
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/intake") {
+    const body = await readBody(req);
+    return json(res, 200, await intake(body));
   }
 
   if (req.method === "GET" && url.pathname === "/api/usage") {

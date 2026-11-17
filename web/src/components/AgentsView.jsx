@@ -8,7 +8,16 @@ const STATUS = {
   offline: "离线",
 };
 
-export default function AgentsView({ agents, onNew, onNewTeam, onDm, onConfigure, onProfile, onBack }) {
+export default function AgentsView({
+  agents,
+  onNew,
+  onNewTeam,
+  onIntake,
+  onDm,
+  onConfigure,
+  onProfile,
+  onBack,
+}) {
   return (
     <section className="agents-view">
       <header className="view-head">
@@ -20,6 +29,9 @@ export default function AgentsView({ agents, onNew, onNewTeam, onDm, onConfigure
           <p>房间里可以对话的参与者</p>
         </div>
         <div className="view-actions">
+          <button type="button" className="ghost" onClick={onIntake}>
+            评估需求
+          </button>
           <button type="button" className="ghost" onClick={onNewTeam}>
             创建小队
           </button>

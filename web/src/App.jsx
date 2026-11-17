@@ -7,6 +7,7 @@ import AgentSettingsView from "./components/AgentSettingsView";
 import NewChatModal from "./components/NewChatModal";
 import NewAgentModal from "./components/NewAgentModal";
 import TeamModal from "./components/TeamModal";
+import IntakeModal from "./components/IntakeModal";
 import InviteModal from "./components/InviteModal";
 import ProfileModal from "./components/ProfileModal";
 import SearchView from "./components/SearchView";
@@ -440,6 +441,13 @@ export default function App() {
       openRoom(res.group.room.id);
     });
 
+  const handleIntake = (problem) =>
+    runModal(async () => {
+      const res = await api.intake(problem);
+      await loadBootstrap();
+      openRoom(res.room.id);
+    });
+
   const handleInvite = (agentIds) =>
     runModal(async () => {
       if (!activeRoomId) return;
@@ -497,6 +505,7 @@ export default function App() {
             agents={data?.agents ?? []}
             onNew={() => openModal("agent")}
             onNewTeam={() => openModal("team")}
+            onIntake={() => openModal("intake")}
             onDm={handleCreateDm}
             onConfigure={openAgentSettings}
             onProfile={openProfile}
@@ -572,6 +581,17 @@ export default function App() {
             if (!busy) setModal(null);
           }}
           onCreate={handleCreateTeam}
+        />
+      )}
+
+      {modal === "intake" && (
+        <IntakeModal
+          busy={busy}
+          error={modalError}
+          onClose={() => {
+            if (!busy) setModal(null);
+          }}
+          onSubmit={handleIntake}
         />
       )}
 

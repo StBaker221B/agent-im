@@ -4,8 +4,9 @@
 // sending a human message into its room; it does not own the agent turn.
 
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { writeFileAtomic } from "../spike/src/atomic-write.mjs";
 
 export const TASK_STATUSES = ["pending", "active", "blocked", "failed", "done", "cancelled"];
 const STATUS_SET = new Set(TASK_STATUSES);
@@ -46,7 +47,7 @@ export class TaskStore {
   }
 
   save() {
-    writeFileSync(this.path, JSON.stringify({ version: 1, tasks: this.tasks }, null, 2) + "\n", "utf8");
+    writeFileAtomic(this.path, JSON.stringify({ version: 1, tasks: this.tasks }, null, 2) + "\n");
   }
 
   list() {

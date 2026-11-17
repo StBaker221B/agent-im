@@ -113,11 +113,15 @@ const host = await createHost({
 });
 await host.start();
 let killed = false;
+const pausedBeforeKill = new Map();
 
 async function setKilled(kill) {
   if (kill) {
+    if (killed) return { killed: true };
+    pausedBeforeKill.clear();
     for (const agent of store.agents) {
       if (agent.status === "deleted") continue;
+      pausedBeforeKill.set(agent.id, agent.status);
       agent.status = "paused";
       const engineAgent = host.engine.agents.get(agent.id);
       if (engineAgent) engineAgent.paused = true;
@@ -128,13 +132,16 @@ async function setKilled(kill) {
     log("[app] hard kill engaged");
     return { killed: true };
   }
+  if (!killed) return { killed: false };
   killed = false;
   for (const agent of store.agents) {
     if (agent.status === "deleted") continue;
-    agent.status = "active";
+    const previous = pausedBeforeKill.get(agent.id) ?? "active";
+    agent.status = previous === "paused" ? "paused" : "active";
     const engineAgent = host.engine.agents.get(agent.id);
-    if (engineAgent) engineAgent.paused = false;
+    if (engineAgent) engineAgent.paused = agent.status === "paused";
   }
+  pausedBeforeKill.clear();
   store.save();
   await host.resume();
   log("[app] hard kill released");
@@ -839,6 +846,8 @@ async function dispatchTask(task, by = "human") {
 async function dispatchTaskById(taskId, by) {
   const task = tasks.get(taskId);
   if (!task) throw Object.assign(new Error("task not found"), { status: 404 });
+  if (!["pending", "blocked"].includes(task.status))
+    throw Object.assign(new Error(`任务状态为 ${task.status}，不能重复派发`), { status: 409 });
   return dispatchTask(task, by);
 }
 
@@ -1402,9 +1411,36 @@ async function serveStatic(res, pathname) {
   res.end(data);
 }
 
+const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`]);
+const allowedOrigins = new Set([
+  `http://127.0.0.1:${port}`,
+  `http://localhost:${port}`,
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+  ...String(process.env.AGENT_IM_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+]);
+
+function allowLocalRequest(req, res) {
+  const host = req.headers.host;
+  if (host && !allowedHosts.has(host)) {
+    json(res, 403, { error: "forbidden host" });
+    return false;
+  }
+  const origin = req.headers.origin;
+  if (origin && !allowedOrigins.has(origin)) {
+    json(res, 403, { error: "forbidden origin" });
+    return false;
+  }
+  return true;
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${hostName}:${port}`);
   try {
+    if (!allowLocalRequest(req, res)) return;
     if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
     return await serveStatic(res, url.pathname);
   } catch (err) {

@@ -7,7 +7,8 @@
 // and rooms keep working: users from spike/.tmp/matrix-users.json, tokens from
 // spike/.tmp/matrix-config.json, registration token from spike/.tmp.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { writeFileAtomic } from "../spike/src/atomic-write.mjs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FULL_TOOL_LIST, getTemplate, readRoleKnowledge, renderRoleCard } from "./role-templates.mjs";
@@ -216,7 +217,7 @@ export class Store {
 
   save() {
     mkdirSync(dataDir, { recursive: true });
-    writeFileSync(statePath, JSON.stringify(this.state, null, 2) + "\n", "utf8");
+    writeFileAtomic(statePath, JSON.stringify(this.state, null, 2) + "\n");
   }
 
   get human() {

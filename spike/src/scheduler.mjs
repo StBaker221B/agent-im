@@ -409,7 +409,8 @@ export class Engine {
         thread.floor.version += 1;
         thread.quiescent = false;
         results.push({ type: "turn_timeout", thread: thread.key, agentId: expired });
-        this.grantNext(thread.roomId, thread.id);
+        const grant = this.grantNext(thread.roomId, thread.id);
+        if (grant) results.push({ type: "granted", thread: thread.key, grant });
       }
 
       for (const proposal of this.proposals.values()) {

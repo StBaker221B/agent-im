@@ -120,10 +120,10 @@ export class ClaudeAdapter {
 
   capabilities() {
     return {
-      streaming: false, // v0: events are emitted after the turn is complete
+      streaming: true, // partial text_delta events via --include-partial-messages
       interrupt: true, // kill + resume
       resume: true,
-      approval: false,
+      approval: true, // cooperative REQUEST_TOOL / human approval flow
       tools: true,
       multi_session: true, // one CLI process per room/thread
     };

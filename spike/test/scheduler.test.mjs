@@ -171,6 +171,17 @@ test("turn timeout releases the floor into error", () => {
   assert.equal(e.stateOf("r1", "t1", "a1"), "error");
 });
 
+test("turn timeout grants the next queued agent", () => {
+  const e = setup({ maxTurnMs: 50 });
+  e.post({ id: "m1", roomId: "r1", threadId: "t1", sender: "human", text: "@a1", mentions: ["a1"] });
+  e.requestFloor("r1", "t1", "a2");
+  assert.equal(e.getThread("r1", "t1").floor.holder, "a1");
+  const results = e.tick(50);
+  const granted = results.find((r) => r.type === "granted");
+  assert.equal(granted?.grant.agentId, "a2");
+  assert.equal(e.getThread("r1", "t1").floor.holder, "a2");
+});
+
 test("whoCanHelp resolves roles/domains", () => {
   const e = setup();
   assert.deepEqual(e.whoCanHelp("auth"), ["a1"]);

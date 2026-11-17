@@ -11,6 +11,7 @@
 //   so a retried send is deduplicated by the homeserver.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFileAtomic } from "./atomic-write.mjs";
 import { dirname, join } from "node:path";
 import { AuditLog } from "./audit.mjs";
 import { parseReply } from "./reply.mjs";
@@ -120,7 +121,7 @@ export class Gateway {
       lastTs: this.lastTs,
       processed: [...this.processed].slice(-this.maxQueued),
     };
-    writeFileSync(this.statePath, JSON.stringify(state, null, 2), "utf8");
+    writeFileAtomic(this.statePath, JSON.stringify(state, null, 2));
   }
 
   #scheduleSave() {
@@ -842,6 +843,10 @@ export class Gateway {
           this.log(`[gateway] interrupt ${r.agentId} failed: ${err.message}`),
         );
         this.log(`[gateway] turn timeout: ${r.agentId}`);
+      } else if (r.type === "granted" && r.grant) {
+        this.#enqueue(() => this.#dispatch(r.grant, new Set())).catch((err) =>
+          this.log(`[gateway] dispatch after timeout failed: ${err.message}`),
+        );
       } else if (r.type === "quiescent") {
         this.audit.write({ kind: "quiescent", thread: r.thread });
         this.log(`[gateway] quiescent: ${r.thread}`);

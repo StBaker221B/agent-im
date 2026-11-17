@@ -157,6 +157,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/tasks/:id/checkpoints` | 追加任务检查点 |
 | `POST /api/tasks/:id/dispatch` | 立即派发一次到任务房间 |
 | `POST /api/admin/pause-all` | `{paused}`；所有非 deleted agent 全局暂停/恢复（当前轮跑完） |
+| `POST /api/admin/kill` | `{kill}`；硬 kill 停 sync/关闭 runtime；恢复重建并补消费 |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
@@ -298,7 +299,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
-3. 房间/agent 管理：暂停、软删除、移除群成员已完成；待做硬删除/undelete、邀请人类、批量操作。
+3. 房间/agent 管理：暂停、软删除、移除群成员、全局硬 kill 已完成；待做硬删除/undelete、邀请人类、批量操作。
 4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE-BLOCK-FAIL/重启不重发已完成；待 cron/补跑、失败重试/升级、turn 恢复、进程守护。
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
 6. 真正的第二 runtime（OpenClaw/Codex），验证异构。

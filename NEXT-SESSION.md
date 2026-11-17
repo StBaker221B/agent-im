@@ -6,7 +6,7 @@
 ## 当前暂停点（2026-11-16 下午，MVP 第三轮）
 
 - 最近功能提交：`32e0e4c`（MVP 代码）+ `bbe67a5`（lint/format），分支 `agent-im/matrix-e2e`；文档在紧随其后的提交里。下个会话先 `git status`，别覆盖。
-- 记录：[28 消息回复](docs/records/2026-11-18-28-reply-to.md)、[27 桌面通知](docs/records/2026-11-17-27-desktop-notifications.md)、[26 BLOCK/FAIL](docs/records/2026-11-17-26-task-block-fail.md)、[25 Agent 申请房间](docs/records/2026-11-17-25-agent-room-requests.md)、[24 群成员移除](docs/records/2026-11-17-24-member-removal.md)、[23 运维脚本/审计导出](docs/records/2026-11-17-23-ops.md)、[22 Agent 任务标记](docs/records/2026-11-17-22-agent-task-markers.md)、[21 持久任务台账](docs/records/2026-11-17-21-task-ledger.md)、[20 活动/审计与全局暂停](docs/records/2026-11-17-20-activity-and-global-pause.md)、[19 长期驻守与 intake](docs/records/2026-11-17-19-long-running-intake.md)、[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)。
+- 记录：[29 硬 kill](docs/records/2026-11-18-29-hard-kill.md)、[28 消息回复](docs/records/2026-11-18-28-reply-to.md)、[27 桌面通知](docs/records/2026-11-17-27-desktop-notifications.md)、[26 BLOCK/FAIL](docs/records/2026-11-17-26-task-block-fail.md)、[25 Agent 申请房间](docs/records/2026-11-17-25-agent-room-requests.md)、[24 群成员移除](docs/records/2026-11-17-24-member-removal.md)、[23 运维脚本/审计导出](docs/records/2026-11-17-23-ops.md)、[22 Agent 任务标记](docs/records/2026-11-17-22-agent-task-markers.md)、[21 持久任务台账](docs/records/2026-11-17-21-task-ledger.md)、[20 活动/审计与全局暂停](docs/records/2026-11-17-20-activity-and-global-pause.md)、[19 长期驻守与 intake](docs/records/2026-11-17-19-long-running-intake.md)、[18 可重复 benchmark](docs/records/2026-11-17-18-repeatable-benchmark.md)。
 - 已完成：
   - `spike/`：协议引擎 + 38 tests；`human_all`、`maxAgentChain=10`（防死循环）、动态 room/agent；`sessionScope="agent"`；媒体缓存（`mediaDir` / `#cacheMedia`）。
   - `app/`：创建/邀请/删除/上传/媒体代理/搜索/PATCH agent。

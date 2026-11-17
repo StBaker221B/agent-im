@@ -56,3 +56,4 @@
 | 30 | [2026-11-17 BLOCK/FAIL 任务标记](2026-11-17-26-task-block-fail.md) | agent 阻塞/失败写回 blocked/failed、checkpoint、UI |
 | 31 | [2026-11-17 桌面通知](2026-11-17-27-desktop-notifications.md) | 浏览器通知、设置页开关、后台未读、单次去重 |
 | 32 | [2026-11-18 消息回复引用](2026-11-18-28-reply-to.md) | replyTo、气泡引用、composer 草稿、Matrix reply 解析修复 |
+| 33 | [2026-11-18 硬 kill](2026-11-18-29-hard-kill.md) | 停止 sync/runtime、killed 状态、恢复重建、消息补消费 |

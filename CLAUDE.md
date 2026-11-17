@@ -102,7 +102,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs`；agent 软删除 `DELETE /api/agents/:id` + `gateway.removeAgent`；群移除 `DELETE /api/rooms/:id/members/:agentId` |
 | 消息回复 | 前端 replyTo 草稿/引用；API body.replyTo；Matrix m.in_reply_to；transport 解析主线程 reply |
 | 桌面通知 | `App.jsx` Notification + SettingsView；只在 `document.hidden`、有未读时；localStorage 存偏好 |
-| 活动/审计、全局暂停 | `GET /api/audit` + `ActivityView.jsx`；`POST /api/admin/pause-all` + SettingsView |
+| 活动/审计、全局暂停、硬 kill | `GET /api/audit` + `ActivityView.jsx`；`/api/admin/pause-all`、`/api/admin/kill` + SettingsView；硬 kill 会停 sync/关 runtime |
 | 任务台账 | `app/tasks.mjs` + `GET/POST/PATCH /api/tasks` + `TasksView.jsx`；30s tick 到期派发 |
 | 媒体缓存（agent 读图） | `spike/src/gateway.mjs`（`mediaDir` / `#cacheMedia`） |
 | 历史搜索 | `app/server.mjs` `/api/search` + `web/src/components/SearchView.jsx` |

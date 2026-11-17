@@ -4,7 +4,14 @@ import Icon from "./Icon";
 
 const USD = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "USD", maximumFractionDigits: 4 });
 
-export default function SettingsView({ data, notifications, onToggleNotifications, onPauseAll, onBack }) {
+export default function SettingsView({
+  data,
+  notifications,
+  onToggleNotifications,
+  onPauseAll,
+  onHardKill,
+  onBack,
+}) {
   const [usage, setUsage] = useState(null);
 
   useEffect(() => {
@@ -84,6 +91,18 @@ export default function SettingsView({ data, notifications, onToggleNotification
           </button>
           <button type="button" className="ghost" onClick={() => onPauseAll?.(false)}>
             恢复所有 agent
+          </button>
+        </div>
+        <p className="settings-note" style={{ marginTop: "12px" }}>
+          硬 kill 额外停止 sync 并关闭 runtime，适合完全停机；恢复会重新拉起 gateway。当前状态：
+          {data?.killed ? "已硬 kill" : "运行中"}。
+        </p>
+        <div className="settings-actions">
+          <button type="button" className="danger" onClick={() => onHardKill?.(true)}>
+            硬 kill（停止 sync/runtime）
+          </button>
+          <button type="button" className="ghost" onClick={() => onHardKill?.(false)}>
+            从硬 kill 恢复
           </button>
         </div>
       </div>

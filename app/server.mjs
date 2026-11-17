@@ -112,6 +112,34 @@ const host = await createHost({
   log,
 });
 await host.start();
+let killed = false;
+
+async function setKilled(kill) {
+  if (kill) {
+    for (const agent of store.agents) {
+      if (agent.status === "deleted") continue;
+      agent.status = "paused";
+      const engineAgent = host.engine.agents.get(agent.id);
+      if (engineAgent) engineAgent.paused = true;
+    }
+    store.save();
+    await host.kill();
+    killed = true;
+    log("[app] hard kill engaged");
+    return { killed: true };
+  }
+  killed = false;
+  for (const agent of store.agents) {
+    if (agent.status === "deleted") continue;
+    agent.status = "active";
+    const engineAgent = host.engine.agents.get(agent.id);
+    if (engineAgent) engineAgent.paused = false;
+  }
+  store.save();
+  await host.resume();
+  log("[app] hard kill released");
+  return { killed: false };
+}
 
 // Dispatch due tasks once shortly after startup, then every 30s. Tasks are
 // persisted, so a restart does not lose them; an active task is not re-sent.
@@ -246,6 +274,7 @@ async function bootstrap() {
     agents,
     rooms,
     totalUnread: rooms.reduce((n, r) => n + r.unread, 0),
+    killed,
   };
 }
 
@@ -1083,7 +1112,7 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/health") {
     const health = await host.gateway.health();
-    return json(res, 200, { ok: true, running: health.running, rooms: health.rooms });
+    return json(res, 200, { ok: true, running: health.running, killed, rooms: health.rooms });
   }
 
   if (req.method === "GET" && url.pathname === "/api/role-templates") {
@@ -1133,6 +1162,11 @@ async function handleApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/admin/pause-all") {
     const body = await readBody(req);
     return json(res, 200, await setAllPaused(Boolean(body.paused)));
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/kill") {
+    const body = await readBody(req);
+    return json(res, 200, await setKilled(Boolean(body.kill)));
   }
 
   if (req.method === "GET" && url.pathname === "/api/tasks") {

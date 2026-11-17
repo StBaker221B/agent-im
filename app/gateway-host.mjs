@@ -192,6 +192,28 @@ export async function createHost({
       await gateway.stop();
     },
 
+    async kill() {
+      await gateway.stop();
+      for (const runtime of runtimes.values()) {
+        try {
+          await runtime.close?.();
+        } catch {
+          // best effort
+        }
+      }
+      runtimes.clear();
+      log("[gateway] hard killed: sync stopped, runtimes closed");
+    },
+
+    async resume() {
+      for (const agent of store.agents) {
+        if (agent.status === "deleted" || runtimes.has(agent.id)) continue;
+        runtimes.set(agent.id, createRuntime(agent, { dataDir, log }));
+      }
+      await gateway.start();
+      log("[gateway] resumed");
+    },
+
     async attachAgent(agent) {
       kinds.set(agent.id, "agent");
       const client = new MatrixClient({

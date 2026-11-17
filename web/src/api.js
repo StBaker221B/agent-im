@@ -44,6 +44,7 @@ export const api = {
     return request(`/api/audit?${params}`);
   },
   pauseAll: (paused) => request("/api/admin/pause-all", { method: "POST", body: { paused } }),
+  kill: (kill) => request("/api/admin/kill", { method: "POST", body: { kill } }),
   messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
   send: (roomId, text, replyTo = null) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, {

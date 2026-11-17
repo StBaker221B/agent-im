@@ -421,6 +421,22 @@ export default function App() {
     }
   }
 
+  async function hardKill(kill) {
+    if (
+      kill &&
+      !window.confirm("硬 kill 会停止所有 agent 的 Matrix sync 并关闭 runtime；当前 turn 可能被中断。确认？")
+    ) {
+      return;
+    }
+    try {
+      await api.kill(kill);
+      await loadBootstrap();
+      notify(kill ? "已硬 kill：sync/runtime 已停止" : "已恢复：sync/runtime 已重启");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function deleteAgentById(agentId) {
     if (!window.confirm("删除这个 agent？它会退出所有房间并从列表隐藏；Matrix 历史保留，账号不回收。")) {
       return;
@@ -651,6 +667,7 @@ export default function App() {
             notifications={notifications}
             onToggleNotifications={toggleNotifications}
             onPauseAll={pauseAll}
+            onHardKill={hardKill}
             onBack={() => setMobilePane("list")}
           />
         ) : activeRoom ? (

@@ -49,3 +49,4 @@
 | 23 | [2026-11-17 长期驻守与 intake](2026-11-17-19-long-running-intake.md) | 需求记录、@intake 顾问、单点 vs 团队建议、重启恢复验证 |
 | 24 | [2026-11-17 活动/审计与全局暂停](2026-11-17-20-activity-and-global-pause.md) | 活动页、audit API、pause-all；只读/软暂停边界 |
 | 25 | [2026-11-17 持久任务台账](2026-11-17-21-task-ledger.md) | tasks.json、到期派发、checkpoint、任务页、重启不重发 |
+| 26 | [2026-11-17 Agent 任务标记](2026-11-17-22-agent-task-markers.md) | `TASK:` 创建、派发消息带 taskId、owner `DONE:` 自动完成 |

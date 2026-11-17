@@ -215,7 +215,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。Agent 设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
 - **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；agent 设置页/Agents 页可见。
 - **全局暂停**：设置页可暂停/恢复所有非 deleted agent；当前正在跑的 turn 会跑完，下一轮起跳过。不是硬 kill，不会停 gateway 或中断当前 turn。
-- **任务台账**：`app/data/tasks.json` 持久化 status/owner/room/dueAt/intervalMinutes/checkpoints；启动 5s 后和每 30s 检查 pending+到期，派发到房间（人类消息 + @ owner）。一次性先置 active 再发送；`intervalMinutes>0` 派发后回到 pending 并排下一次。重启不重发 active，pending 到期补发；owner 暂停/发送失败 → blocked。
+- **任务台账**：`app/data/tasks.json` 持久化 status/owner/room/dueAt/intervalMinutes/checkpoints；启动 5s 后和每 30s 检查 pending+到期，派发到房间（人类消息 + @ owner + taskId/taskOwner）。一次性先置 active 再发送；`intervalMinutes>0` 派发后回到 pending 并排下一次。重启不重发 active，pending 到期补发；owner 暂停/发送失败 → blocked。
+- **Agent 任务标记**：agent 可回复 `TASK: <title>` 创建 pending 任务（owner=自己、dueAt=null）；任务派发消息带 taskId，owner 回复 `DONE:` 自动把一次性任务置 done；重复任务只追加 checkpoint。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
 - **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；全局设置页展示每 agent 今天/累计 turns 和 USD，agent 设置页可设 `dailyBudgetUsd`（0=不限）。USD 来自 Claude CLI result 的 `total_cost_usd`，不是前端按 token 估算。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
 - **成本**：`human_all` 意味着群里一条人类消息会触发 N 个 Claude turn。MVP 实测 4 个 turn 约 **$0.146**（长上下文时单 turn 可达 $0.05+）；规则 triage、冷却、每日预算已做，成本仍随 agent 数线性。
@@ -280,7 +281,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
 - benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次、squad 一次；单 Claude+subagent 基线未跑。
-- 长期驻守 v1：agent/房间/session/成本记录 + 持久任务台账/到期派发/固定间隔重复/checkpoint 可重启恢复；仍没有 cron 表达式/补跑、agent 侧任务标记、自动完成、失败重试、未完成 turn 恢复或进程守护。详见 [17](17-task-ledger.md)。
+- 长期驻守 v1：agent/房间/session/成本记录 + 持久任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE 可重启恢复；仍没有 cron 表达式/补跑、失败/阻塞标记、自动重试、未完成 turn 恢复或进程守护。详见 [17](17-task-ledger.md)。
 - 活动页只读最近约 5000 行/250 条事件，没有分页/导出/回放；全局暂停不是硬 kill，恢复所有会连手动暂停的一起恢复。
 - intake v0 是自由文本建议 + `RECOMMEND` 标签，UI 还没解析并一键创建单点/小队。
 
@@ -289,7 +290,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
 3. 房间/agent 管理：暂停、软删除已完成；待做硬删除/undelete、移除成员、邀请人类、批量操作。
-4. 长期运行 v1：任务台账/到期派发/固定间隔重复/重启不重发已完成；待 cron/补跑、agent 任务标记、自动完成/重试、turn 恢复、进程守护。
+4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE/重启不重发已完成；待 cron/补跑、失败/阻塞标记、重试、turn 恢复、进程守护。
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
 6. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 7. 数据平台最小版：活动/审计只读页、用量、全局暂停已完成；待做导出/回放、硬 kill、预算/失败告警。
@@ -348,4 +349,5 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；squad 一次 362s（timeout）/5 turns/$2.547；都 5/5、测试未改，跑完 bench agent/房间为 0。
 - **intake + 重启恢复 PASS（2026-11-17）**：个人记账问题 → `@intake` 重述目标/约束，推荐 single，给出 pair/squad 重估条件、成本/风险和 2 周最小验证，末行 `RECOMMEND: single`；重启 app 后 agent/DM/2 条消息都在，5s 后仍 2 条，无重复回复。
 - **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。
-- **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。TaskStore 4 个单测，spike 38 tests。
+- **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。
+- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done，checkpoint 记录 `agent DONE`。TaskStore 4 个单测，spike 38 tests。

@@ -22,7 +22,7 @@
   - **可重复 benchmark**：`bench/run.mjs` + `bench/tasks/money-rounding`；fresh agent/session/workspace、自动评分/清理。两次：single 32/39s、$0.0915/$0.1393；pair 176/134s、$0.9292/$0.6476；squad 一次 362s 超时/5 turns/$2.547；都 5/5、测试未改；单 Claude+subagent 基线未跑。
   - **长期驻守/intake v0**：`@intake` 需求顾问 + `POST /api/intake` + Agents 页「评估需求」；输出重述/推荐/成本/风险/最小验证/`RECOMMEND`，不自动建团队；重启后 agent/DM/消息保留、不重复回复。任务台账/调度/检查点/未完成 turn 恢复未做。
   - **活动/审计 + 全局暂停**：`GET /api/audit` + 侧栏「活动」（最近 250 条、3s 刷新、按 agent/类型筛选）；设置页暂停/恢复所有 agent（软暂停，当前轮跑完）。仍无导出/回放/硬 kill。
-  - **持久任务台账 v1**：`app/data/tasks.json` + 侧栏「任务」；新建 owner/房间/到期/重复间隔，30s tick 到期派发；一次性 active，重复任务回 pending 排下一次；重启不重发 active；checkpoint/blocked/完成。仍无 cron/补跑、agent 任务标记、自动完成、turn 恢复。
+  - **持久任务台账 v1**：`app/data/tasks.json` + 侧栏「任务」；新建 owner/房间/到期/重复间隔，30s tick 到期派发；一次性 active，重复任务回 pending 排下一次；重启不重发 active；checkpoint/blocked/完成。agent `TASK:` 创建 pending 任务、owner `DONE:` 自动关一次性任务已通；仍无 cron/补跑、失败/阻塞标记、turn 恢复。
   - **设置拆分**：全局设置只放系统/用量；每个 agent 在 Agents 页「设置」有独立页（模板/工具/预算/triage/暂停/提示/已批准工具）；页面底部可软删除 agent（离开群/删 DM/隐藏，账号保留）。
   - **时间戳记忆**：每轮 prompt 带 Current time，recent messages 和新消息带本地时间；旧 transcript 无时间戳时要求 agent 说不确定；实测 pm 答对日期时间。
   - 角色别名 @reviewer/@coder 在唯一时解析；arch-coder×arch-reviewer 实测形成"提案→质疑→修正→确认"闭环。

@@ -56,7 +56,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 
 - 服务启动 5s 后和第 30s 周期执行一次 `tickTasks()`；
 - 只派发 `status=pending` 且 `dueAt <= now` 的任务；
-- 派发 = 以人类身份往 `roomId` 发一条消息，`mentions=[owner]`（有 owner 时）；
+- 派发 = 以人类身份往 `roomId` 发一条消息，`mentions=[owner]`（有 owner 时），并带 `com.agentim.task_id/task_owner`；agent 的 per-turn prompt 会看到 taskId 和“完成后 DONE”的指令；
 - 派发**先更新任务状态并写 checkpoint**，再发送：
   - 一次性：active；重复任务：pending，`dueAt = now + intervalMinutes`；
   - 成功：`lastDispatchedAt` 记录；
@@ -75,6 +75,14 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 - 操作：派发、标记完成、阻塞、取消、重开、打开房间；
 - 新建任务 modal：标题、描述/验收、负责 agent、派发房间、到期时间（默认 5 分钟后）。
 
+### 5.1 Agent 任务标记
+
+- 非任务消息的 prompt 提示：需要长期任务时回复 `TASK: <title>`。
+- Gateway `onTaskCreate` 创建任务：owner=agent、room=当前房间、dueAt=null（不会自动回派），写 checkpoint。
+- 任务派发消息带 taskId/taskOwner；agent 完成后回复 `DONE: <summary>`。
+- `onTaskDone`：只有 owner 能关；一次性任务 → done；重复任务只追加 checkpoint，不结束重复。
+- Agent 创建的任务需要人类在任务页手动“派发”或设置到期。
+
 ## 6. 已验证
 
 - 创建 `task-mwkjvmf6-76b8af`（script-peer DM，due 2 秒前）：
@@ -84,12 +92,13 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 - 重复任务 `task-mwktdsqw-83eeb5`（interval 1 分钟，手动派发）：
   - 派发后 status 回到 pending，`dueAt` 约 1 分钟后，checkpoint 记录 `recurring dispatch; next ...`；
   - 不会在 next due 前重复派发；随后取消。
+- Agent 全链路 `task-mwktqtce-4b6c34`：PM 输出 `TASK:` → 任务创建（owner=PM, dueAt=null）→ 手动派发 active → PM 输出 `DONE:` → 任务自动 done，checkpoint 记录 `agent DONE`。
 - 新增 4 个 TaskStore 单测：持久化、due/dispatch、recurring next、checkpoint/非法更新；spike 共 **38 tests**。
 
 ## 7. 边界
 
 - 只有固定分钟间隔，没有 cron 表达式、工作日/时区规则；停机跨周期不补跑。
-- 没有 agent 侧创建/更新任务的 marker；目前人类/API 创建。
+- Agent 只能创建 `TASK:` 和完成 owner 的 `DONE:`；不能改 owner/due/interval，不能标记失败/阻塞。
 - 没有自动检测完成；需要人类或 UI 标记。
 - 没有重试队列/退避；失败即 blocked，人工重开。
 - 没有 turn 级恢复/检查点自动生成；checkpoint 目前只由派发/API 写。
@@ -98,8 +107,8 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 ## 8. 下一步
 
 1. 固定间隔重复已完成；待做 cron/工作日/时区、错过补跑策略。
-2. Agent 任务标记：`TASK:` / `DONE:` 与服务端任务关联。
-3. 自动完成/失败：agent `DONE`、超时、连续失败升级。
+2. Agent `TASK:`/`DONE:` 已完成；待做 `BLOCK:`/`FAIL:` 标记与自动升级。
+3. 自动完成/失败：owner DONE 已完成；待做超时、连续失败升级、证据校验。
 4. 通知/告警：到期、失败、预算、审批。
 5. 检查点 UI + 任务详情页。
 6. 与 intake 的 `RECOMMEND` 联动：一键创建单 agent 任务或小队的任务集。

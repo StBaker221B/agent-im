@@ -19,6 +19,7 @@ export default function Sidebar({
   onAgents,
   onSettings,
   onActivity,
+  onTasks,
   onSearch,
   onProfile,
   onDeleteRoom,
@@ -174,6 +175,10 @@ export default function Sidebar({
           <Icon name="agent" size={17} />
           <span>Agents</span>
           <span className="foot-count">{agents.length}</span>
+        </button>
+        <button type="button" className={`foot-item${view === "tasks" ? " active" : ""}`} onClick={onTasks}>
+          <Icon name="tasks" size={17} />
+          <span>任务</span>
         </button>
         <button
           type="button"

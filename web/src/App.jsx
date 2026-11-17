@@ -5,6 +5,8 @@ import ChatView from "./components/ChatView";
 import AgentsView from "./components/AgentsView";
 import AgentSettingsView from "./components/AgentSettingsView";
 import ActivityView from "./components/ActivityView";
+import TasksView from "./components/TasksView";
+import TaskModal from "./components/TaskModal";
 import NewChatModal from "./components/NewChatModal";
 import NewAgentModal from "./components/NewAgentModal";
 import TeamModal from "./components/TeamModal";
@@ -222,6 +224,9 @@ export default function App() {
       } else if (path === "/activity") {
         setView("activity");
         setMobilePane("chat");
+      } else if (path === "/tasks") {
+        setView("tasks");
+        setMobilePane("chat");
       } else if (path.startsWith("/search?q=")) {
         setSearchQuery(path.slice("/search?q=".length));
         setView("search");
@@ -283,6 +288,12 @@ export default function App() {
     setView("activity");
     setMobilePane("chat");
     setHash("#/activity");
+  }
+
+  function openTasks() {
+    setView("tasks");
+    setMobilePane("chat");
+    setHash("#/tasks");
   }
 
   function openAgentSettings(agentId) {
@@ -469,6 +480,15 @@ export default function App() {
       openRoom(res.room.id);
     });
 
+  const handleCreateTask = (payload) =>
+    runModal(async () => {
+      await api.createTask(payload);
+      setModal(null);
+      setView("tasks");
+      setMobilePane("chat");
+      setHash("#/tasks");
+    });
+
   const handleInvite = (agentIds) =>
     runModal(async () => {
       if (!activeRoomId) return;
@@ -508,6 +528,7 @@ export default function App() {
         }}
         onSettings={openSettings}
         onActivity={openActivity}
+        onTasks={openTasks}
         onSearch={openSearch}
         onProfile={openProfile}
         onDeleteRoom={deleteRoomFromList}
@@ -524,6 +545,13 @@ export default function App() {
           />
         ) : view === "activity" ? (
           <ActivityView data={data} onBack={() => setMobilePane("list")} />
+        ) : view === "tasks" ? (
+          <TasksView
+            data={data}
+            onNew={() => openModal("task")}
+            onOpenRoom={openRoom}
+            onBack={() => setMobilePane("list")}
+          />
         ) : view === "agents" ? (
           <AgentsView
             agents={data?.agents ?? []}
@@ -616,6 +644,19 @@ export default function App() {
             if (!busy) setModal(null);
           }}
           onSubmit={handleIntake}
+        />
+      )}
+
+      {modal === "task" && (
+        <TaskModal
+          agents={data?.agents ?? []}
+          rooms={data?.rooms ?? []}
+          busy={busy}
+          error={modalError}
+          onClose={() => {
+            if (!busy) setModal(null);
+          }}
+          onCreate={handleCreateTask}
         />
       )}
 

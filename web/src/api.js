@@ -25,6 +25,17 @@ export const api = {
       body: payload,
     }),
   intake: (problem) => request("/api/intake", { method: "POST", body: { problem } }),
+  tasks: () => request("/api/tasks"),
+  createTask: (payload) => request("/api/tasks", { method: "POST", body: payload }),
+  updateTask: (taskId, payload) =>
+    request(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "PATCH", body: payload }),
+  dispatchTask: (taskId) =>
+    request(`/api/tasks/${encodeURIComponent(taskId)}/dispatch`, { method: "POST", body: {} }),
+  addTaskCheckpoint: (taskId, text) =>
+    request(`/api/tasks/${encodeURIComponent(taskId)}/checkpoints`, {
+      method: "POST",
+      body: { text },
+    }),
   usage: () => request("/api/usage"),
   audit: ({ limit = 200, kind = "", agentId = "" } = {}) => {
     const params = new URLSearchParams({ limit: String(limit) });

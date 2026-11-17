@@ -17,6 +17,7 @@ import { readFile, stat } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Store, dataDir, defaultSystemPrompt, localpart } from "./store.mjs";
+import { TaskStore } from "./tasks.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
 import { normalizeApprovedTools, toolArgsFor } from "./tool-policy.mjs";
@@ -32,6 +33,7 @@ const hostName = "127.0.0.1";
 const log = (...args) => console.log(...args);
 
 const store = new Store();
+const tasks = new TaskStore(join(dataDir, "tasks.json"));
 const admin = createMatrixAdmin({
   homeserver: store.homeserver,
   registrationToken: store.registrationToken,
@@ -100,6 +102,13 @@ function broadcastLive(event) {
 
 const host = await createHost({ store, dataDir, kinds, onEvent: broadcastLive, log });
 await host.start();
+
+// Dispatch due tasks once shortly after startup, then every 30s. Tasks are
+// persisted, so a restart does not lose them; an active task is not re-sent.
+const taskTimer = setInterval(tickTasks, 30_000);
+taskTimer.unref?.();
+const taskBootTimer = setTimeout(tickTasks, 5_000);
+taskBootTimer.unref?.();
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -633,6 +642,122 @@ async function auditEvents(searchParams) {
   return { events: events.reverse().slice(0, limit) };
 }
 
+function taskView(task) {
+  const owner = task.owner ? store.agent(task.owner) : null;
+  const room = task.roomId ? store.room(task.roomId) : null;
+  return {
+    ...task,
+    ownerName: owner?.displayName ?? null,
+    roomName: room?.name ?? null,
+  };
+}
+
+function taskAgent(agentId) {
+  if (!agentId) return null;
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  return agent;
+}
+
+function taskRoom(roomId) {
+  if (!roomId) throw Object.assign(new Error("roomId required"), { status: 400 });
+  const room = store.room(roomId);
+  if (!room) throw Object.assign(new Error("room not found"), { status: 404 });
+  return room;
+}
+
+async function createTask(body) {
+  try {
+    taskAgent(body.owner);
+    taskRoom(body.roomId);
+    const task = tasks.create({
+      title: body.title,
+      description: body.description,
+      owner: body.owner,
+      roomId: body.roomId,
+      dueAt: body.dueAt,
+      priority: body.priority,
+      createdBy: store.human.id,
+    });
+    return taskView(task);
+  } catch (err) {
+    if (err.status) throw err;
+    throw Object.assign(new Error(err.message), { status: 400 });
+  }
+}
+
+async function updateTask(taskId, body) {
+  try {
+    if (body.owner !== undefined) taskAgent(body.owner);
+    if (body.roomId !== undefined) taskRoom(body.roomId);
+    const task = tasks.update(taskId, body);
+    if (!task) throw Object.assign(new Error("task not found"), { status: 404 });
+    return taskView(task);
+  } catch (err) {
+    if (err.status) throw err;
+    throw Object.assign(new Error(err.message), { status: 400 });
+  }
+}
+
+async function addTaskCheckpoint(taskId, body) {
+  try {
+    const task = tasks.addCheckpoint(taskId, body.text, store.human.id);
+    if (!task) throw Object.assign(new Error("task not found"), { status: 404 });
+    return taskView(task);
+  } catch (err) {
+    if (err.status) throw err;
+    throw Object.assign(new Error(err.message), { status: 400 });
+  }
+}
+
+async function dispatchTask(task, by = "human") {
+  const room = taskRoom(task.roomId);
+  const owner = taskAgent(task.owner);
+  if (owner?.status === "paused") {
+    tasks.update(task.id, { status: "blocked", lastError: "owner paused" });
+    throw Object.assign(new Error("owner 已暂停，先恢复再派发"), { status: 409 });
+  }
+  const mention = owner ? `@${owner.displayName} ` : "";
+  const text = `任务到期：${task.title}\n${task.description || ""}\n${mention}请接手；完成后把任务标记为 done。`;
+  tasks.dispatch(task.id, by);
+  try {
+    const sent = await human.send(room.id, {
+      threadId: "main",
+      text,
+      mentions: owner ? [owner.id] : [],
+    });
+    log(`[app] task dispatched ${task.id} room=${room.id}`);
+    return { task: taskView(tasks.get(task.id)), eventId: sent.eventId };
+  } catch (err) {
+    tasks.update(task.id, { status: "blocked", lastError: err.message });
+    throw Object.assign(new Error(`task dispatch failed: ${err.message}`), { status: 502 });
+  }
+}
+
+async function dispatchTaskById(taskId, by) {
+  const task = tasks.get(taskId);
+  if (!task) throw Object.assign(new Error("task not found"), { status: 404 });
+  return dispatchTask(task, by);
+}
+
+let taskTickRunning = false;
+async function tickTasks() {
+  if (taskTickRunning) return;
+  taskTickRunning = true;
+  try {
+    for (const task of tasks.due()) {
+      try {
+        await dispatchTask(task, "scheduler");
+      } catch (err) {
+        log(`[app] task dispatch ${task.id} failed: ${err.message}`);
+      }
+    }
+  } finally {
+    taskTickRunning = false;
+  }
+}
+
 async function intake(body) {
   const problem = String(body.problem ?? "").trim();
   if (problem.length < 5) throw Object.assign(new Error("请把问题描述得具体一点"), { status: 400 });
@@ -889,6 +1014,29 @@ async function handleApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/admin/pause-all") {
     const body = await readBody(req);
     return json(res, 200, await setAllPaused(Boolean(body.paused)));
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/tasks") {
+    return json(res, 200, { tasks: tasks.list().map(taskView) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/tasks") {
+    const body = await readBody(req);
+    return json(res, 200, await createTask(body));
+  }
+
+  if (req.method === "PATCH" && parts[1] === "tasks" && parts.length === 3) {
+    const body = await readBody(req);
+    return json(res, 200, await updateTask(decodeURIComponent(parts[2]), body));
+  }
+
+  if (req.method === "POST" && parts[1] === "tasks" && parts[3] === "checkpoints" && parts.length === 4) {
+    const body = await readBody(req);
+    return json(res, 200, await addTaskCheckpoint(decodeURIComponent(parts[2]), body));
+  }
+
+  if (req.method === "POST" && parts[1] === "tasks" && parts[3] === "dispatch" && parts.length === 4) {
+    return json(res, 200, await dispatchTaskById(decodeURIComponent(parts[2]), "human"));
   }
 
   if (req.method === "GET" && url.pathname === "/api/search") {

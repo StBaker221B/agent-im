@@ -37,7 +37,10 @@ export default function AgentSettings({ agent, templates, onSave }) {
     setMaxTurns(agent.triage?.maxTurnsPerHour ?? 30);
     setSkipAcks(agent.triage?.skipAcks ?? true);
     setSystemPrompt(agent.systemPrompt ?? "");
-  }, [agent]);
+    // Only reset when switching agents. bootstrap polls every 2.5s and gives a
+    // fresh object each time; depending on the object would erase unsaved edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent.id]);
 
   async function submit(e) {
     e.preventDefault();

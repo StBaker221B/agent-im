@@ -87,6 +87,7 @@ export default function ChatView({
   onUpload,
   onInvite,
   onApproveTool,
+  onApproveRoom,
   onDelete,
   onProfile,
   onBack,
@@ -374,6 +375,13 @@ export default function ChatView({
                     >
                       {renderContent(message, mentionPattern)}
                     </div>
+                    {!mine && message.intent === "room_request" && message.room && (
+                      <button type="button" className="approve-tool" onClick={() => onApproveRoom(message)}>
+                        {message.room.kind === "dm"
+                          ? "创建私聊（人类可见）"
+                          : `创建群「${message.room.name}」`}
+                      </button>
+                    )}
                     {!mine &&
                       message.intent === "tool_request" &&
                       agentsById.get(message.sender)?.toolsMode !== "full" &&

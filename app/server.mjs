@@ -192,6 +192,7 @@ function messageView(m) {
     fileInfo: m.fileInfo ?? null,
     intent: m.intent ?? "chat",
     tool: m.tool ?? null,
+    room: m.room ?? null,
     mentions: m.mentions,
     createdAt: m.createdAt,
   };
@@ -896,6 +897,17 @@ async function createGroup(body) {
   const agents = ids.map((id) => store.agent(id)).filter((a) => a && a.status !== "deleted");
   if (agents.length !== ids.length) throw Object.assign(new Error("有 agent 不存在"), { status: 404 });
 
+  const memberIds = [store.human.id, ...agents.map((a) => a.id)];
+  const memberSet = new Set(memberIds);
+  const existing = store.rooms.find(
+    (room) =>
+      room.kind === "group" &&
+      room.name === name &&
+      room.memberIds.length === memberSet.size &&
+      room.memberIds.every((id) => memberSet.has(id)),
+  );
+  if (existing) return { room: await roomSummary(existing), existing: true };
+
   const roomId = await admin.createRoom(store.human.accessToken, {
     name,
     invite: agents.map((a) => a.id),
@@ -907,7 +919,7 @@ async function createGroup(body) {
     mode: "brief",
     name,
     peerId: null,
-    memberIds: [store.human.id, ...agents.map((a) => a.id)],
+    memberIds,
     createdAt: new Date().toISOString(),
     lastReadTs: Date.now(),
   });

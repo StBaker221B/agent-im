@@ -604,6 +604,31 @@ export class Gateway {
         intent: "task",
       };
       if (created?.id) this.audit.write({ kind: "task_create", agentId, taskId: created.id });
+    } else if (action.type === "room_request") {
+      const targets = this.#resolveMentions(action.body ?? "", agentId).filter((id) => id !== agentId);
+      const kind = action.roomKind || (targets.length === 1 ? "dm" : "group");
+      if (!targets.length || (kind === "dm" && targets.length !== 1)) {
+        outbound = {
+          type: "message",
+          text:
+            kind === "dm"
+              ? "申请房间失败：私聊需要且只能 @ 一个 agent。"
+              : "申请房间失败：需要 @ 至少一个 agent。",
+          intent: "chat",
+        };
+      } else {
+        const names = targets.map((id) => this.engine.agents.get(id)?.displayName ?? id);
+        const name = kind === "group" ? action.roomName || `群聊-${names.join("-")}` : `私聊-${names[0]}`;
+        outbound = {
+          type: "room_request",
+          text:
+            kind === "dm"
+              ? `申请创建私聊：${names.map((n) => `@${n}`).join("、")}（人类可见）`
+              : `申请创建群「${name}」：${names.map((n) => `@${n}`).join("、")}`,
+          intent: "room_request",
+          room: { kind, name, agentIds: targets },
+        };
+      }
     } else if (action.type === "done") {
       outbound = { type: "done", reason: action.reason, text: action.reason, intent: "done" };
       if (taskId) {
@@ -638,6 +663,7 @@ export class Gateway {
           text: outbound.text,
           intent: outbound.intent,
           tool: outbound.tool,
+          room: outbound.room,
           mentions,
           txnId,
         });

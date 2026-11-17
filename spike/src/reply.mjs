@@ -18,6 +18,8 @@ export function buildAgentPrompt(envelope) {
   const taskLine = m.taskId
     ? `This message is task ${m.taskId}${m.taskOwner ? ` owned by ${m.taskOwner}` : ""}. When you finish, reply exactly: DONE: <summary>.`
     : "If you need to record a long-running task, reply exactly: TASK: <title>.";
+  const roomLine =
+    'If you need a side room, reply exactly: REQUEST_ROOM: dm @agent <reason> or REQUEST_ROOM: group "name" @a @b <reason>. You never create rooms yourself; a human approves.';
   return `Current time: ${formatTime(Date.now())} (local server time).
 Room ${m.roomId}, thread ${m.threadId}.
 Recent messages (timestamped):
@@ -25,6 +27,7 @@ ${recent || "(none)"}
 
 Newest message from ${m.sender} (${m.senderKind}) at ${formatTime(m.createdAt)}; mentions=${JSON.stringify(m.mentions ?? [])}; your attention=${envelope.attention}.
 ${taskLine}
+${roomLine}
 Use the timestamps above for dates. If an older memory has no timestamp, say you are unsure instead of guessing.
 Reply as yourself, in one message max. Do not prefix with your name.
 If you have nothing to add, reply exactly: PASS
@@ -43,6 +46,17 @@ export function parseReply(text) {
     return { type: "tool_request", tool: tool ?? "", reason: rest.join(" ") };
   }
   if (/^TASK\s*:/i.test(t)) return { type: "task", title: t.replace(/^TASK\s*:/i, "").trim() };
+  if (/^REQUEST_ROOM\s*:/i.test(t)) {
+    const body = t.replace(/^REQUEST_ROOM\s*:/i, "").trim();
+    const kind = /^dm\b/i.test(body) ? "dm" : /^group\b/i.test(body) ? "group" : "";
+    const nameMatch = /^group\s+(?:"([^"]+)"|(\S+))/i.exec(body);
+    return {
+      type: "room_request",
+      body,
+      roomKind: kind,
+      roomName: nameMatch?.[1] ?? nameMatch?.[2] ?? "",
+    };
+  }
   if (/^DONE\s*:/i.test(t)) return { type: "done", reason: t.replace(/^DONE\s*:/i, "").trim() };
   // Some models emit a fake DSML/XML tool call when the CLI has no tools.
   // Treat it as a request instead of posting raw XML to the room.

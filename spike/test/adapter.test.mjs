@@ -11,6 +11,12 @@ test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
     reason: "需要保存文件",
   });
   assert.deepEqual(parseReply("TASK: 每周对账"), { type: "task", title: "每周对账" });
+  assert.deepEqual(parseReply("REQUEST_ROOM: dm @researcher 私下确认"), {
+    type: "room_request",
+    body: "dm @researcher 私下确认",
+    roomKind: "dm",
+    roomName: "",
+  });
   assert.deepEqual(parseReply("DONE: 已完成"), { type: "done", reason: "已完成" });
   assert.deepEqual(parseReply('DSML calls <invoke name="Read">'), {
     type: "tool_request",

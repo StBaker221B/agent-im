@@ -331,6 +331,21 @@ export default function App() {
     if (window.confirm(`删除「${label}」？会离开这个房间并从列表移除。`)) await deleteRoomById(room.id);
   }
 
+  async function approveRoom(message) {
+    const spec = message?.room;
+    if (!spec) return;
+    const requester = message.sender;
+    const agentIds = [...new Set([requester, ...(spec.agentIds ?? [])])];
+    const name = spec.name || (spec.kind === "dm" ? "私聊" : "群聊");
+    try {
+      const res = await api.createGroup(name, agentIds);
+      await loadBootstrap();
+      openRoom(res.room.id);
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function approveTool(agentId, tool) {
     if (!activeRoomId) return;
     try {
@@ -599,6 +614,7 @@ export default function App() {
             onUpload={handleUpload}
             onInvite={() => openModal("invite")}
             onApproveTool={approveTool}
+            onApproveRoom={approveRoom}
             onDelete={() => deleteRoomById(activeRoom.id)}
             onProfile={openProfile}
             onBack={() => setMobilePane("list")}

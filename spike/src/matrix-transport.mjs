@@ -236,8 +236,8 @@ export class MatrixClient {
     if (rel?.rel_type === "m.thread") {
       threadId = rel.event_id;
       replyTo = rel["m.in_reply_to"]?.event_id;
-    } else if (rel?.rel_type === "m.in_reply_to") {
-      replyTo = rel.event_id;
+    } else if (rel?.["m.in_reply_to"]?.event_id) {
+      replyTo = rel["m.in_reply_to"].event_id;
     }
     return {
       id: ev.event_id,

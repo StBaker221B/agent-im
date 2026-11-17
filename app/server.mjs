@@ -196,6 +196,8 @@ function messageView(m) {
     tool: m.tool ?? null,
     room: m.room ?? null,
     mentions: m.mentions,
+    replyTo: m.replyTo ?? null,
+    threadId: m.threadId ?? "main",
     createdAt: m.createdAt,
   };
 }
@@ -1195,7 +1197,8 @@ async function handleApi(req, res, url) {
     const text = String(body.text ?? "").trim();
     if (!text) return json(res, 400, { error: "消息不能为空" });
     const mentions = mentionIdsIn(text, room);
-    const sent = await human.send(roomId, { threadId: "main", text, mentions });
+    const replyTo = typeof body.replyTo === "string" && body.replyTo ? body.replyTo : null;
+    const sent = await human.send(roomId, { threadId: "main", text, mentions, replyTo });
     store.markRead(roomId, Date.now());
     return json(res, 200, {
       eventId: sent.eventId,
@@ -1208,6 +1211,8 @@ async function handleApi(req, res, url) {
         kind: "human",
         text,
         mentions,
+        replyTo,
+        threadId: "main",
         createdAt: Date.now(),
       },
     });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
-import { colorFor, dayLabel, sameRun, shouldShowDay, timeShort } from "../format";
+import { colorFor, dayLabel, preview, sameRun, shouldShowDay, timeShort } from "../format";
 
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -93,6 +93,7 @@ export default function ChatView({
   onBack,
 }) {
   const [value, setValue] = useState("");
+  const [replyTarget, setReplyTarget] = useState(null);
   const [mention, setMention] = useState(null);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [dismissed, setDismissed] = useState(false);
@@ -103,6 +104,7 @@ export default function ChatView({
 
   const members = useMemo(() => room?.members ?? [], [room]);
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+  const messageById = useMemo(() => new Map(messages.map((m) => [m.id, m])), [messages]);
   const floorMember = activity?.floor ? memberById.get(activity.floor) : null;
   const queuedMembers = (activity?.queued ?? []).map((id) => memberById.get(id)).filter(Boolean);
   const mentionPattern = useMemo(() => {
@@ -208,16 +210,22 @@ export default function ChatView({
   async function submit() {
     const text = value.trim();
     if (!text || sending) return;
-    const ok = await onSend(text);
+    const ok = await onSend(text, replyTarget?.id ?? null);
     if (ok) {
       setValue("");
       setMention(null);
+      setReplyTarget(null);
       nearBottom.current = true;
     }
   }
 
   function onKeyDown(e) {
     if (e.nativeEvent.isComposing) return;
+    if (e.key === "Escape" && replyTarget) {
+      e.preventDefault();
+      setReplyTarget(null);
+      return;
+    }
     if (candidates.length) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -342,6 +350,7 @@ export default function ChatView({
             const name = member?.displayName || message.displayName || message.senderName;
             const mine = message.sender === human.id;
             const color = mine ? "var(--own)" : colorFor(member?.name ?? message.senderName);
+            const parent = message.replyTo ? messageById.get(message.replyTo) : null;
 
             return (
               <div key={message.id}>
@@ -368,6 +377,22 @@ export default function ChatView({
                           </span>
                         )}
                         <span className="msg-time">{timeShort(message.createdAt)}</span>
+                        <button
+                          type="button"
+                          className="reply-action"
+                          onClick={() => setReplyTarget(message)}
+                        >
+                          回复
+                        </button>
+                      </div>
+                    )}
+                    {message.replyTo && (
+                      <div className="reply-quote">
+                        {parent
+                          ? `${parent.displayName || parent.senderName}：${preview(
+                              parent.msgtype === "m.image" ? "[图片]" : parent.text,
+                            )}`
+                          : "回复一条更早的消息"}
                       </div>
                     )}
                     <div
@@ -466,6 +491,23 @@ export default function ChatView({
               <i />
             </span>
             正在上传文件…
+          </div>
+        )}
+
+        {replyTarget && (
+          <div className="reply-draft">
+            <span>
+              回复 {replyTarget.displayName || replyTarget.senderName}：
+              {preview(replyTarget.msgtype === "m.image" ? "[图片]" : replyTarget.text)}
+            </span>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setReplyTarget(null)}
+              aria-label="取消回复"
+            >
+              <Icon name="close" size={15} />
+            </button>
           </div>
         )}
 

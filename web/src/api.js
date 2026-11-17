@@ -45,8 +45,11 @@ export const api = {
   },
   pauseAll: (paused) => request("/api/admin/pause-all", { method: "POST", body: { paused } }),
   messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
-  send: (roomId, text) =>
-    request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, { method: "POST", body: { text } }),
+  send: (roomId, text, replyTo = null) =>
+    request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, {
+      method: "POST",
+      body: { text, replyTo },
+    }),
   read: (roomId, ts) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/read`, { method: "POST", body: { ts } }),
   createDm: (agentId) => request("/api/rooms", { method: "POST", body: { kind: "dm", agentId } }),

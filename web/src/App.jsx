@@ -450,10 +450,10 @@ export default function App() {
     }
   }
 
-  async function handleSend(text) {
+  async function handleSend(text, replyTo = null) {
     if (!activeRoomId) return false;
     try {
-      const res = await api.send(activeRoomId, text);
+      const res = await api.send(activeRoomId, text, replyTo);
       setMessages((prev) => mergeMessages(prev, [res.message]));
       // Pull the engine activity (floor/queue) right away so the UI shows the
       // real "thinking" state instead of guessing from messages.

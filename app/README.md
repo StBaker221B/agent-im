@@ -84,6 +84,8 @@ Claude agent 默认 `sessionScope: "agent"`：一个 agent 只有一个 Claude s
 - `POST /api/team-templates/:id/create` `{prefix,groupName}` — 一次创建一组 agent + 群
 - `POST /api/intake` `{problem}` — 确保 `@intake` 顾问、打开 DM、发送评估 prompt（不自动建团队）
 - `GET /api/usage` — 按 agent 汇总 audit 的 today/累计 turns + USD
+- `GET /api/audit` — 最近约 5000 行 audit 的只读视图（limit/kind/agentId）
+- `POST /api/admin/pause-all` — `{paused}` 全局暂停/恢复所有非 deleted agent（当前轮跑完）
 - `POST /api/agents` `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`
 - `PATCH /api/agents/:id` `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`
 - `DELETE /api/agents/:id` — 软删除 agent：离开群、删 DM、隐藏、停 sync；账号/历史保留

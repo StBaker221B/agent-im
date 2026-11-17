@@ -37,7 +37,8 @@
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
-- 顶部搜索框回车搜历史消息；侧栏「设置」页只放系统信息/用量/全局说明；每个 agent 的显示名/模板/工具/预算/triage/暂停/提示在 Agents 页该 agent 的「设置」里。
+- 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
+- 侧栏「设置」页放系统信息/用量/全局暂停恢复；每个 agent 的显示名/模板/工具/预算/triage/暂停/提示在 Agents 页该 agent 的「设置」里。
 - 群聊默认自由讨论：agent 可以互相 @ 继续；链上限 10 只是防死循环，不是对话轮数限制。
 
 ## 2. 组件
@@ -143,6 +144,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
+| `GET /api/audit` | `limit/kind/agentId`；最近约 5000 行 audit 的只读视图 |
+| `POST /api/admin/pause-all` | `{paused}`；所有非 deleted agent 全局暂停/恢复（当前轮跑完） |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
@@ -205,6 +208,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **UI 的"正在思考"来自 Engine**：bootstrap 的房间 `activity` 给出当前 floor holder 和排队 agent；不是前端按发送时间猜的。PASS 后 floor 释放，提示自动消失。
 - **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。Agent 设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
 - **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；agent 设置页/Agents 页可见。
+- **全局暂停**：设置页可暂停/恢复所有非 deleted agent；当前正在跑的 turn 会跑完，下一轮起跳过。不是硬 kill，不会停 gateway 或中断当前 turn。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
 - **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；全局设置页展示每 agent 今天/累计 turns 和 USD，agent 设置页可设 `dailyBudgetUsd`（0=不限）。USD 来自 Claude CLI result 的 `total_cost_usd`，不是前端按 token 估算。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
 - **成本**：`human_all` 意味着群里一条人类消息会触发 N 个 Claude turn。MVP 实测 4 个 turn 约 **$0.146**（长上下文时单 turn 可达 $0.05+）；规则 triage、冷却、每日预算已做，成本仍随 agent 数线性。
@@ -270,6 +274,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
 - benchmark 现在只有一个 money-rounding 任务；single/pair 各跑了两次、squad 一次；单 Claude+subagent 基线未跑。
 - 长期驻守只做到“agent/房间/session/成本记录重启恢复”；没有任务台账、定时/触发、检查点、未完成 turn 恢复或进程守护。详见 [16](16-long-running-and-intake.md)。
+- 活动页只读最近约 5000 行/250 条事件，没有分页/导出/回放；全局暂停不是硬 kill，恢复所有会连手动暂停的一起恢复。
 - intake v0 是自由文本建议 + `RECOMMEND` 标签，UI 还没解析并一键创建单点/小队。
 
 ## 10. 下一步
@@ -279,7 +284,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 3. 房间/agent 管理：暂停、软删除已完成；待做硬删除/undelete、移除成员、邀请人类、批量操作。
 4. 团队 benchmark：runner + money-rounding 已落地；待更多任务、squad、单 Claude+subagent 基线、质量指标。
 5. 真正的第二 runtime（OpenClaw/Codex），验证异构。
-6. 数据平台最小版：审计/用量/会话检索；把当前 chat UI 作为入口。
+6. 数据平台最小版：活动/审计只读页、用量、全局暂停已完成；待做导出/回放、硬 kill、预算/失败告警。
 7. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 34 个测试。
 
 ## 11. 验证记录（2026-11-16 / 17）
@@ -334,3 +339,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **agent 软删除 PASS（2026-11-17）**：临时 `@tmpdel072896` + DM，DELETE 200；bootstrap 不再有 agent/DM；再次 DELETE 404；无模型调用/成本。
 - **可重复 benchmark PASS（2026-11-17）**：`bench/run.mjs` 两次 fresh run，single 32s/39s、$0.0915/$0.1393；pair 176s/134s、$0.9292/$0.6476；squad 一次 362s（timeout）/5 turns/$2.547；都 5/5、测试未改，跑完 bench agent/房间为 0。
 - **intake + 重启恢复 PASS（2026-11-17）**：个人记账问题 → `@intake` 重述目标/约束，推荐 single，给出 pair/squad 重估条件、成本/风险和 2 周最小验证，末行 `RECOMMEND: single`；重启 app 后 agent/DM/2 条消息都在，5s 后仍 2 条，无重复回复。
+- **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。

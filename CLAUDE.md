@@ -131,7 +131,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 工具申请/批准 | `spike/src/reply.mjs` + `spike/src/gateway.mjs` + `app/server.mjs` `/approve-tool` + `ChatView.jsx` |
 | 注册/建房/邀请 | `app/matrix-admin.mjs` |
 | agent/room 动态装配 | `app/gateway-host.mjs` |
-| PWA/引导 | `web/public/manifest.webmanifest`、`sw.js`、`icon.svg`；生产注册 SW；空态 4 步；toast aria-live |
+| PWA/引导 | `web/public/manifest.webmanifest`、`sw.js`、`icon.svg`；生产注册 SW（network-first，v2）；空态 4 步；toast aria-live |
 | 产品 UI | `web/src/` |
 | 设计/数据/API | `docs/13-mvp-architecture.md` |
 

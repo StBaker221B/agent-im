@@ -73,3 +73,4 @@
 | 47 | [2026-11-18 PWA/引导/a11y](2026-11-18-43-pwa-onboarding.md) | manifest/sw/icon、首次步骤、aria-live/减动效 |
 | 48 | [2026-11-18 消息深链](2026-11-18-44-message-deeplinks.md) | `#/room/:id/message/:eventId`、复制链接、focus |
 | 49 | [2026-11-18 深搜历史](2026-11-18-45-deep-search.md) | search pages=1..5、每房间最多 500 条、checkbox |
+| 50 | [2026-11-18 UI 实机检查](2026-11-18-46-ui-review-fixes.md) | CSS 变量、SW network-first、thread/深链实机验证 |

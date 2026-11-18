@@ -149,7 +149,7 @@
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v2 已做 | 活动/审计导出、用量、全局暂停/硬 kill、待办收件箱；回放/直接审批/告警推送/会话检索待做 | 2–3d |
 | 产品化 UX | ⚠️ 部分 | PWA manifest/sw/icon、空态 4 步引导、aria-live/减动效、Chromium + 390×844 模拟检查已做；移动真机/Lighthouse/交互式 onboarding 待做 | 2–3d |
-| 第二 runtime / worktree | ⚠️ 部分 | worktree/branch 创建/移除 + 人工确认 merge 已做；OS 只读/容器、第二 runtime 待做 | 3–5d |
+| 第二 runtime / worktree | ⚠️ 部分 | worktree/branch + merge 已做；script-peer 作第二 runtime 已用；OS 只读/容器、OpenClaw/Codex 待做 | 3–5d |
 | 搜索分页/索引 | ⚠️ 部分 | 现在每房间最近 100 条；分页/索引 | 1–2d |
 | 运维/部署 | ⚠️ 部分 | start/backup/restore 脚本、audit 导出已做；守护进程/定时备份/异地备份/打包待做 | 1–2d |
 | App/Web 自动化测试 + CI | ⏳ 未做 | API/store/UI 测试、CI | 2–3d |

@@ -59,7 +59,7 @@
 | M5 数据平台最小版 | 部分 | 活动/用量/导出/暂停/kill、worktree merge 审批有；回放、deploy、告警缺 |
 | M6 worktree + merge | **大部分** | worktree/branch + 人工确认 merge；OS 只读/容器缺 |
 | M7 重启去重/预算/kill | 大部分 | 硬 kill 有但不持久；预算仍是 PASS skip，不是硬停+通知 |
-| S1/S2 第二 runtime | 缺失 | 仅 Claude/script |
+| S1/S2 第二 runtime | 部分 | Claude + script-peer 已在 E2E/soak 跑；OpenClaw/Codex adapter 未接 |
 | S3 Directory/card | 部分 | card API/Directory/Agents 筛选已做；who_can_help/能力 trust 缺 |
 | S4 Cron/触发 | 大部分 | interval/cron/retry；无时区/节假日/多次补跑 |
 | S5 审计回放 | 部分 | JSONL 导出/活动视图；无回放/task 范围查询 |

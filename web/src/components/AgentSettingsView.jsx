@@ -7,6 +7,7 @@ export default function AgentSettingsView({
   templates = [],
   onSave,
   onCreateWorktree,
+  onMergeWorktree,
   onRemoveWorktree,
   onDelete,
   onBack,
@@ -61,6 +62,9 @@ export default function AgentSettingsView({
               仓库：<code>{agent.worktree.repo}</code>
             </p>
             <div className="settings-actions">
+              <button type="button" className="primary" onClick={() => onMergeWorktree?.(agent.id)}>
+                合并到当前分支（人工确认）
+              </button>
               <button type="button" className="ghost" onClick={() => onRemoveWorktree?.(agent.id)}>
                 移除 worktree
               </button>

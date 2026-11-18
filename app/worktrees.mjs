@@ -46,3 +46,15 @@ export function listWorktrees(repoPath) {
   const repo = repoRoot(repoPath);
   return git(repo, ["worktree", "list", "--porcelain"]);
 }
+
+/** Merge a worktree branch into the repo's current branch. The caller (human)
+ * must be explicit; this refuses dirty trees and self-merges. */
+export function mergeWorktree({ repo, branch, message = "merge agent worktree" }) {
+  const root = repoRoot(repo);
+  const status = git(root, ["status", "--porcelain"]);
+  if (status) throw new Error("main working tree is dirty; commit/stash before merging");
+  const current = git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (!current || current === "HEAD") throw new Error("repository is in detached HEAD");
+  if (current === branch) throw new Error("cannot merge a branch into itself");
+  return git(root, ["merge", "--no-ff", branch, "-m", message]);
+}

@@ -21,7 +21,7 @@ import { TaskStore } from "./tasks.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
 import { normalizeApprovedTools, toolArgsFor } from "./tool-policy.mjs";
-import { createWorktree, removeWorktree } from "./worktrees.mjs";
+import { createWorktree, mergeWorktree, removeWorktree } from "./worktrees.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -847,6 +847,26 @@ async function removeAgentWorktree(agentId) {
   return { ok: true };
 }
 
+async function mergeAgentWorktree(agentId, body) {
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (!agent.worktree) throw Object.assign(new Error("agent has no worktree"), { status: 404 });
+  if (host.agentStatus(agent.id) === "working")
+    throw Object.assign(new Error("agent 正在运行，等空闲或先暂停"), { status: 409 });
+  try {
+    const output = mergeWorktree({
+      repo: agent.worktree.repo,
+      branch: agent.worktree.branch,
+      message: String(body.message ?? `merge ${agent.worktree.branch}`),
+    });
+    log(`[app] merged worktree ${agent.worktree.branch} for ${agent.id}`);
+    return { ok: true, output };
+  } catch (err) {
+    throw Object.assign(new Error(`merge: ${err.message}`), { status: 409 });
+  }
+}
+
 async function taskCreatedByAgent({ agentId, roomId, title }) {
   taskAgent(agentId);
   taskRoom(roomId);
@@ -1553,6 +1573,18 @@ async function handleApi(req, res, url) {
 
   if (req.method === "DELETE" && parts[1] === "agents" && parts[3] === "worktree" && parts.length === 4) {
     return json(res, 200, await removeAgentWorktree(decodeURIComponent(parts[2])));
+  }
+
+  if (
+    req.method === "POST" &&
+    parts[1] === "agents" &&
+    parts[3] === "worktree" &&
+    parts[4] === "merge" &&
+    parts.length === 5
+  ) {
+    const agentId = decodeURIComponent(parts[2]);
+    const body = await readBody(req);
+    return json(res, 200, await mergeAgentWorktree(agentId, body));
   }
 
   return json(res, 404, { error: "not found" });

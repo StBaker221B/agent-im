@@ -448,6 +448,23 @@ export default function App() {
     }
   }
 
+  async function mergeWorktree(agentId) {
+    if (
+      !window.confirm(
+        "把这个 agent 的 worktree 分支合并到仓库当前分支？主工作区必须干净；冲突需要你手动处理。",
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.mergeWorktree(agentId);
+      await loadBootstrap();
+      notify("worktree 已合并");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function removeWorktree(agentId) {
     try {
       await api.removeWorktree(agentId);
@@ -706,6 +723,7 @@ export default function App() {
             templates={templates}
             onSave={saveAgent}
             onCreateWorktree={createWorktree}
+            onMergeWorktree={mergeWorktree}
             onRemoveWorktree={removeWorktree}
             onDelete={deleteAgentById}
             onBack={backToAgents}

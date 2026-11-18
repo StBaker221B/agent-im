@@ -69,6 +69,11 @@ export const api = {
     }),
   removeWorktree: (agentId) =>
     request(`/api/agents/${encodeURIComponent(agentId)}/worktree`, { method: "DELETE" }),
+  mergeWorktree: (agentId) =>
+    request(`/api/agents/${encodeURIComponent(agentId)}/worktree/merge`, {
+      method: "POST",
+      body: {},
+    }),
   approveTool: (agentId, tool, roomId) =>
     request(`/api/agents/${encodeURIComponent(agentId)}/approve-tool`, {
       method: "POST",

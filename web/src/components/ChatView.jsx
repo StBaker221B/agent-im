@@ -81,6 +81,7 @@ export default function ChatView({
   activity,
   live,
   reactions,
+  threadCounts,
   hasMore,
   loadingOlder,
   onLoadMore,
@@ -373,6 +374,7 @@ export default function ChatView({
               return map;
             }, new Map());
             const liked = reactionList.some((item) => item.sender === human.id && item.key === "👍");
+            const threadCount = threadCounts?.[message.id] ?? 0;
 
             return (
               <div key={message.id}>
@@ -425,7 +427,7 @@ export default function ChatView({
                             className="reply-action"
                             onClick={() => onOpenThread(message)}
                           >
-                            讨论
+                            讨论{threadCount > 0 ? ` ${threadCount}` : ""}
                           </button>
                         )}
                         {onCopyLink && (

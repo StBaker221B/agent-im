@@ -220,13 +220,18 @@ function mentionIdsIn(text, room) {
 async function roomMessagesPage(roomId, { limit = 100, from = null } = {}) {
   const page = await human.getMessagesPage(roomId, { limit, from });
   const reactions = {};
+  const threadCounts = {};
   for (const event of page.messages) {
-    if (event.kind !== "reaction" || !event.targetId) continue;
-    (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+    if (event.kind === "reaction" && event.targetId) {
+      (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+    } else if (event.text && event.threadId && event.threadId !== "main") {
+      threadCounts[event.threadId] = (threadCounts[event.threadId] ?? 0) + 1;
+    }
   }
   return {
     messages: page.messages.filter((m) => m.text && m.threadId === "main"),
     reactions,
+    threadCounts,
     next: page.end ?? null,
   };
 }
@@ -1555,6 +1560,7 @@ async function handleApi(req, res, url) {
     return json(res, 200, {
       messages: page.messages.map(messageView),
       reactions: page.reactions,
+      threadCounts: page.threadCounts,
       next: page.next,
     });
   }

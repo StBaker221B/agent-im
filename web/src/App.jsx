@@ -57,6 +57,7 @@ export default function App() {
   const [settingsAgentId, setSettingsAgentId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [threadRoot, setThreadRoot] = useState(null);
+  const [threadCounts, setThreadCounts] = useState({});
   const [reactions, setReactions] = useState({});
   const [historyNext, setHistoryNext] = useState(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -279,6 +280,7 @@ export default function App() {
     let alive = true;
     let first = true;
     setMessages([]);
+    setThreadCounts({});
     setReactions({});
     setHistoryNext(null);
     const load = async () => {
@@ -287,6 +289,7 @@ export default function App() {
         if (alive) {
           setMessages((prev) => mergeMessages(prev, res.messages));
           setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
+          setThreadCounts((prev) => ({ ...prev, ...(res.threadCounts ?? {}) }));
           if (first) {
             setHistoryNext(res.next ?? null);
             first = false;
@@ -311,6 +314,7 @@ export default function App() {
       const res = await api.messages(activeRoomId, { from: historyNext, limit: 100 });
       setMessages((prev) => mergeMessages(prev, res.messages));
       setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
+      setThreadCounts((prev) => ({ ...prev, ...(res.threadCounts ?? {}) }));
       setHistoryNext(res.next ?? null);
     } catch (err) {
       notify(err.message);
@@ -385,6 +389,7 @@ export default function App() {
     setMobilePane("chat");
     setMessages([]);
     setThreadRoot(null);
+    setThreadCounts({});
     setReactions({});
     setHistoryNext(null);
     setModal(null);
@@ -910,6 +915,7 @@ export default function App() {
               activity={activeRoom.activity}
               live={live}
               reactions={reactions}
+              threadCounts={threadCounts}
               hasMore={Boolean(historyNext)}
               loadingOlder={loadingOlder}
               onLoadMore={loadOlder}

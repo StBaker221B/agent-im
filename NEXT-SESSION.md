@@ -2,7 +2,20 @@
 
 > 新会话从这里开始。先读 [19 产品与架构审视](docs/19-product-and-architecture-review.md)、[15 术语表](docs/15-glossary.md)、[13 架构](docs/13-mvp-architecture.md)。
 
-## 当前状态（2026-11-18）
+## 暂停点（2026-11-19）
+
+- 用户关机暂停；进度已提交并推送，工作区 clean；master/feature 最新 `1ed5edc`（代码 `66e2e53`，文档 `1ed5edc`）。
+- 已备份 `app/data` 到 `agent-im/backups/agent-im-data-20261119-075217.zip`（含 token，务必保密，gitignored）。
+- 服务已停止；下次开机后恢复：
+  ```powershell
+  cd D:\Git\learn\agent-im
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start-agent-im.ps1
+  curl.exe -s http://127.0.0.1:8790/api/health
+  ```
+  需要先启动 WSL/Tuwunel；脚本会检查 8008 并尝试启动 `agentim` 发行版里的 Tuwunel。
+- 恢复后确认 `git status` clean、43 tests、`web/dist` 为最新；不要重复启动 app/gateway。
+
+## 当前状态（2026-11-19）
 
 - 分支 `agent-im/matrix-e2e`；master 已多次快进推送；最近功能基线见 `git log`。
 - 服务：`127.0.0.1:8790`（托管 `web/dist`）；Tuwunel `127.0.0.1:8008`；数据 `app/data/`（gitignored）。

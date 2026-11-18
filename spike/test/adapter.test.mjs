@@ -19,6 +19,11 @@ test("parseReply recognizes PASS / ASK_HUMAN / REQUEST_TOOL / DONE", () => {
     roomKind: "dm",
     roomName: "",
   });
+  assert.deepEqual(parseReply("REACT: $event1 👍"), {
+    type: "reaction",
+    messageId: "$event1",
+    key: "👍",
+  });
   assert.deepEqual(parseReply("DONE: 已完成"), { type: "done", reason: "已完成" });
   assert.deepEqual(parseReply('DSML calls <invoke name="Read">'), {
     type: "tool_request",

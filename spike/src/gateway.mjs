@@ -613,6 +613,27 @@ export class Gateway {
     let outbound;
     if (action.type === "pass" || (action.type === "message" && !action.text.trim())) {
       outbound = { type: "pass" };
+    } else if (action.type === "reaction") {
+      try {
+        const target = await client.getEvent(roomId, action.messageId);
+        if (!target?.text) throw new Error("target message not found");
+        await client.sendReaction(roomId, action.messageId, action.key);
+        this.audit.write({
+          kind: "reaction",
+          agentId,
+          roomId,
+          messageId: action.messageId,
+          key: action.key,
+        });
+        outbound = { type: "pass" };
+      } catch (err) {
+        this.audit.write({ kind: "reaction_error", agentId, error: String(err) });
+        outbound = {
+          type: "message",
+          text: `Reaction 失败：${err.message}`,
+          intent: "chat",
+        };
+      }
     } else if (action.type === "ask_human") {
       outbound = { type: "ask_human", question: action.question, text: action.question, intent: "ask_human" };
     } else if (action.type === "tool_request") {

@@ -13,7 +13,7 @@ export function buildAgentPrompt(envelope) {
   const m = envelope.message;
   const recent = (envelope.recentMessages ?? [])
     .slice(-8)
-    .map((x) => `[${formatTime(x.createdAt)}] [${x.sender}] ${x.text}`)
+    .map((x) => `[${x.id}] [${formatTime(x.createdAt)}] [${x.sender}] ${x.text}`)
     .join("\n");
   const taskLine = m.taskId
     ? `This message is task ${m.taskId}${m.taskOwner ? ` owned by ${m.taskOwner}` : ""}. When you finish, reply exactly: DONE: <summary>; if blocked reply BLOCK: <reason>; if failed reply FAIL: <reason>.`
@@ -31,6 +31,7 @@ ${roomLine}
 Use the timestamps above for dates. If an older memory has no timestamp, say you are unsure instead of guessing.
 Reply as yourself, in one message max. Do not prefix with your name.
 If you have nothing to add, reply exactly: PASS
+If you only want to acknowledge a specific recent message, reply exactly: REACT: <messageId> <emoji> (for example REACT: $event 👍). Use an id from the recent list; do not pair it with other text.
 If you need a human decision, reply exactly: ASK_HUMAN: <question>
 If you are done, reply exactly: DONE: <summary>
 If another agent's point needs a concrete question, objection or addition, @ that agent and continue. Do not repeat or exchange pleasantries. PASS when you have nothing new.`;
@@ -40,6 +41,11 @@ export function parseReply(text) {
   const t = (text ?? "").trim();
   if (/^PASS\b/i.test(t) || t === "PASS") return { type: "pass" };
   if (/^ASK_HUMAN\s*:/i.test(t)) return { type: "ask_human", question: t.replace(/^ASK_HUMAN\s*:/i, "").trim() };
+  if (/^REACT\s*:/i.test(t)) {
+    const body = t.replace(/^REACT\s*:/i, "").trim();
+    const [messageId, key] = body.split(/\s+/);
+    return { type: "reaction", messageId: messageId ?? "", key: key ?? "👍" };
+  }
   if (/^REQUEST_TOOL\s*:/i.test(t)) {
     const body = t.replace(/^REQUEST_TOOL\s*:/i, "").trim();
     const [tool, ...rest] = body.split(/\s+/);

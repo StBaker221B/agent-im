@@ -20,13 +20,14 @@
 - 可重复 benchmark：single/pair 各两次、squad 一次；脚本与 fixture 在 `bench/`。
 - 运维脚本：`scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`、`install-autostart.ps1`。
 - 自治默认开放（`agentRooms=open`，可配置 approval）；决策见 19 §8。
+- 2026-11-18 新增：待办/告警收件箱（可页内批准/重开）、git worktree + 人工确认 merge、@未读、聊天历史分页、reaction、thread 面板、消息深链、深搜、Agent card/Directory、PWA shell/空态引导；Chromium 实机检查修了 CSS 变量和 SW network-first。
 
 ## 下一批（按 19 §7）
 
 1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；待时区/节假日、多次补跑、告警、真正 72h soak（短 harness 已过）。
 2. **A（W2）**：待办收件箱已做（请求/任务/预算/系统，可页内批准/重开）；待事件 schema、回放、显式拒绝、告警推送。
 3. **E（W3）**：worktree/branch 创建/移除已做；人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
-4. **C（W4）**：@未读、分页、reaction、thread 面板已做；待 reaction 撤销/agent reaction、thread 分页/未读、搜索结果分页/索引。
+4. **C（W4）**：@未读、分页、reaction、thread 面板、消息深链、深搜已做；待 reaction 撤销/agent reaction、thread 分页/未读、搜索结果分页/索引。
 - benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
 5. **D（W4+）**：agent card/Agents 筛选已做；待 disabled/独立 Directory、API auth/roles/ACL（第二人类后置）。
 6. **F**：PWA shell（network-first）/空态引导/Chromium 实机检查已做；待交互式 onboarding、intake 一键、任务详情/停止状态恢复、真机/Lighthouse/a11y。
@@ -44,7 +45,7 @@ cd web && npm run build
 - 不要按 01/03/04/05/06 实现（历史）。
 - 不要继续扩角色/团队模板；benchmark 显示 6 人 squad 22× 成本、无质量优势。
 - 不要把任务台账做成 DAG/工作流引擎；它是待办 + 派发 + 检查点 + 人升级。
-- 不要把合作式工具审批当安全边界；执行前 gating/worktree 另做。
+- 不要把合作式工具审批当安全边界；worktree 只隔离目录，执行前 gating/OS 只读/容器另做。
 - 不要提交 `app/data/`、`spike/.tmp/`、`web/dist/`。
 - 不要同时跑两个 app/gateway 实例（同 token 会重复回复）。
 - 不要跳过 00 合同/09 协议/19 审视。

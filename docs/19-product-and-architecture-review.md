@@ -53,18 +53,18 @@
 | 需求 | 状态 | 缺口 |
 |---|---|---|
 | M1 身份/生命周期 | 部分 | idle/sleeping/disabled、硬删/恢复、multi-instance；agent home 仍偏薄 |
-| M2 DM/群/@/thread/reply/历史 | 部分 | thread 面板、@未读、reaction、搜索分页；reply 已做 |
+| M2 DM/群/@/thread/reply/历史 | 大部分 | thread 面板、@未读、reaction、深链、深搜已做；搜索 cursor/索引缺 |
 | M3 gateway + Claude + script | 完成 | 需要 conformance/更多回归 |
 | M4 自主群聊 | 部分 | decision/proposal/consensus 有引擎/文档，无 UI/持久 artifact |
-| M5 数据平台最小版 | 部分 | 活动/用量/导出/暂停/kill 有；回放、merge/deploy 审批、告警缺 |
-| M6 worktree + merge | **缺失** | 共享 cwd；无 branch/合并人类批准 |
+| M5 数据平台最小版 | 部分 | 活动/用量/导出/暂停/kill、worktree merge 审批有；回放、deploy、告警缺 |
+| M6 worktree + merge | **大部分** | worktree/branch + 人工确认 merge；OS 只读/容器缺 |
 | M7 重启去重/预算/kill | 大部分 | 硬 kill 有但不持久；预算仍是 PASS skip，不是硬停+通知 |
 | S1/S2 第二 runtime | 缺失 | 仅 Claude/script |
-| S3 Directory/card | 部分 | 模板/roles；无 card API、能力搜索、who_can_help 落地 |
-| S4 Cron/触发 | 部分 | 固定 interval；无 cron/补跑 |
-| S5 审计回放 | 部分 | JSONL 导出；无回放/范围查询 |
-| S6 通知 | 部分 | 桌面未读；无 @/审批/失败/预算/飞书 |
-| 长期任务台账 | v1 | 状态/重复/TASK-DONE-BLOCK-FAIL/重启不重发；无 retry/升级/turn 恢复/守护 |
+| S3 Directory/card | 部分 | card API/Directory/Agents 筛选已做；who_can_help/能力 trust 缺 |
+| S4 Cron/触发 | 大部分 | interval/cron/retry；无时区/节假日/多次补跑 |
+| S5 审计回放 | 部分 | JSONL 导出/活动视图；无回放/task 范围查询 |
+| S6 通知 | 部分 | @ badge/桌面通知/待办页已做；无告警推送/审批失败预算/飞书 |
+| 长期任务台账 | v1.5 | 状态/重复/TASK-DONE-BLOCK-FAIL/retry/needsAttention/autostart/soak harness；无 72h/时区/告警/turn 恢复 |
 | 多用户/auth | 缺失 | 单人类、loopback、无 ACL |
 
 ## 3. 文档体系：问题与调整
@@ -96,11 +96,11 @@
 
 **A–F 最小切片**（详见 §7）：
 
-- A 治理：统一事件、审批收件箱、task/thread 回放、预算/失败告警。
+- A 治理：待办收件箱已做；待统一事件、task/thread 回放、预算/失败告警推送。
 - B 长期：cron/补跑、retry/backoff/升级、turn “需关注”、守护进程、72h soak。
-- C IM：thread 面板、@未读+深链、agent 房间策略、decision/proposal UI。
+- C IM：thread 面板、@未读、深链、深搜已做；待搜索 cursor/索引、thread 分页/未读、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
-- E 隔离：worktree/branch、OS 只读 reviewer、merge 审批、一个非 Claude adapter。
+- E 隔离：worktree/branch + merge 审批已做；待 OS 只读 reviewer、容器、一个非 Claude adapter。
 - F UX：空态引导、PWA shell（network-first）、aria-live/减动效、Chromium 实机检查已做；待交互式 onboarding、intake 一键、任务详情、停止状态恢复、真机/Lighthouse。
 
 ## 5. 代码架构：现状与改进

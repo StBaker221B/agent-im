@@ -304,6 +304,8 @@ async function usageSummary() {
         todayCost: 0,
         totalTurns: 0,
         totalCost: 0,
+        dailyBudgetUsd: Number(a.dailyBudgetUsd) || 0,
+        overBudget: false,
       },
     ]),
   );
@@ -333,6 +335,9 @@ async function usageSummary() {
     }
   }
   const agents = [...rows.values()];
+  for (const row of agents) {
+    row.overBudget = row.dailyBudgetUsd > 0 && row.todayCost >= row.dailyBudgetUsd;
+  }
   return {
     today,
     agents,
@@ -656,6 +661,43 @@ async function setAllPaused(paused) {
   store.save();
   log(`[app] pause-all=${paused} agents=${count}`);
   return { ok: true, paused, count };
+}
+
+async function alertsSummary() {
+  const since = Date.now() - 24 * 60 * 60_000;
+  const approvals = [];
+  for (const room of store.rooms) {
+    let messages;
+    try {
+      messages = await roomMessages(room.id, 100);
+    } catch {
+      continue;
+    }
+    for (const message of messages) {
+      if (!["tool_request", "room_request"].includes(message.intent)) continue;
+      if ((message.createdAt ?? 0) < since) continue;
+      approvals.push({
+        room: { id: room.id, name: room.name, kind: room.kind },
+        message: messageView(message),
+      });
+    }
+  }
+  approvals.sort((a, b) => (b.message.createdAt ?? 0) - (a.message.createdAt ?? 0));
+  const taskRows = tasks
+    .list()
+    .filter((task) => task.needsAttention || ["failed", "blocked"].includes(task.status))
+    .map(taskView);
+  const usage = await usageSummary();
+  return {
+    approvals: approvals.slice(0, 50),
+    tasks: taskRows.slice(0, 50),
+    budget: usage.agents.filter((row) => row.overBudget),
+    system: {
+      killed,
+      gatewayRunning: Boolean(host.gateway.running),
+      pausedAgents: store.agents.filter((a) => a.status === "paused").length,
+    },
+  };
 }
 
 async function auditEvents(searchParams) {
@@ -1214,6 +1256,10 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/usage") {
     return json(res, 200, await usageSummary());
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/alerts") {
+    return json(res, 200, await alertsSummary());
   }
 
   if (req.method === "GET" && url.pathname === "/api/audit") {

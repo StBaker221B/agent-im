@@ -5,6 +5,7 @@ import ChatView from "./components/ChatView";
 import AgentsView from "./components/AgentsView";
 import AgentSettingsView from "./components/AgentSettingsView";
 import ActivityView from "./components/ActivityView";
+import AlertsView from "./components/AlertsView";
 import TasksView from "./components/TasksView";
 import TaskModal from "./components/TaskModal";
 import NewChatModal from "./components/NewChatModal";
@@ -276,6 +277,9 @@ export default function App() {
       } else if (path === "/tasks") {
         setView("tasks");
         setMobilePane("chat");
+      } else if (path === "/alerts") {
+        setView("alerts");
+        setMobilePane("chat");
       } else if (path.startsWith("/search?q=")) {
         setSearchQuery(path.slice("/search?q=".length));
         setView("search");
@@ -343,6 +347,12 @@ export default function App() {
     setView("tasks");
     setMobilePane("chat");
     setHash("#/tasks");
+  }
+
+  function openAlerts() {
+    setView("alerts");
+    setMobilePane("chat");
+    setHash("#/alerts");
   }
 
   function openAgentSettings(agentId) {
@@ -630,6 +640,7 @@ export default function App() {
         onSettings={openSettings}
         onActivity={openActivity}
         onTasks={openTasks}
+        onAlerts={openAlerts}
         onSearch={openSearch}
         onProfile={openProfile}
         onDeleteRoom={deleteRoomFromList}
@@ -646,6 +657,8 @@ export default function App() {
           />
         ) : view === "activity" ? (
           <ActivityView data={data} onBack={() => setMobilePane("list")} />
+        ) : view === "alerts" ? (
+          <AlertsView onOpenRoom={openRoom} onTasks={openTasks} onBack={() => setMobilePane("list")} />
         ) : view === "tasks" ? (
           <TasksView
             data={data}

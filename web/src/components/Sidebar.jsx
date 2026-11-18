@@ -20,6 +20,7 @@ export default function Sidebar({
   onSettings,
   onActivity,
   onTasks,
+  onAlerts,
   onSearch,
   onProfile,
   onDeleteRoom,
@@ -179,6 +180,10 @@ export default function Sidebar({
         <button type="button" className={`foot-item${view === "tasks" ? " active" : ""}`} onClick={onTasks}>
           <Icon name="tasks" size={17} />
           <span>任务</span>
+        </button>
+        <button type="button" className={`foot-item${view === "alerts" ? " active" : ""}`} onClick={onAlerts}>
+          <Icon name="alert" size={17} />
+          <span>待办</span>
         </button>
         <button
           type="button"

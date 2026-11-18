@@ -37,6 +37,7 @@ export const api = {
       body: { text },
     }),
   usage: () => request("/api/usage"),
+  alerts: () => request("/api/alerts"),
   audit: ({ limit = 200, kind = "", agentId = "" } = {}) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (kind) params.set("kind", kind);

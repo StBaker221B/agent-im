@@ -26,6 +26,7 @@ export const api = {
     }),
   intake: (problem) => request("/api/intake", { method: "POST", body: { problem } }),
   tasks: () => request("/api/tasks"),
+  taskEvents: (taskId) => request(`/api/tasks/${encodeURIComponent(taskId)}/events`),
   createTask: (payload) => request("/api/tasks", { method: "POST", body: payload }),
   updateTask: (taskId, payload) =>
     request(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "PATCH", body: payload }),

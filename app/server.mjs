@@ -899,6 +899,31 @@ async function roomRequestedByAgent({ agentId, roomKind, roomName, targets }) {
   }
 }
 
+async function taskEvents(taskId) {
+  const task = tasks.get(taskId);
+  if (!task) throw Object.assign(new Error("task not found"), { status: 404 });
+  let text = "";
+  try {
+    text = await readFile(join(dataDir, "audit.jsonl"), "utf8");
+  } catch {
+    // no audit yet
+  }
+  const events = [];
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (entry?.taskId !== taskId) continue;
+    events.push(entry);
+  }
+  events.sort((a, b) => String(a.ts ?? "").localeCompare(String(b.ts ?? "")));
+  return { task: taskView(task), events: events.slice(-200) };
+}
+
 async function createAgentWorktree(agentId, body) {
   const agent = store.agent(agentId);
   if (!agent || agent.status === "deleted")
@@ -1488,6 +1513,10 @@ async function handleApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/tasks") {
     const body = await readBody(req);
     return json(res, 200, await createTask(body));
+  }
+
+  if (req.method === "GET" && parts[1] === "tasks" && parts[3] === "events" && parts.length === 4) {
+    return json(res, 200, await taskEvents(decodeURIComponent(parts[2])));
   }
 
   if (req.method === "PATCH" && parts[1] === "tasks" && parts.length === 3) {

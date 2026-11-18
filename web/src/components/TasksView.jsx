@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import Icon from "./Icon";
+import TaskDetailModal from "./TaskDetailModal";
 
 const STATUS = {
   pending: "待处理",
@@ -22,6 +23,7 @@ export default function TasksView({ data, onNew, onOpenRoom, onBack }) {
   const [filter, setFilter] = useState("");
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [detailTask, setDetailTask] = useState(null);
 
   const agents = useMemo(() => data?.agents ?? [], [data?.agents]);
   const names = useMemo(() => new Map(agents.map((agent) => [agent.id, agent.displayName])), [agents]);
@@ -176,6 +178,9 @@ export default function TasksView({ data, onNew, onOpenRoom, onBack }) {
                     取消
                   </button>
                 )}
+                <button type="button" className="ghost" onClick={() => setDetailTask(task)}>
+                  详情
+                </button>
                 {task.roomId && (
                   <button type="button" className="ghost" onClick={() => onOpenRoom(task.roomId)}>
                     打开房间
@@ -187,6 +192,10 @@ export default function TasksView({ data, onNew, onOpenRoom, onBack }) {
         })}
         {!visible.length && <p className="muted">还没有任务。新建一个，到期会自动派发到房间。</p>}
       </div>
+
+      {detailTask && (
+        <TaskDetailModal task={detailTask} onClose={() => setDetailTask(null)} onOpenRoom={onOpenRoom} />
+      )}
     </section>
   );
 }

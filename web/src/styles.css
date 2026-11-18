@@ -1822,6 +1822,19 @@ button {
   color: var(--danger);
 }
 
+.mention-badge {
+  flex: none;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+  color: var(--warn);
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
 .alert-count {
   background: var(--danger);
   color: #fff;

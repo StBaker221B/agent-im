@@ -251,8 +251,19 @@ async function roomSummary(room) {
     log(`[app] messages ${room.id} failed: ${err.message}`);
   }
   const last = messages.at(-1) ?? null;
-  const unread = messages.filter(
+  const humanName = String(store.human.name ?? "");
+  const unreadMessages = messages.filter(
     (m) => m.sender !== store.human.id && (m.createdAt ?? 0) > (room.lastReadTs ?? 0),
+  );
+  const unread = unreadMessages.length;
+  const mentionUnread = unreadMessages.filter(
+    (m) =>
+      m.mentions?.includes(store.human.id) ||
+      (humanName &&
+        String(m.text ?? "")
+          .toLowerCase()
+          .includes(`@${humanName.toLowerCase()}`)) ||
+      ["ask_human", "tool_request", "room_request"].includes(m.intent),
   ).length;
   return {
     ...room,
@@ -265,6 +276,7 @@ async function roomSummary(room) {
     })),
     lastMessage: last ? messageView(last) : null,
     unread,
+    mentionUnread,
     activity: host.roomActivity(room.id),
   };
 }
@@ -288,6 +300,7 @@ async function bootstrap() {
     rooms,
     policy: store.policy,
     totalUnread: rooms.reduce((n, r) => n + r.unread, 0),
+    totalMentions: rooms.reduce((n, r) => n + r.mentionUnread, 0),
     killed,
   };
 }

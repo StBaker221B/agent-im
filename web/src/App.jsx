@@ -210,7 +210,7 @@ export default function App() {
     if (notifiedRef.current === latest.lastMessage.id) return;
     notifiedRef.current = latest.lastMessage.id;
     try {
-      new Notification(latest.name, {
+      new Notification(`${latest.mentionUnread > 0 ? "@ " : ""}${latest.name}`, {
         body: `${latest.lastMessage.displayName || latest.lastMessage.senderName}: ${String(
           latest.lastMessage.text ?? "",
         ).slice(0, 140)}`,
@@ -240,8 +240,10 @@ export default function App() {
   }
 
   useEffect(() => {
-    document.title = data?.totalUnread ? `(${data.totalUnread}) Agent IM` : "Agent IM";
-  }, [data?.totalUnread]);
+    if (data?.totalMentions) document.title = `(@${data.totalMentions}) Agent IM`;
+    else if (data?.totalUnread) document.title = `(${data.totalUnread}) Agent IM`;
+    else document.title = "Agent IM";
+  }, [data?.totalUnread, data?.totalMentions]);
 
   useEffect(() => {
     if (!activeRoomId) return;

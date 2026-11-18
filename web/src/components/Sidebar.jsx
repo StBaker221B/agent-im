@@ -137,6 +137,11 @@ export default function Sidebar({
                           )}`
                         : "还没有消息"}
                     </span>
+                    {room.mentionUnread > 0 && (
+                      <span className="mention-badge" title={`${room.mentionUnread} 条 @/请求`}>
+                        @
+                      </span>
+                    )}
                     {room.unread > 0 && (
                       <span className="badge">{room.unread > 99 ? "99+" : room.unread}</span>
                     )}

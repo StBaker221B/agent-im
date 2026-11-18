@@ -80,6 +80,7 @@ export default function App() {
   const markKeyRef = useRef("");
   const toastRef = useRef({ msg: "", at: 0 });
   const notifiedRef = useRef(null);
+  const alertSeenRef = useRef(null);
 
   const notify = useCallback((msg) => {
     const now = Date.now();
@@ -194,7 +195,24 @@ export default function App() {
       try {
         const res = await api.alerts();
         if (alive) {
-          setAlertCount((res.approvals?.length ?? 0) + (res.tasks?.length ?? 0) + (res.budget?.length ?? 0));
+          const next = (res.approvals?.length ?? 0) + (res.tasks?.length ?? 0) + (res.budget?.length ?? 0);
+          if (
+            alertSeenRef.current !== null &&
+            next > alertSeenRef.current &&
+            notifications &&
+            document.hidden
+          ) {
+            try {
+              new Notification("Agent IM 待办", {
+                body: `新增 ${next - alertSeenRef.current} 条审批/任务/预算提醒`,
+                tag: "agentim-alerts",
+              });
+            } catch {
+              // notifications are best-effort
+            }
+          }
+          alertSeenRef.current = next;
+          setAlertCount(next);
         }
       } catch {
         // alerts are advisory
@@ -206,7 +224,7 @@ export default function App() {
       alive = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [notifications]);
 
   useEffect(() => {
     if (!notifications || !data || !document.hidden) return;

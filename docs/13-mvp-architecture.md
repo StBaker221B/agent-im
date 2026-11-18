@@ -41,6 +41,7 @@
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
+- 聊天顶部「加载更早的消息」用 Matrix from token 分页；
 - 消息悬浮「回复」→ composer 引用草稿 → 发送后气泡上方显示引用；
 - 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
 - 侧栏「设置」页放系统信息/用量/桌面通知/全局暂停恢复；每个 agent 的显示名/模板/工具/预算/triage/暂停/提示在 Agents 页该 agent 的「设置」里。
@@ -134,7 +135,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 |---|---|
 | `GET /api/bootstrap` | human、agents、rooms（含 members、lastMessage、unread、`activity.floor/queued`）、totalUnread |
 | `GET /api/health` | gateway 是否在跑、已 attach 的房间 |
-| `GET /api/rooms/:id/messages` | 最近 60 条 main thread 消息（已过滤撤回空消息） |
+| `GET /api/rooms/:id/messages` | `limit=100&from=<token>`；main thread 分页，返回 `{messages,next}` |
 | `POST /api/rooms/:id/messages` | `{text,replyTo}`；人类身份发送；解析 `@name` 为 `m.mentions`；可引用消息；返回 eventId |
 | `POST /api/rooms/:id/read` | `{ts}`；更新 human 的 lastReadTs |
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
@@ -287,7 +288,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，也能软删除 agent（离开房间、删 DM、隐藏、停 sync；账号不回收、不能 undelete）。
 - 删除运行中的 agent 会 409；需要等空闲或先暂停。
 - agent 通过 `REQUEST_ROOM` 建房；默认 open 自动建群，approval 时人工批准；所有房间人类可见。
-- 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
+- 聊天历史已支持 main thread 分页；搜索仍只覆盖每房间最近 100 条，需要搜索分页/索引。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。

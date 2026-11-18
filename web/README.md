@@ -44,7 +44,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 - 群聊默认自由讨论：agent 可以互相 @ 继续；不再有「讨论模式」toggle。
 - "正在思考/排队中"来自服务端 `room.activity`（Engine 的 floor/queue），不是本地计时器，也不是 Matrix typing；PASS 后 floor 释放会自动消失。
 - 新建 agent / 该 agent 设置页的工具权限选择 `template/full/off`；全局设置页用量表来自 `/api/usage`（今天/累计 turns + USD），agent 设置页可设每日 USD 预算、triage 冷却/每小时上限/skipAcks、暂停/启用、撤销已批准工具。
-- 聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具，`turn_end` 后保留 2.2s；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮。
+- 聊天支持「加载更早」历史分页；聊天订阅 `/api/events`（SSE）：实时显示 token 增量/正在使用的工具，`turn_end` 后保留 2.2s；`intent=tool_request` 的消息下有「批准（只开这个工具）」按钮。
 - Agents 页「评估需求」：输入问题 → 打开 `@intake` 需求顾问 DM，返回单点 vs 小团队建议和 `RECOMMEND` 标签，不自动建团队。
 - 侧栏「待办」：审批/请求、任务需关注、超预算、系统状态，可直接批准工具/创建房间/重开任务；侧栏显示待处理数。
 - 侧栏「活动」：最近 audit 事件的只读视图（消息/工具/成本/跳过/错误），可按 agent/类型筛选，3s 刷新；右上角可导出完整 JSONL。

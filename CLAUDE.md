@@ -105,7 +105,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 消息回复 | 前端 replyTo 草稿/引用；API body.replyTo；Matrix m.in_reply_to；transport 解析主线程 reply |
 | 深链 | `#/room/:id/message/:eventId`；聊天「链接」复制；focusId 滚动高亮 |
 | Thread | `GET /rooms/:id/threads/:rootId` + POST messages `threadId`；Tuwunel 无 relations 时扫最近 1000 条；ThreadPanel；主消息「讨论 N」显示当前页回复数 |
-| Reaction | `sendReaction`/`m.reaction`；Gateway 跳过；messages 返回 reactions map；UI 👍 |
+| Reaction | `sendReaction`/`m.reaction`；Gateway 跳过；messages 返回 reactions map（含 id）；UI 👍/redact 撤销 |
 | 历史分页 | `GET /messages?from=<token>&limit`，Matrix end token；UI「加载更早」 |
 | Agent Card | `GET /api/agents/:id/card` + `/api/directory?q=`；ProfileModal 详情；AgentsView 本地筛选 |
 | @未读 | `roomSummary.mentionUnread/totalMentions`；@/ask_human/tool_request/room_request 计入；侧栏 badge/title |

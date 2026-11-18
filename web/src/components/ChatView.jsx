@@ -86,6 +86,7 @@ export default function ChatView({
   onLoadMore,
   onReact,
   onOpenThread,
+  onCopyLink,
   sending,
   uploading,
   focusId,
@@ -423,6 +424,16 @@ export default function ChatView({
                             onClick={() => onOpenThread(message)}
                           >
                             讨论
+                          </button>
+                        )}
+                        {onCopyLink && (
+                          <button
+                            type="button"
+                            className="reply-action"
+                            title="复制消息链接"
+                            onClick={() => onCopyLink(message)}
+                          >
+                            链接
                           </button>
                         )}
                       </div>

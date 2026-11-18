@@ -316,9 +316,10 @@ export default function App() {
   useEffect(() => {
     const applyHash = () => {
       const path = decodeURIComponent(location.hash.replace(/^#/, ""));
-      const match = path.match(/^\/room\/(.+)$/);
+      const match = path.match(/^\/room\/([^/]+)(?:\/message\/(.+))?$/);
       if (match) {
         setActiveRoomId(match[1]);
+        setFocusMessageId(match[2] ?? null);
         setView("chat");
         setMobilePane("chat");
       } else if (/^\/agents\/.+\/settings$/.test(path)) {
@@ -554,6 +555,20 @@ export default function App() {
   function openSearchResult(roomId, messageId) {
     openRoom(roomId);
     setFocusMessageId(messageId);
+    setHash(`#/room/${encodeURIComponent(roomId)}/message/${encodeURIComponent(messageId)}`);
+  }
+
+  async function copyMessageLink(message) {
+    if (!activeRoomId) return;
+    const url = `${location.origin}${location.pathname}#/room/${encodeURIComponent(
+      activeRoomId,
+    )}/message/${encodeURIComponent(message.id)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      notify("消息链接已复制");
+    } catch {
+      notify(url);
+    }
   }
 
   async function pauseAll(paused) {
@@ -857,6 +872,7 @@ export default function App() {
               onLoadMore={loadOlder}
               onReact={reactToMessage}
               onOpenThread={openThread}
+              onCopyLink={copyMessageLink}
               sending={busy || uploading}
               uploading={uploading}
               focusId={focusMessageId}

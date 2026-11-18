@@ -28,7 +28,7 @@ agent-im/
 
 ```bash
 # 协议测试（改 scheduler/gateway/transport 后必跑）
-cd agent-im/spike && node --test          # 42 tests
+cd agent-im/spike && node --test          # 43 tests
 
 # MVP 服务（需要 Tuwunel 在 8008）
 cd agent-im/app && npm start              # http://127.0.0.1:8790
@@ -106,6 +106,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 桌面通知 | `App.jsx` Notification + SettingsView；只在 `document.hidden`、有未读时；localStorage 存偏好 |
 | 待办/告警 | `GET /api/alerts` + `AlertsView.jsx`；聚合 24h 请求、needsAttention/failed/blocked、超预算、系统；页内可批准工具/建房/重开任务 |
 | 活动/审计、全局暂停、硬 kill | `GET /api/audit` + `ActivityView.jsx`；`/api/admin/pause-all`、`/api/admin/kill` + SettingsView；硬 kill 会停 sync/关 runtime |
+| Worktree | `app/worktrees.mjs` + `POST/DELETE /api/agents/:id/worktree`；独立 branch/cwd；不自动 merge |
 | 任务台账 | `app/tasks.mjs` + `GET/POST/PATCH /api/tasks` + `TasksView.jsx`；30s tick 到期派发 |
 | 媒体缓存（agent 读图） | `spike/src/gateway.mjs`（`mediaDir` / `#cacheMedia`） |
 | 历史搜索 | `app/server.mjs` `/api/search` + `web/src/components/SearchView.jsx` |

@@ -6,7 +6,7 @@
 
 - 分支 `agent-im/matrix-e2e`；master 已多次快进推送；最近功能基线见 `git log`。
 - 服务：`127.0.0.1:8790`（托管 `web/dist`）；Tuwunel `127.0.0.1:8008`；数据 `app/data/`（gitignored）。
-- 测试：`spike` 42 tests；lint/build 通过。
+- 测试：`spike` 43 tests；lint/build 通过。
 - 产品定义、状态矩阵、剩余 A–F 轨道和 2/6 周计划：见 [19](docs/19-product-and-architecture-review.md)。
 - 历史文档 01/03/04/05/06 已标“历史”，不要按它们实现。
 
@@ -25,7 +25,7 @@
 
 1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；待时区/节假日、多次补跑、告警、真正 72h soak（短 harness 已过）。
 2. **A（W2）**：待办收件箱已做（请求/任务/预算/系统，可页内批准/重开）；待事件 schema、回放、显式拒绝、告警推送。
-3. **E（W3）**：worktree/branch + merge 人类批准 + OS 只读；coding pilot。
+3. **E（W3）**：worktree/branch 创建/移除已做；待 merge 人类批准、OS 只读/容器；coding pilot。
 4. **C（W4）**：thread 面板、@未读/深链、reaction、搜索分页。
 - benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
 5. **D（W4+）**：API auth/roles/ACL（若决定多用户）、agent card/能力目录、disabled/multi-instance。

@@ -133,7 +133,7 @@
 
 - API 目前仍无登录；Origin/Host 只是本机网页防护，不防本机恶意进程。state/backup 含明文 token；audit 含消息/命令；`/api/audit` 可读。多用户前必须做 auth/ACL/token 轮换。
 - 工具隔离仍是 prompt/allowlist；worktree/容器/执行前审批未做。
-- 测试：38→42 个 spike tests；仍无 app API/store/gateway-host/SSE/UI 测试、无 CI。
+- 测试：38→43 个 spike tests；仍无 app API/store/gateway-host/SSE/UI 测试、无 CI。
 - 下一步测试：`createApp` + temp data + MockRuntime；超时→派发、kill/resume 快照、原子写/损坏 JSON、任务状态机；Vitest 覆盖 mergeMessages/路由/审批；一条 env-gated 真实 Tuwunel smoke；后 Playwright happy path。
 - 运维：备份非一致性快照；无定时/异地/加密；恢复不跑 smoke；无守护进程；日志无限增长；401 retry 永不放弃。
 
@@ -147,7 +147,7 @@
 
 **6 周**
 
-- W3（E）：worktree/branch + merge 审批 + OS 只读；coding pilot。
+- W3（E）：worktree/branch 创建/移除、cwd 切换已做；待 merge 审批、OS 只读/容器、coding pilot。
 - W4（C）：thread 面板、@未读/深链、reaction、搜索分页；D 只做 agent card/disabled；多用户/auth/第二人类后置。
 - W5：一个第二 runtime conformance + onboarding/intake 一键（人类确认）+ workspace_id seam。
 - W6：7 天 soak、完整 benchmark matrix、go/no-go、打包/文档。

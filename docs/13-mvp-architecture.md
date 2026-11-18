@@ -85,6 +85,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `web/src/App.jsx` | 页面状态、轮询、SSE 订阅、发送、创建、hash 深链 |
 | `web/src/components/` | Sidebar / ChatView（实时气泡/批准）/ AgentsView / NewChatModal / TeamModal / SettingsView / Avatar / Icon |
 | `app/tasks.mjs` | 持久任务台账（tasks.json、状态、检查点、到期查询） |
+| `app/worktrees.mjs` | git worktree 创建/移除；独立 branch |
 | `scripts/` | start/backup/restore PowerShell 运维脚本 |
 | `web/src/components/TasksView.jsx` | 任务列表/派发/完成/新建 |
 | `app/data/` | **gitignored**：state.json、tasks.json、gateway-state.json、audit.jsonl、agents/* |
@@ -149,6 +150,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`；template/工具/提示/cwd 变更会重建 runtime；status/triage 即时生效 |
 | `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
+| `POST/DELETE /api/agents/:id/worktree` | 创建/移除独立 git worktree，切换 agent cwd；不自动 merge |
 | `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
@@ -272,7 +274,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - Matrix token 只在 `app/data/state.json` 和服务端内存；浏览器拿不到。
 - `app/data/` 和 `spike/.tmp/` 都 gitignored。不要把 state.json/日志/token 提交。
 - 注册 token 只用于初始化；需要时可以关闭 `[global.registration] enable`。
-- agent 的 Claude 工具默认可用，系统提示要求"默认只对话，除非明确要求才用工具"；这是提示级约束，不是沙箱。真正隔离留到后面（worktree/容器/审批）。
+- agent 的 Claude 工具默认可用，系统提示要求"默认只对话，除非明确要求才用工具"；这是提示级约束，不是沙箱。worktree 目录隔离已做；容器/OS 只读/执行前审批未做。
 
 ## 9. 已知限制
 
@@ -290,6 +292,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - triage 参数可按 agent 配，但默认值写死在 Gateway；每日 USD 预算按 UTC 日、内存恢复，没有全局总额。
 - 工具权限仍是弱隔离；`full` 模式可写，reviewer 的只读靠 prompt，不是强沙箱。
+- worktree 隔离了工作目录，但没有 merge 审批、OS 只读、容器/凭据隔离；删除 agent 不自动清 worktree。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。
@@ -309,13 +312,13 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 3. 房间/agent 管理：暂停、软删除、移除群成员、全局硬 kill 已完成；待做硬删除/undelete、邀请人类、批量操作。
 4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE-BLOCK-FAIL/失败退避重试/needsAttention/重启不重发已完成；待 时区/节假日/多次补跑、72h soak、turn 恢复、告警。
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
-6. 真正的第二 runtime（OpenClaw/Codex），验证异构。
+6. Worktree 已做独立目录/branch；待 merge 审批、OS 只读、容器；再做第二 runtime。
 7. 数据平台最小版：活动/审计只读页、用量、全局暂停已完成；待做导出/回放、硬 kill、预算/失败告警。
-8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 42 个测试。
+8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 43 个测试。
 
 ## 11. 验证记录（2026-11-16 / 17）
 
-- spike：`node --test` → **42 tests pass**。
+- spike：`node --test` → **43 tests pass**。
 - 真实 Tuwunel + 真实 Claude：
   - 新建 agent `@researcher` → 自动建 DM → 发消息 → Claude 回复。
   - 新建群「讨论组」（claude-dev + researcher）→ 不 @ 发一条 → **两个 agent 都收到并各自回复**。
@@ -371,4 +374,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。
 - **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。
 - **消息回复 PASS（2026-11-18）**：script-peer DM 第一条 → 第二条带 replyTo → 消息拉回 replyTo 指向第一条、thread=main、父文本正确。
-- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 7 个单测，spike 42 tests。
+- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 7 个单测 + worktree 1 个，spike 43 tests。

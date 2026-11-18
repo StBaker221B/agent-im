@@ -1,7 +1,7 @@
 # 14 角色模板与开发计划
 
 - 状态矩阵与剩余计划以 [19](19-product-and-architecture-review.md) 为准。
-- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱 + worktree 工作区**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -141,13 +141,13 @@
 | 产品 UI（会话/群/私聊/媒体/搜索/设置/资料） | ✅ 可用 | 细节、键盘/移动端打磨 | 1–2d |
 | 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
-| 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、worktree/容器沙箱待做 | 2–4d |
+| 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、容器/OS 只读待做；worktree 目录隔离已做 | 2–4d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名、移除群成员已完成；硬删除/undelete、邀请第二个人类、批量操作待做 | 1–2d |
 | 团队 benchmark | ⚠️ v2 已做 | fixture + runner、single/pair、squad、外部 baseline；更多任务/N≥3/隔离 baseline/质量指标待做 | 2–3d |
 | 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；时区/节假日/多次补跑、turn 恢复、告警、72h soak 待做 | 3–4d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v2 已做 | 活动/审计导出、用量、全局暂停/硬 kill、待办收件箱；回放/直接审批/告警推送/会话检索待做 | 2–3d |
-| 第二 runtime / worktree | ⏳ 未做 | OpenClaw/Codex adapter、worktree 隔离 | 3–5d |
+| 第二 runtime / worktree | ⚠️ 部分 | worktree/branch 创建/移除已做；merge 审批、OS 只读/容器、第二 runtime 待做 | 3–5d |
 | 搜索分页/索引 | ⚠️ 部分 | 现在每房间最近 100 条；分页/索引 | 1–2d |
 | 运维/部署 | ⚠️ 部分 | start/backup/restore 脚本、audit 导出已做；守护进程/定时备份/异地备份/打包待做 | 1–2d |
 | App/Web 自动化测试 + CI | ⏳ 未做 | API/store/UI 测试、CI | 2–3d |
@@ -165,7 +165,7 @@
 
 **第 2 周：工具与治理**
 
-4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准已做；执行前审批、按 thread/过期授权、coder worktree/reviewer 只读沙箱待做。
+4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准、coder worktree 已做；执行前审批、按 thread/过期授权、reviewer OS 只读/容器待做。
 5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
 6. Agent/房间生命周期：暂停（`paused_skip`）、软删除、移除群成员、agent 申请房间已完成；硬删除/undelete、邀请人类、批量操作待做。
 7. 长期驻守/intake：需求在 [16](16-long-running-and-intake.md)；v1 有 `@intake`、任务台账/到期派发/interval+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；待做时区/节假日/多次补跑、turn 恢复、告警、按 `RECOMMEND` 一键建队。
@@ -173,7 +173,7 @@
 
 **第 3 周：异构与多用户**
 
-8. 第二个 runtime（OpenClaw/Codex）+ worktree。
+8. 第二个 runtime（OpenClaw/Codex）；worktree 目录隔离已做。
 9. 多人类/鉴权/邀请；房间 ACL。
 10. 搜索分页/索引、运维打包。
 
@@ -186,7 +186,7 @@
 ### 5.3 风险
 
 - **成本**：角色越多、工具越活，turn 越贵；修测试实验 5 turn $2.16。没有 triage/预算前不适合放开多 agent。
-- **权限**：`dontAsk + allowedTools` 不是沙箱；off 用 `--tools ""` 硬拒绝，reviewer 的只读仍靠 prompt。真正的工具隔离要 worktree/容器/执行前审批。工具审批 v1 是 turn 后的合作式申请，批准是单工具持久 grant。
+- **权限**：`dontAsk + allowedTools` 不是沙箱；off 用 `--tools ""` 硬拒绝，reviewer 的只读仍靠 prompt。真正的工具隔离要 worktree + merge 审批/容器/OS 只读/执行前审批；worktree 目录已做，其余未做。工具审批 v1 是 turn 后的合作式申请，批准是单工具持久 grant。
 - **角色泛滥**：模板太多会像“扮演”；先把 8 个软件团队角色打磨好，再扩。
 - **多用户**：Matrix 账号/权限模型要重做，不能靠单一 human token。
 
@@ -205,7 +205,7 @@
 - 自定义模板/团队模板的编辑体验（另存、clone、一次建一组）。
 - 是否接 O*NET/ESCO 自动生成角色卡；生成后如何人工审。
 - triage 用规则还是小模型；预算/冷却默认值。
-- 真正沙箱/审批的边界（worktree/容器/工具白名单）。
+- 真正沙箱/审批的边界（merge 审批/容器/OS 只读/工具白名单）；worktree 目录隔离已做。
 - 角色模板是否要版本化和团队共享。
 - **团队有效性**：已有可重复 runner，但只跑了 single/pair 的 money-rounding 任务；6 人 squad 和“单 Claude+subagent”基线还没跑，质量指标也只有测试通过/未改。
 - **agent 自主建群/私聊**：现在房间只能人类创建，agent 只能在已有房间 @ 其他成员；是否允许 agent 发起 DM/群、需不需要人类批准，未定。

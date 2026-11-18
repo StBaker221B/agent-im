@@ -877,9 +877,24 @@ async function dispatchTask(task, by = "human") {
       taskOwner: task.owner,
     });
     log(`[app] task dispatched ${task.id} room=${room.id}`);
+    host.gateway.audit.write({
+      kind: "task_dispatch",
+      taskId: task.id,
+      agentId: task.owner ?? null,
+      roomId: room.id,
+      eventId: sent.eventId,
+      status: tasks.get(task.id)?.status ?? null,
+    });
     return { task: taskView(tasks.get(task.id)), eventId: sent.eventId };
   } catch (err) {
     tasks.scheduleRetry(task.id, `dispatch failed: ${err.message}`);
+    host.gateway.audit.write({
+      kind: "task_dispatch_error",
+      taskId: task.id,
+      agentId: task.owner ?? null,
+      roomId: room.id,
+      error: err.message,
+    });
     throw Object.assign(new Error(`task dispatch failed: ${err.message}`), { status: 502 });
   }
 }

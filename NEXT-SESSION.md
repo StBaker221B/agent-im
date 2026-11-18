@@ -28,7 +28,7 @@
 2. **A（W2）**：待办收件箱、任务详情/审计时间线已做；待事件 schema、完整回放、后台告警推送（桌面 alert 推送/显式拒绝已做）。
 3. **E（W3）**：worktree/branch 创建/移除已做；人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
 4. **C（W4）**：@未读、分页、reaction（含撤销/agent REACT）、thread 面板、消息深链、深搜（含结果分页）已做；待 thread 分页/未读、搜索 cursor/索引。
-- benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
+- benchmark 已加 baseline/baseline-subagent；money-rounding baseline N=3（3/3，27s，$0.342），待更多任务/隔离配置。
 5. **D（W4+）**：agent card/Agents 筛选已做；待 disabled/独立 Directory、API auth/roles/ACL（第二人类后置）。
 6. **F**：PWA shell（network-first）/空态引导/Chromium 实机检查已做；待交互式 onboarding、intake 一键、停止状态恢复、真机/Lighthouse/a11y；任务详情已做。
 

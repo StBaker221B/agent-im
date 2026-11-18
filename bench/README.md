@@ -86,7 +86,7 @@ node bench/run.mjs --arms pair --runs 3 --timeout 300 --grace 15
 
 - `baseline` 用完整 Claude Code（不是 `--bare`），会加载用户 plugins/skills，和产品 agent 的隔离环境不完全一致；只能当参考。
 - `baseline-subagent` 强制 subagent，在一分钟级小任务上可能超时；超时就没有 `result`，成本记为 0，看 `timedOut`/turns/toolUses 判断。
-- 真正 kill criterion 需要隔离配置、更多任务、N≥3；当前只有一次 money-rounding 数据。
+- 真正 kill criterion 需要隔离配置、更多任务；money-rounding baseline 已有 N=3（3/3，27s，$0.342），但仍只有一个任务。
 
 ## 下一步
 

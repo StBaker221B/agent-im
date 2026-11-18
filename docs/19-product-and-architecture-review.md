@@ -142,7 +142,7 @@
 **2 周**
 
 - W1（B）：retry/backoff、失败耗尽 needsAttention、autostart/watchdog、5 段 cron、soak harness 已做（2 分钟 + 2 次 kill 通过）；待时区/节假日、多次补跑、告警、真正 72h。
-- W2（A + 证明）：待办收件箱已做（请求/任务/预算/系统聚合，可页内批准/重开）；待事件 schema、回放、显式拒绝、告警推送；benchmark 已加 baseline/baseline-subagent，但只有 money-rounding 单次；还需 2 个任务、N≥3、隔离配置，再写决策 memo。
+- W2（A + 证明）：待办收件箱已做（请求/任务/预算/系统聚合，可页内批准/重开）；待事件 schema、回放、显式拒绝、告警推送；benchmark 已加 baseline/baseline-subagent；money-rounding baseline 已 N=3（3/3，27s，$0.342）；还需 2 个任务、隔离配置，再写决策 memo。
 - 里程碑：72h/3 重启/0 重复/0 静默丢任务；kill-criterion 数据存在。
 
 **6 周**
@@ -159,7 +159,7 @@
 2. **人类离线自治**：做成配置项；**默认全部允许、不设每日/任务上限、不需审批、完全放开**，需要时自己收紧。
 3. **agent 主动联系**：**默认无需审批**，加配置项；可以收紧为 approval-only。仍保留人类可见（不建人类不可见的 agent-only DM）。
 4. **隔离底线**：在 agent 指定工作目录内可自由操作；工作目录外看工具权限模式；非编码业务流同理。当前仍是弱沙箱/worktree 未做。
-5. **kill criterion 数字**：初步 baseline 已跑（36s/$0.383；强制 subagent 301s 超时），但只有单任务单次；需更多任务/N≥3/隔离配置后再定阈值。
+5. **kill criterion 数字**：初步 baseline 已跑（N=3：27s/$0.3418；强制 subagent 301s 超时），但仍只有单任务；需更多任务/隔离配置后再定阈值。
 
 实现默认值：`dailyBudgetUsd=0`（不限）、自治审批默认开放、agent 可主动建房；配置项可收紧。安全边界仍要标注：这是“默认开放 + 可治理”，不是强隔离。
 
@@ -168,5 +168,5 @@
 1. Phase 0 关键 bug 已修（timeout 派发、manual dispatch、kill snapshot、atomic、Origin）；并补了硬 kill 的 stale floor/queue/generation 清理。
 2. 已按决策实现自治默认开放：`agentRooms=open` 自动建房、可配 approval；`dailyBudgetUsd=0`、第二人类后置。
 3. 按 W1 做 B 的 scheduler v2（cron/补跑、retry/backoff、失败升级、crash-turn needs attention、守护进程）+ 72h soak；同时补 API 测试 harness。
-4. W2 做 A 的审批/告警/回放，并补“单 Claude+subagent”基线；有对照后再定 kill criterion 数字。
+4. W2 做 A 的审批/告警/回放；baseline 已有 N=3，但还需多任务/隔离配置后再定 kill criterion 数字。
 5. 再按 E → C → D（D 仅 agent card/disabled；auth/第二人类后置），F 穿插。

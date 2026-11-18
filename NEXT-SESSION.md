@@ -6,7 +6,7 @@
 
 - 分支 `agent-im/matrix-e2e`；master 已多次快进推送；最近功能基线见 `git log`。
 - 服务：`127.0.0.1:8790`（托管 `web/dist`）；Tuwunel `127.0.0.1:8008`；数据 `app/data/`（gitignored）。
-- 测试：`spike` 39 tests；lint/build 通过。
+- 测试：`spike` 41 tests；lint/build 通过。
 - 产品定义、状态矩阵、剩余 A–F 轨道和 2/6 周计划：见 [19](docs/19-product-and-architecture-review.md)。
 - 历史文档 01/03/04/05/06 已标“历史”，不要按它们实现。
 
@@ -15,15 +15,15 @@
 - 真实 Matrix + Claude E2E；自由群聊/floor/PASS/收敛；跨房间 session。
 - 角色模板 13 + 知识包；团队模板 3；intake 需求顾问。
 - 工具权限/triage/用量/每日预算/暂停；token 流；合作式工具申请/单工具 grant。
-- 持久任务台账：到期派发、固定间隔重复、checkpoint、agent TASK/DONE/BLOCK/FAIL、重启不重发。
+- 持久任务台账：到期派发、固定间隔重复、checkpoint、agent TASK/DONE/BLOCK/FAIL、退避重试/needsAttention、重启不重发。
 - 活动/审计、全局软暂停、硬 kill、桌面通知、回复引用、成员移除、agent 申请房间。
 - 可重复 benchmark：single/pair 各两次、squad 一次；脚本与 fixture 在 `bench/`。
-- 运维脚本：`scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`。
+- 运维脚本：`scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`、`install-autostart.ps1`。
 - 自治默认开放（`agentRooms=open`，可配置 approval）；决策见 19 §8。
 
 ## 下一批（按 19 §7）
 
-1. **B（W1）**：任务 scheduler v2——cron/工作日、错过补跑一次、retry/backoff、失败/阻塞升级；crash-turn “needs attention”；守护进程；开始 72h soak。
+1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；待 cron/工作日、错过补跑、72h soak、告警。
 2. **A（W2）**：统一事件 schema + 审批收件箱（工具/房间/merge）+ task/thread 回放 + 预算/失败告警。
 3. **E（W3）**：worktree/branch + merge 人类批准 + OS 只读；coding pilot。
 4. **C（W4）**：thread 面板、@未读/深链、reaction、搜索分页。

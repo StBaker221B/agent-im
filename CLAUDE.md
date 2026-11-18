@@ -28,7 +28,7 @@ agent-im/
 
 ```bash
 # 协议测试（改 scheduler/gateway/transport 后必跑）
-cd agent-im/spike && node --test          # 39 tests
+cd agent-im/spike && node --test          # 41 tests
 
 # MVP 服务（需要 Tuwunel 在 8008）
 cd agent-im/app && npm start              # http://127.0.0.1:8790
@@ -76,7 +76,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 - Intake：`POST /api/intake {problem}` 确保 `@intake`（facilitator、tools off）并打开 DM；prompt 要求重述/推荐 single|pair|squad/角色/成本/最小验证，末行 `RECOMMEND:`；不自动建团队。
 - 长期驻守：state/gateway-state/session 能重启恢复，但**没有任务台账/调度/检查点/未完成 turn 恢复**；进行中 turn 崩溃会丢该轮，设计上不重跑以免重复。
 - 全局暂停是软控制：设置所有非 deleted agent `paused`，当前 turn 跑完、下一轮起跳过；不是硬 kill，不会停 gateway。活动页只读最近约 5000 行 audit/250 条事件。
-- 任务台账：`app/data/tasks.json`；启动 5s 后和每 30s 派发 pending+dueAt 任务（人类消息 + @ owner）；一次性先 active 再发送，intervalMinutes>0 派发后回到 pending 排下一次；重启不重发 active，pending 补发；失败/owner paused → blocked。agent 用 `TASK:` 创建 pending（owner=自己、dueAt=null），任务派发带 taskId，owner `DONE:` 自动关、`BLOCK:`/`FAIL:` 置 blocked/failed；无 cron/补跑、无失败自动重试/升级、无 turn 恢复。
+- 任务台账：`app/data/tasks.json`；启动 5s 后和每 30s 派发 pending+dueAt 任务（人类消息 + @ owner）；一次性先 active 再发送，intervalMinutes>0 派发后回到 pending 排下一次；重启不重发 active，pending 补发；失败/owner paused → blocked；FAIL/发送失败按 5/10/20… 分钟退避重试，耗尽 failed/blocked + needsAttention；启动时 active 超过 30 分钟标 needsAttention。agent 用 `TASK:` 创建 pending（owner=自己、dueAt=null），任务派发带 taskId，owner `DONE:` 自动关、`BLOCK:`/`FAIL:` 置 blocked/failed；无 cron/补跑、无失败自动重试/升级、无 turn 恢复。
 - 工具白名单：Windows 上 shell 工具名是 `PowerShell`；`dontAsk` 模式下未列入 `--allowedTools` 的工具会被拒。reviewer 的"只读"目前是 prompt 约束，不是强沙箱。
 - 工具策略集中在 `app/tool-policy.mjs`：`toolsMode=off` 传 `--tools "" --permission-mode dontAsk`（`dontAsk` 单独仍会放行 Read）；可用集合由 `--tools` 决定，`--allowedTools` 同步；Gateway 建 runtime 时用 `mergeToolArgs` 重新应用，清理 state 里过期的工具 flag。批准的工具进 `agent.approvedTools`（单工具、持久，设置页可撤销），不改 `toolsMode`。
 - 流式：ClaudeAdapter `--include-partial-messages` 产出 `text_delta`；Gateway `onEvent` → Server SSE `GET /api/events` → UI 实时气泡。消息本身仍靠 Matrix + 轮询落库。
@@ -99,7 +99,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | turn 生命周期/审计 | `spike/src/gateway.mjs` |
 | Claude 调用/session | `spike/src/claude-adapter.mjs` |
 | 控制面 API / 上传 / 媒体代理 | `app/server.mjs` |
-| 运维/备份 | `scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`；audit 导出 `GET /api/audit/export` |
+| 运维/备份 | `scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`、`install-autostart.ps1`；audit 导出 `GET /api/audit/export` |
 | 自治/建房 | `state.policy.agentRooms=open|approval`，默认 open；open 时 `REQUEST_ROOM` 直接 createGroup（人类+发起者+目标），approval 时发 room_request 由 UI 批准；`PATCH /api/settings` |
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs`；agent 软删除 `DELETE /api/agents/:id` + `gateway.removeAgent`；群移除 `DELETE /api/rooms/:id/members/:agentId` |
 | 消息回复 | 前端 replyTo 草稿/引用；API body.replyTo；Matrix m.in_reply_to；transport 解析主线程 reply |

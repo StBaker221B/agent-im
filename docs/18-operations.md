@@ -19,7 +19,15 @@ powershell -ExecutionPolicy Bypass -File scripts\start-agent-im.ps1
 - 日志：`app/data/server.log`、`app/data/server.err.log`；
 - 参数：`-Distro agentim`、`-Port 8790`、`-NoTuwunel`。
 
-Windows 开机自启可以放一个快捷方式到 `shell:startup`，或建任务计划程序：触发器“登录时”，操作运行上面的 PowerShell 命令；不要以高权限运行，避免端口/凭据问题。
+Windows 开机/守护：`scripts/install-autostart.ps1` 注册计划任务（登录时 + 每 5 分钟跑 start 脚本，幂等兼作 watchdog）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
+# 卸载
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1 -Remove
+```
+
+也可以手动放快捷方式到 `shell:startup`。不要以高权限运行，避免端口/凭据问题。
 
 ## 2. 备份
 

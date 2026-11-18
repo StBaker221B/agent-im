@@ -94,7 +94,7 @@ v0 已实现：`POST /api/intake` 确保一个 `@intake` 需求顾问、打开/�
 
 - 进行中的 turn 崩溃会丢该轮回复（设计选择：不重跑，避免重复）；
 - 重复任务只有固定分钟间隔，没有 cron 表达式/补跑；没有重试/退避、自动完成；
-- agent 已能用 `TASK:` 创建 pending 任务、owner 用 `DONE:` 自动关、`BLOCK:`/`FAIL:` 置 blocked/failed；还不能改派/重试。
+- agent 已能用 `TASK:` 创建 pending 任务、owner 用 `DONE:` 自动关、`BLOCK:` 置 blocked、`FAIL:` 自动退避重试；耗尽 failed/blocked + needsAttention。
 - 没有进程守护/自动重启（可后续用 Windows 任务计划或 WSL systemd）；
 - 预算花费重启后从 audit 恢复；任务状态已持久化；但没有 turn 级检查点（只有任务级 checkpoint）。
 

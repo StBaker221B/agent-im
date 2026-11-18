@@ -133,7 +133,7 @@
 
 - API 目前仍无登录；Origin/Host 只是本机网页防护，不防本机恶意进程。state/backup 含明文 token；audit 含消息/命令；`/api/audit` 可读。多用户前必须做 auth/ACL/token 轮换。
 - 工具隔离仍是 prompt/allowlist；worktree/容器/执行前审批未做。
-- 测试：38→39 个 spike tests；仍无 app API/store/gateway-host/SSE/UI 测试、无 CI。
+- 测试：38→41 个 spike tests；仍无 app API/store/gateway-host/SSE/UI 测试、无 CI。
 - 下一步测试：`createApp` + temp data + MockRuntime；超时→派发、kill/resume 快照、原子写/损坏 JSON、任务状态机；Vitest 覆盖 mergeMessages/路由/审批；一条 env-gated 真实 Tuwunel smoke；后 Playwright happy path。
 - 运维：备份非一致性快照；无定时/异地/加密；恢复不跑 smoke；无守护进程；日志无限增长；401 retry 永不放弃。
 
@@ -141,7 +141,7 @@
 
 **2 周**
 
-- W1（B）：scheduler v2（nextRunAt/cron、错过补跑一次、retry/backoff、失败升级）、crash-turn “needs attention”、start-agent 守护、72h soak 开始。
+- W1（B）：retry/backoff、失败耗尽 needsAttention、autostart/watchdog 已做；待 cron/工作日、错过补跑、告警、72h soak。
 - W2（A + 证明）：事件 schema、审批收件箱、task/thread 回放、预算/失败告警；benchmark 加“单 Claude+subagent”基线 + 2 个任务，N=3，写决策 memo。
 - 里程碑：72h/3 重启/0 重复/0 静默丢任务；kill-criterion 数据存在。
 

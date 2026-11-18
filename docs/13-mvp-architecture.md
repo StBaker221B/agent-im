@@ -223,7 +223,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；agent 设置页/Agents 页可见。
 - **全局暂停**：设置页可暂停/恢复所有非 deleted agent；当前正在跑的 turn 会跑完，下一轮起跳过。不是硬 kill，不会停 gateway 或中断当前 turn。
 - **Agent 申请房间**：agent 输出 `REQUEST_ROOM`，Gateway 解析目标并发送 `intent=room_request` + `com.agentim.room`；默认 open 直接 createGroup（含人类+发起者+目标）；approval 才显示批准按钮；同名同成员幂等复用。没有 agent-only 私聊。
-- **任务台账**：`app/data/tasks.json` 持久化 status/owner/room/dueAt/intervalMinutes/checkpoints；启动 5s 后和每 30s 检查 pending+到期，派发到房间（人类消息 + @ owner + taskId/taskOwner）。一次性先置 active 再发送；`intervalMinutes>0` 派发后回到 pending 并排下一次。重启不重发 active，pending 到期补发；owner 暂停/发送失败 → blocked。
+- **任务台账**：`app/data/tasks.json` 持久化 status/owner/room/dueAt/intervalMinutes/maxRetries/retryBackoffMinutes/needsAttention/checkpoints；启动 5s 后和每 30s 检查 pending+到期，派发到房间（人类消息 + @ owner + taskId/taskOwner）。一次性先置 active 再发送；`intervalMinutes>0` 派发后回到 pending 并排下一次。重启不重发 active，pending 到期补发；owner 暂停 → blocked；发送失败/FAIL 按 5/10/20… 分钟退避重试，耗尽 failed/blocked + needsAttention；启动时 active 超 30 分钟标记 needsAttention。
 - **Agent 任务标记**：agent 可回复 `TASK: <title>` 创建 pending 任务（owner=自己、dueAt=null）；任务派发消息带 taskId，owner 回复 `DONE:` 自动把一次性任务置 done；`BLOCK:`/`FAIL:` 置 blocked/failed 并写 lastError；重复任务 DONE 只追加 checkpoint。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
 - **用量与预算**：`GET /api/usage` 聚合 audit 的 usage；全局设置页展示每 agent 今天/累计 turns 和 USD，agent 设置页可设 `dailyBudgetUsd`（0=不限）。USD 来自 Claude CLI result 的 `total_cost_usd`，不是前端按 token 估算。Gateway 启动时从 audit 恢复今天花费，turn 前超预算直接 PASS 并写 `budget_skip`。
@@ -304,15 +304,15 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 1. 成本控制 v2：triage/预算已完成；待做全局预算、per-thread 预算。
 2. 工具审批/沙箱：v1 合作式已完成；待做执行前审批、单工具 grant、worktree/容器沙箱。
 3. 房间/agent 管理：暂停、软删除、移除群成员、全局硬 kill 已完成；待做硬删除/undelete、邀请人类、批量操作。
-4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE-BLOCK-FAIL/重启不重发已完成；待 cron/补跑、失败重试/升级、turn 恢复、进程守护。
+4. 长期运行 v1：任务台账/到期派发/固定间隔重复/agent TASK-DONE-BLOCK-FAIL/失败退避重试/needsAttention/重启不重发已完成；待 cron、72h soak、turn 恢复、告警。
 5. 团队 benchmark：runner + money-rounding 已落地；待更多任务、单 Claude+subagent 基线、质量指标。
 6. 真正的第二 runtime（OpenClaw/Codex），验证异构。
 7. 数据平台最小版：活动/审计只读页、用量、全局暂停已完成；待做导出/回放、硬 kill、预算/失败告警。
-8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 39 个测试。
+8. 测试：给 `human_all`、链上限、API、store 加自动化；现在 spike 41 个测试。
 
 ## 11. 验证记录（2026-11-16 / 17）
 
-- spike：`node --test` → **39 tests pass**。
+- spike：`node --test` → **41 tests pass**。
 - 真实 Tuwunel + 真实 Claude：
   - 新建 agent `@researcher` → 自动建 DM → 发消息 → Claude 回复。
   - 新建群「讨论组」（claude-dev + researcher）→ 不 @ 发一条 → **两个 agent 都收到并各自回复**。
@@ -368,4 +368,4 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **活动/全局暂停 PASS（2026-11-17）**：`/api/audit?limit=5&kind=tool_use` 返回工具事件；pause-all 把 12 个 agent 全部置 paused，恢复后全部 active；无模型调用。
 - **任务台账 PASS（2026-11-17）**：`task-mwkjvmf6-76b8af` due 2s 前，30s tick 后 active/写入 `lastDispatchedAt`/checkpoint，房间收到消息；重启 app 后 8s 内消息数和派发时间不变，无重复派发；手动 done。重复任务 `task-mwktdsqw-83eeb5` interval 1 分钟，手动派发后回到 pending，next due 约 1 分钟后。
 - **消息回复 PASS（2026-11-18）**：script-peer DM 第一条 → 第二条带 replyTo → 消息拉回 replyTo 指向第一条、thread=main、父文本正确。
-- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 4 个单测，spike 39 tests。
+- **Agent 任务标记 PASS（2026-11-17）**：PM 输出 `TASK:` 创建 `task-mwktqtce-4b6c34`（owner=PM, dueAt=null）；手动派发 active；PM 输出 `DONE:` 后自动变 done。`BLOCK: 缺少信息` 测试把任务置 blocked、lastError/checkpoint 写入，消息 intent=blocked。TaskStore 6 个单测，spike 41 tests。

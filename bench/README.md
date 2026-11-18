@@ -45,6 +45,8 @@ node bench/run.mjs --arms pair --runs 3 --timeout 300 --grace 15
 | `single` | coder | 和人类 DM |
 | `pair` | coder + reviewer | 群 |
 | `squad` | PM + BA + architect + coder + reviewer + QA | 群 |
+| `baseline` | 单 Claude Code（可用 subagent，但不强制） | 外部 CLI |
+| `baseline-subagent` | 单 Claude Code，强制调用一次 Agent/subagent | 外部 CLI |
 
 每个 agent 都是新建的 Matrix 用户、全新 Claude session，cwd 指向该 arm 的独立 workspace。团队所有成员共享同一个 workspace；single 单独一份，互不污染。
 
@@ -68,6 +70,7 @@ node bench/run.mjs --arms pair --runs 3 --timeout 300 --grace 15
 - `agentMessages` / `toolUses`；
 - `seconds`；
 - `timedOut`；
+- summary 的 `timeouts`；
 - summary：每组通过率、平均 turns/USD/耗时、每次通过的成本。
 
 ## 这还不是完美的 benchmark
@@ -78,6 +81,12 @@ node bench/run.mjs --arms pair --runs 3 --timeout 300 --grace 15
 - human intervention 固定为 1 条任务消息；没有模拟人类中途拒绝/补充。
 - 评分只看测试；测试通过不等于实现优雅，仍需要人工看 diff。
 - 软删除会保留 Matrix 账号，重复跑会积累隐藏账号。
+
+## 外部 baseline 的坑
+
+- `baseline` 用完整 Claude Code（不是 `--bare`），会加载用户 plugins/skills，和产品 agent 的隔离环境不完全一致；只能当参考。
+- `baseline-subagent` 强制 subagent，在一分钟级小任务上可能超时；超时就没有 `result`，成本记为 0，看 `timedOut`/turns/toolUses 判断。
+- 真正 kill criterion 需要隔离配置、更多任务、N≥3；当前只有一次 money-rounding 数据。
 
 ## 下一步
 

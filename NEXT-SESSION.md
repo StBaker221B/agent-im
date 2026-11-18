@@ -27,6 +27,7 @@
 2. **A（W2）**：统一事件 schema + 审批收件箱（工具/房间/merge）+ task/thread 回放 + 预算/失败告警。
 3. **E（W3）**：worktree/branch + merge 人类批准 + OS 只读；coding pilot。
 4. **C（W4）**：thread 面板、@未读/深链、reaction、搜索分页。
+- benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
 5. **D（W4+）**：API auth/roles/ACL（若决定多用户）、agent card/能力目录、disabled/multi-instance。
 6. **F**：onboarding、intake 一键确认、任务详情/停止状态恢复、PWA/mobile/a11y。
 

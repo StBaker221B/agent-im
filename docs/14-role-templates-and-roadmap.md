@@ -143,7 +143,7 @@
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
 | 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、worktree/容器沙箱待做 | 2–4d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名、移除群成员已完成；硬删除/undelete、邀请第二个人类、批量操作待做 | 1–2d |
-| 团队 benchmark | ⚠️ v1 已做 | fixture + runner、single/pair 各两次、squad 一次；更多任务/外部基线/质量指标待做 | 2–3d |
+| 团队 benchmark | ⚠️ v2 已做 | fixture + runner、single/pair、squad、外部 baseline；更多任务/N≥3/隔离 baseline/质量指标待做 | 2–3d |
 | 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；时区/节假日/多次补跑、turn 恢复、告警、72h soak 待做 | 3–4d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v1 已做 | 活动/审计只读页、用量、全局暂停；导出/回放/硬 kill/告警/会话检索待做 | 2–3d |

@@ -101,7 +101,7 @@
 - C IM：thread 面板、@未读、深链、深搜已做；待搜索 cursor/索引、thread 分页/未读、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
 - E 隔离：worktree/branch + merge 审批已做；待 OS 只读 reviewer、容器、一个非 Claude adapter。
-- F UX：空态引导、PWA shell（network-first）、aria-live/减动效、Chromium 实机检查已做；待交互式 onboarding、intake 一键、停止状态恢复、真机/Lighthouse；任务详情已做。
+- F UX：空态引导、PWA shell（network-first）、aria-live/减动效、Chromium + 390×844 模拟检查已做；待交互式 onboarding、intake 一键、停止状态恢复、真机/Lighthouse；任务详情已做。
 
 ## 5. 代码架构：现状与改进
 

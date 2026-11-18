@@ -13,10 +13,11 @@
 3. **Thread 面板实机可用**：发送 `UI thread test` 成功，script-peer 在 thread 内回复；截图确认。
 4. **深链实机可用**：直接打开 `#/room/.../message/...`，目标消息获得 focus class 并滚动到视野。
 5. **PWA 资源**：manifest/sw/icon 200；manifest MIME 已修正；SW 注册 active；页面无 console/page errors。
+6. **移动端 390×844**：会话列表/聊天可用；thread 面板以全屏覆盖打开，X 可关闭；输入框与发送按钮可见。
 
 ## 边界
 
-- 只测了 Chromium 深色主题；没测 Firefox/Safari/移动真机。
+- 只测了 Chromium 深色主题 + 390×844 viewport 模拟；没测 Firefox/Safari/移动真机。
 - 没有跑 axe/Lighthouse；颜色对比度未系统审计。
 - Thread 测试产生了真实 room 消息（script-peer，无成本）。
 - SW v2 需要一次硬刷新/重新注册才能替换旧 v1 缓存；旧客户端可能短暂仍用旧缓存。

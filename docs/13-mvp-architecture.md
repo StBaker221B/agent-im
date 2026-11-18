@@ -303,7 +303,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - Reaction UI 只有 👍（API 支持 key），可撤销自己的；agent 没有 reaction 工具；reaction 事件占分页条数。
 - Thread 依赖 Tuwunel relations（当前不支持）→ 只扫最近约 1000 条房间消息；无 thread 分页/未读/reaction UI，回复数只算当前页。
 - PWA 只缓存 shell；离线无数据；只有 SVG icon；没有 Lighthouse/axe/真机验证。
-- Thread/深链已在 Chromium 深色主题实机验证；Firefox/Safari/移动端未测。
+- Thread/深链/PWA 已在 Chromium 深色主题和 390×844 viewport 验证；Firefox/Safari/移动真机未测。
 - 深链只能定位已加载的最近 100 条/已翻页消息；不会自动翻页找更早消息。
 - 任务详情不是完整回放：usage/turn 审计无 taskId；没有任务详情的独立 URL。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。

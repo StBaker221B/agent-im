@@ -49,6 +49,8 @@ export default function App() {
   const [view, setView] = useState("chat");
   const [settingsAgentId, setSettingsAgentId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [historyNext, setHistoryNext] = useState(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [modal, setModal] = useState(null); // chat | agent | invite
   const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -248,10 +250,19 @@ export default function App() {
   useEffect(() => {
     if (!activeRoomId) return;
     let alive = true;
+    let first = true;
+    setMessages([]);
+    setHistoryNext(null);
     const load = async () => {
       try {
         const res = await api.messages(activeRoomId);
-        if (alive) setMessages((prev) => mergeMessages(prev, res.messages));
+        if (alive) {
+          setMessages((prev) => mergeMessages(prev, res.messages));
+          if (first) {
+            setHistoryNext(res.next ?? null);
+            first = false;
+          }
+        }
       } catch (err) {
         if (alive) notify(err.message);
       }
@@ -263,6 +274,20 @@ export default function App() {
       clearInterval(timer);
     };
   }, [activeRoomId, notify]);
+
+  async function loadOlder() {
+    if (!activeRoomId || !historyNext || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const res = await api.messages(activeRoomId, { from: historyNext, limit: 100 });
+      setMessages((prev) => mergeMessages(prev, res.messages));
+      setHistoryNext(res.next ?? null);
+    } catch (err) {
+      notify(err.message);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
 
   useEffect(() => {
     if (!activeRoomId || !messages.length || view !== "chat" || mobilePane !== "chat") return;
@@ -328,6 +353,7 @@ export default function App() {
     setView("chat");
     setMobilePane("chat");
     setMessages([]);
+    setHistoryNext(null);
     setModal(null);
     setFocusMessageId(null);
     setHash(`#/room/${encodeURIComponent(roomId)}`);
@@ -783,6 +809,9 @@ export default function App() {
             agentsById={agentsById}
             activity={activeRoom.activity}
             live={live}
+            hasMore={Boolean(historyNext)}
+            loadingOlder={loadingOlder}
+            onLoadMore={loadOlder}
             sending={busy || uploading}
             uploading={uploading}
             focusId={focusMessageId}

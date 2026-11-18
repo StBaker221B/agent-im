@@ -217,9 +217,16 @@ function mentionIdsIn(text, room) {
   return out;
 }
 
+async function roomMessagesPage(roomId, { limit = 100, from = null } = {}) {
+  const page = await human.getMessagesPage(roomId, { limit, from });
+  return {
+    messages: page.messages.filter((m) => m.text && m.threadId === "main"),
+    next: page.end ?? null,
+  };
+}
+
 async function roomMessages(roomId, limit = 100) {
-  const messages = await human.getMessages(roomId, { limit });
-  return messages.filter((m) => m.text && m.threadId === "main");
+  return (await roomMessagesPage(roomId, { limit })).messages;
 }
 
 function messageView(m) {
@@ -1423,8 +1430,10 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && parts[1] === "rooms" && parts[3] === "messages" && parts.length === 4) {
     const roomId = decodeURIComponent(parts[2]);
     if (!store.room(roomId)) return json(res, 404, { error: "room not found" });
-    const messages = await roomMessages(roomId, 100);
-    return json(res, 200, { messages: messages.map(messageView) });
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit")) || 100));
+    const from = url.searchParams.get("from") || null;
+    const page = await roomMessagesPage(roomId, { limit, from });
+    return json(res, 200, { messages: page.messages.map(messageView), next: page.next });
   }
 
   if (req.method === "POST" && parts[1] === "rooms" && parts[3] === "messages" && parts.length === 4) {

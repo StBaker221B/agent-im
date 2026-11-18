@@ -80,6 +80,9 @@ export default function ChatView({
   agentsById,
   activity,
   live,
+  hasMore,
+  loadingOlder,
+  onLoadMore,
   sending,
   uploading,
   focusId,
@@ -323,6 +326,13 @@ export default function ChatView({
         aria-live="polite"
       >
         <div className="thread">
+          {hasMore && (
+            <div className="load-older">
+              <button type="button" className="ghost" disabled={loadingOlder} onClick={onLoadMore}>
+                {loadingOlder ? "加载中…" : "加载更早的消息"}
+              </button>
+            </div>
+          )}
           {!messages.length && (
             <div className="chat-intro">
               <Avatar

@@ -47,7 +47,11 @@ export const api = {
   pauseAll: (paused) => request("/api/admin/pause-all", { method: "POST", body: { paused } }),
   kill: (kill) => request("/api/admin/kill", { method: "POST", body: { kill } }),
   updateSettings: (policy) => request("/api/settings", { method: "PATCH", body: { policy } }),
-  messages: (roomId) => request(`/api/rooms/${encodeURIComponent(roomId)}/messages`),
+  messages: (roomId, { from = null, limit = 100 } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (from) params.set("from", from);
+    return request(`/api/rooms/${encodeURIComponent(roomId)}/messages?${params}`);
+  },
   send: (roomId, text, replyTo = null) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, {
       method: "POST",

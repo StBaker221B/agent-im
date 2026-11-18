@@ -130,7 +130,7 @@ export class MatrixClient {
     return { events, nextToken: res.next_batch, rooms };
   }
 
-  async getMessages(roomId, { limit = 50, from } = {}) {
+  async getMessagesPage(roomId, { limit = 50, from } = {}) {
     const query = { dir: "b", limit };
     if (from) query.from = from;
     const res = await this.#request("GET", `/rooms/${encodeURIComponent(roomId)}/messages`, { query });
@@ -139,7 +139,11 @@ export class MatrixClient {
       const norm = this.#normalize(roomId, ev);
       if (norm) out.push(norm);
     }
-    return out;
+    return { messages: out, start: res.start ?? null, end: res.end ?? null };
+  }
+
+  async getMessages(roomId, options = {}) {
+    return (await this.getMessagesPage(roomId, options)).messages;
   }
 
   async getEvent(roomId, eventId) {

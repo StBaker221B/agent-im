@@ -727,6 +727,17 @@ button {
   white-space: nowrap;
 }
 
+.load-older {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 10px;
+}
+
+.load-older .ghost {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
 .reply-draft {
   display: flex;
   align-items: center;

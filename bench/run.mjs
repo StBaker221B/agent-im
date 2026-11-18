@@ -10,7 +10,7 @@
 //
 // Keep runs small: every agent is a real Claude CLI turn.
 
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
@@ -69,6 +69,18 @@ const ARMS = {
     name: "Bench Squad",
     prompt: (workspace) =>
       `这是一个自动化 benchmark 仓库 ${workspace}。任务：npm test 有失败。产品经理/业务分析先明确验收边界，架构师给最小改动方案，工程师实现，评审者独立复验，QA 跑测试。只修改 src/money.mjs，不要改 test/ 或 docs/spec.md。不要为了礼貌空转；完成后各自报告证据。人类不会中途介入。`,
+  },
+  baseline: {
+    external: true,
+    label: "single Claude + subagent",
+    prompt: (workspace) =>
+      `你是单 Claude Code + subagent 基线。仓库 ${workspace} 的 npm test 有失败。只修改 src/money.mjs，不要修改 test/ 或 docs/spec.md。需要时可以调用 Agent 工具创建 subagent 帮忙；完成后运行 npm test，全过后报告。人类不会中途介入。`,
+  },
+  "baseline-subagent": {
+    external: true,
+    label: "single Claude forced subagent",
+    prompt: (workspace) =>
+      `你是单 Claude Code + subagent 基线。仓库 ${workspace} 的 npm test 有失败。只修改 src/money.mjs，不要修改 test/ 或 docs/spec.md。你必须至少调用一次 Agent 工具，让一个 subagent 独立复核或给建议；完成后运行 npm test，全过后报告。人类不会中途介入。`,
   },
 };
 
@@ -212,6 +224,82 @@ async function cleanup(roomId, agentIds) {
   }
 }
 
+function runBaseline(arm, runIndex, runKey, workspace, testBefore, initialTest, startedAt) {
+  const prompt = arm.prompt(workspace);
+  const args = [
+    "-p",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read,Glob,Grep,PowerShell,Edit,Write,Task,Agent",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+  ];
+  const opts = {
+    cwd: workspace,
+    input: prompt,
+    encoding: "utf8",
+    timeout: timeoutSec * 1000,
+    maxBuffer: 64 * 1024 * 1024,
+    windowsHide: true,
+  };
+  let child = spawnSync("claude", args, opts);
+  if (child.error?.code === "ENOENT") {
+    const command = ["claude", ...args]
+      .map((part) => (/^[\w,/.-]+$/.test(part) ? part : `"${part.replaceAll('"', '\\"')}"`))
+      .join(" ");
+    child = spawnSync(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", command], opts);
+  }
+  const output = child.stdout ?? "";
+  let result = null;
+  let toolUses = 0;
+  let subagentCalls = 0;
+  let assistantTurns = 0;
+  for (const line of output.split("\n")) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (event.type === "assistant") {
+      assistantTurns += 1;
+      for (const block of event.message?.content ?? []) {
+        if (block.type !== "tool_use") continue;
+        toolUses += 1;
+        if (block.name === "Agent" || block.name === "Task") subagentCalls += 1;
+      }
+    }
+    if (event.type === "result") result = event;
+  }
+  const testAfter = sha(join(workspace, "test", "money.test.mjs"));
+  const timedOut = child.error?.code === "ETIMEDOUT" || child.signal === "SIGTERM";
+  return {
+    arm: "baseline",
+    run: runIndex,
+    task: taskId,
+    prefix: `baseline-${runKey}`,
+    roomId: null,
+    agentIds: [],
+    workspace: relative(appRoot, workspace),
+    initialPassed: initialTest.ok,
+    passed: testIn(workspace).ok,
+    testUnchanged: testBefore === testAfter,
+    timedOut,
+    seconds: Math.round((Date.now() - startedAt) / 1000),
+    turns: assistantTurns,
+    costUsd: Number(result?.total_cost_usd ?? 0),
+    agentMessages: 1,
+    humanMessages: 1,
+    toolUses,
+    subagentCalls,
+    toolsByAgent: {},
+    messages: [{ sender: "baseline", intent: "result", text: String(result?.result ?? "").slice(0, 500) }],
+    testTail: String(result?.result ?? child.stderr ?? "").slice(-1200),
+  };
+}
+
 async function runOne(armId, runIndex, templates) {
   const arm = ARMS[armId];
   if (!arm) throw new Error(`unknown arm: ${armId}`);
@@ -226,6 +314,13 @@ async function runOne(armId, runIndex, templates) {
   const beforeAudit = auditLines().length;
   const startedAt = Date.now();
   console.log(`\n[${armId} run ${runIndex}] ${localTime()} workspace=${relative(appRoot, workspace)}`);
+  if (arm.external) {
+    const out = runBaseline(arm, runIndex, runKey, workspace, testBefore, initialTest, startedAt);
+    console.log(
+      `  external baseline: passed=${out.passed} cost=$${out.costUsd} turns=${out.turns} agentCalls=${out.subagentCalls}`,
+    );
+    return out;
+  }
 
   let agents = [];
   let roomId = null;
@@ -302,6 +397,7 @@ function summarize(results) {
     summary[arm] = {
       runs: rows.length,
       passed: rows.filter((row) => row.passed).length,
+      timeouts: rows.filter((row) => row.timedOut).length,
       testUnchanged: rows.filter((row) => row.testUnchanged).length,
       avgSeconds: Math.round(avg("seconds")),
       avgTurns: Number(avg("turns").toFixed(2)),

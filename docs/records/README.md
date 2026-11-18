@@ -62,3 +62,4 @@
 | 36 | [2026-11-18 任务 Cron](2026-11-18-32-cron-schedule.md) | 5 段 cron、本地时区、DOM/DOW OR、下一次计算 |
 | 37 | [2026-11-18 Soak harness](2026-11-18-33-soak-harness.md) | 2 分钟 + 2 次 kill 通过；72h 脚本与边界 |
 | 38 | [2026-11-18 单 Claude+subagent 基线](2026-11-18-34-baseline-benchmark.md) | baseline 36s/$0.383；强制 subagent 301s 超时 |
+| 39 | [2026-11-18 待办/告警收件箱](2026-11-18-35-alerts-inbox.md) | 审批/任务/预算/系统聚合，侧栏待办页，跳转房间/任务 |

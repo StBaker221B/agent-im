@@ -843,8 +843,18 @@ button {
   padding: 1px 7px;
   background: var(--panel);
   color: var(--muted);
+  font-family: inherit;
   font-size: 11.5px;
   line-height: 17px;
+}
+
+button.reaction-chip {
+  cursor: pointer;
+}
+
+.reaction-chip.own {
+  border-color: var(--own);
+  color: var(--ink);
 }
 
 .reply-quote {

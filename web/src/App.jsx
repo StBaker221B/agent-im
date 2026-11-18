@@ -571,6 +571,17 @@ export default function App() {
     }
   }
 
+  async function unreactToMessage(reactionId) {
+    if (!activeRoomId) return;
+    try {
+      await api.unreact(activeRoomId, reactionId);
+      const res = await api.messages(activeRoomId);
+      setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function reactToMessage(messageId, key = "👍") {
     if (!activeRoomId) return;
     try {
@@ -920,6 +931,7 @@ export default function App() {
               loadingOlder={loadingOlder}
               onLoadMore={loadOlder}
               onReact={reactToMessage}
+              onUnreact={unreactToMessage}
               onOpenThread={openThread}
               onCopyLink={copyMessageLink}
               sending={busy || uploading}

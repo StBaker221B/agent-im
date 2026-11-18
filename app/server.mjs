@@ -223,7 +223,11 @@ async function roomMessagesPage(roomId, { limit = 100, from = null } = {}) {
   const threadCounts = {};
   for (const event of page.messages) {
     if (event.kind === "reaction" && event.targetId) {
-      (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+      (reactions[event.targetId] ??= []).push({
+        id: event.id,
+        key: event.key,
+        sender: event.sender,
+      });
     } else if (event.text && event.threadId && event.threadId !== "main") {
       threadCounts[event.threadId] = (threadCounts[event.threadId] ?? 0) + 1;
     }
@@ -247,7 +251,11 @@ async function roomThreadPage(roomId, rootId, { limit = 100, from = null } = {})
   const reactions = {};
   for (const event of page.messages) {
     if (event.kind !== "reaction" || !event.targetId) continue;
-    (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+    (reactions[event.targetId] ??= []).push({
+      id: event.id,
+      key: event.key,
+      sender: event.sender,
+    });
   }
   return {
     root: messageView(root),
@@ -1540,6 +1548,17 @@ async function handleApi(req, res, url) {
     if (!target?.text) return json(res, 404, { error: "message not found" });
     await human.sendReaction(roomId, messageId, key);
     return json(res, 200, { ok: true, messageId, key });
+  }
+
+  if (req.method === "DELETE" && parts[1] === "rooms" && parts[3] === "reactions" && parts.length === 5) {
+    const roomId = decodeURIComponent(parts[2]);
+    if (!store.room(roomId)) return json(res, 404, { error: "room not found" });
+    const eventId = decodeURIComponent(parts[4]);
+    const event = await human.getEvent(roomId, eventId).catch(() => null);
+    if (!event) return json(res, 404, { error: "reaction not found" });
+    if (event.sender !== store.human.id) return json(res, 403, { error: "只能撤销自己的 reaction" });
+    await human.redact(roomId, eventId, "reaction removed");
+    return json(res, 200, { ok: true });
   }
 
   if (req.method === "GET" && parts[1] === "rooms" && parts[3] === "threads" && parts.length === 5) {

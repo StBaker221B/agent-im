@@ -86,6 +86,7 @@ export default function ChatView({
   loadingOlder,
   onLoadMore,
   onReact,
+  onUnreact,
   onOpenThread,
   onCopyLink,
   sending,
@@ -373,7 +374,8 @@ export default function ChatView({
               map.set(item.key, (map.get(item.key) ?? 0) + 1);
               return map;
             }, new Map());
-            const liked = reactionList.some((item) => item.sender === human.id && item.key === "👍");
+            const myReaction = reactionList.find((item) => item.sender === human.id && item.key === "👍");
+            const liked = Boolean(myReaction);
             const threadCount = threadCounts?.[message.id] ?? 0;
 
             return (
@@ -412,11 +414,12 @@ export default function ChatView({
                           <button
                             type="button"
                             className="reply-action"
-                            title={liked ? "已点赞" : "点赞"}
-                            aria-label="点赞"
+                            title={liked ? "取消赞" : "点赞"}
+                            aria-label={liked ? "取消赞" : "点赞"}
                             aria-pressed={liked}
-                            disabled={liked}
-                            onClick={() => onReact(message.id, "👍")}
+                            onClick={() =>
+                              liked && onUnreact ? onUnreact(myReaction.id) : onReact(message.id, "👍")
+                            }
                           >
                             👍
                           </button>
@@ -458,11 +461,26 @@ export default function ChatView({
                     </div>
                     {reactionCounts.size > 0 && (
                       <div className="reaction-row">
-                        {[...reactionCounts.entries()].map(([key, count]) => (
-                          <span className="reaction-chip" key={key}>
-                            {key} {count}
-                          </span>
-                        ))}
+                        {[...reactionCounts.entries()].map(([key, count]) => {
+                          const own = reactionList.find(
+                            (item) => item.key === key && item.sender === human.id,
+                          );
+                          return own && onUnreact ? (
+                            <button
+                              type="button"
+                              className="reaction-chip own"
+                              key={key}
+                              title="点击撤销自己的 reaction"
+                              onClick={() => onUnreact(own.id)}
+                            >
+                              {key} {count}
+                            </button>
+                          ) : (
+                            <span className="reaction-chip" key={key}>
+                              {key} {count}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                     {!mine && message.intent === "room_request" && message.room && (

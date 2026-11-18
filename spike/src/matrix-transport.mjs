@@ -205,6 +205,16 @@ export class MatrixClient {
     return txnId;
   }
 
+  async redact(roomId, eventId, reason = "") {
+    const txnId = this.#nextTxnId();
+    await this.#request(
+      "PUT",
+      `/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txnId)}`,
+      { body: { reason } },
+    );
+    return txnId;
+  }
+
   async send(roomId, payload = {}) {
     const txnId = payload.txnId ?? this.#nextTxnId();
     const content = {

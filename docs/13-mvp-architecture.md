@@ -45,7 +45,7 @@
 - PWA：manifest/SVG icon/service worker 真正 network-first shell cache（失败才回缓存）；空会话页有首次使用 4 步引导。
 - 消息可复制深链 `#/room/<id>/message/<eventId>`；搜索结果打开也写深链。
 - 消息可 👍；气泡下显示 reaction count；
-- 消息悬浮「讨论」打开 thread 面板，可发送 thread 回复；
+- 消息悬浮「讨论 N」打开 thread 面板，可发送 thread 回复；N 是当前页内回复数；
 - 聊天顶部「加载更早的消息」用 Matrix from token 分页；
 - 消息悬浮「回复」→ composer 引用草稿 → 发送后气泡上方显示引用；
 - 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
@@ -300,7 +300,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 聊天历史已支持 main thread 分页；搜索默认每房间 100 条，可深搜到 500 条，但没有结果分页/cursor/索引。
 - Agent card 是静态模板信息；domains/trust/allowlist 还没有可搜索治理字段，也没有 A2A card。
 - Reaction 只有 👍，不能撤销/切换；agent 没有 reaction 工具；reaction 事件占分页条数。
-- Thread 依赖 Tuwunel relations（当前不支持）→ 只扫最近约 1000 条房间消息；无 thread 分页/未读/reaction UI。
+- Thread 依赖 Tuwunel relations（当前不支持）→ 只扫最近约 1000 条房间消息；无 thread 分页/未读/reaction UI，回复数只算当前页。
 - PWA 只缓存 shell；离线无数据；只有 SVG icon；没有 Lighthouse/axe/真机验证。
 - Thread/深链已在 Chromium 深色主题实机验证；Firefox/Safari/移动端未测。
 - 深链只能定位已加载的最近 100 条/已翻页消息；不会自动翻页找更早消息。

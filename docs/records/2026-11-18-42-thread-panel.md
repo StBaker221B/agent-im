@@ -13,7 +13,7 @@
   - `GET /api/rooms/:id/threads/:rootId?limit&from`：root + replies + reactions + next；root 必须是本房间文本消息。
   - `POST /api/rooms/:id/messages` 接受 `threadId`；校验 root 存在，发送 `m.thread`。
 - UI：
-  - 消息悬浮「讨论」→ 右侧 ThreadPanel；
+  - 消息悬浮「讨论 N」→ 右侧 ThreadPanel；N 来自当前消息页里 threadId=root 的回复数；
   - 面板显示 root、回复、输入框；2s 轮询；
   - 移动端覆盖式面板。
 
@@ -27,6 +27,6 @@
 
 - Tuwunel 没有 relations API，thread 只能扫最近约 1000 条房间消息；更早的 thread 看不到。
 - Thread 无分页（next 恒 null）、无已读/未读计数、无 reaction UI、无 thread 列表/入口徽标。
-- 主时间线不显示 thread 回复数，只有「讨论」入口。
+- 主时间线显示当前页内的 thread 回复数，但更早页的回复不累计；只有「讨论」入口。
 - Thread root 删除/撤回未处理；无 UI 自动化测试。
 - 所有 thread 仍共享房间成员；agent 会在 thread 中回复，但 thread 级投递/唤醒沿用房间规则。

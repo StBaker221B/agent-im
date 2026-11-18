@@ -64,7 +64,7 @@
 | S4 Cron/触发 | 大部分 | interval/cron/retry；无时区/节假日/多次补跑 |
 | S5 审计回放 | 部分 | JSONL 导出/活动视图；无回放/task 范围查询 |
 | S6 通知 | 部分 | @ badge/桌面通知/待办页+alert 推送已做；无后台/审批失败预算/飞书 |
-| 长期任务台账 | v1.5 | 状态/重复/TASK-DONE-BLOCK-FAIL/retry/needsAttention/autostart/soak harness；无 72h/时区/告警/turn 恢复 |
+| 长期任务台账 | v1.5 | 状态/重复/TASK-DONE-BLOCK-FAIL/retry/needsAttention/autostart/10m soak；无 72h/时区/告警/turn 恢复 |
 | 多用户/auth | 缺失 | 单人类、loopback、无 ACL |
 
 ## 3. 文档体系：问题与调整
@@ -97,7 +97,7 @@
 **A–F 最小切片**（详见 §7）：
 
 - A 治理：待办收件箱已做；待统一事件、完整 task/thread 回放（任务详情/审计时间线已做）、后台告警推送（桌面 alert 推送/显式拒绝已做）。
-- B 长期：cron/补跑、retry/backoff/升级、turn “需关注”、守护进程、72h soak。
+- B 长期：cron/retry/needsAttention/autostart/10m soak 已做；待时区/节假日/多次补跑、告警、72h soak。
 - C IM：thread 面板、@未读、深链、深搜已做；待搜索 cursor/索引、thread 分页/未读、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
 - E 隔离：worktree/branch + merge 审批已做；待 OS 只读 reviewer、容器、一个非 Claude adapter。

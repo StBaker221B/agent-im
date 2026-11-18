@@ -75,3 +75,4 @@
 | 49 | [2026-11-18 深搜历史](2026-11-18-45-deep-search.md) | search pages=1..5、每房间最多 500 条、checkbox |
 | 50 | [2026-11-18 UI 实机检查](2026-11-18-46-ui-review-fixes.md) | CSS 变量、SW network-first、thread/深链实机验证 |
 | 51 | [2026-11-18 任务详情/审计时间线](2026-11-18-47-task-detail-replay.md) | `/api/tasks/:id/events`、checkpoints+audit modal |
+| 52 | [2026-11-18 10 分钟 soak](2026-11-18-48-soak-10m.md) | 2 次硬 kill、5 派发、0 重复/错误、10m 通过 |

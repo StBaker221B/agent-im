@@ -24,7 +24,7 @@
 
 ## 下一批（按 19 §7）
 
-1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；待时区/节假日、多次补跑、告警、真正 72h soak（短 harness 已过）。
+1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；10m/2 次硬 kill soak 已过；待时区/节假日、多次补跑、告警、真正 72h soak。
 2. **A（W2）**：待办收件箱、任务详情/审计时间线已做；待事件 schema、完整回放、后台告警推送（桌面 alert 推送/显式拒绝已做）。
 3. **E（W3）**：worktree/branch 创建/移除已做；人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
 4. **C（W4）**：@未读、分页、reaction（含撤销/agent REACT）、thread 面板、消息深链、深搜（含结果分页）已做；待 thread 分页/未读、搜索 cursor/索引。

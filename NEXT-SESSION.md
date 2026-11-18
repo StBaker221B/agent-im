@@ -4,7 +4,7 @@
 
 ## 暂停点（2026-11-19）
 
-- 用户关机暂停；进度已提交并推送，工作区 clean；master/feature 最新 `1ed5edc`（代码 `66e2e53`，文档 `1ed5edc`）。
+- 用户关机暂停；进度已提交并推送，工作区 clean；暂停提交 `32924e0`（代码基线 `66e2e53`，功能文档基线 `1ed5edc`）。
 - 已备份 `app/data` 到 `agent-im/backups/agent-im-data-20261119-075217.zip`（含 token，务必保密，gitignored）。
 - 服务已停止；下次开机后恢复：
   ```powershell

@@ -14,6 +14,7 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
   const [dueAt, setDueAt] = useState(defaultDueInput());
   const [intervalMinutes, setIntervalMinutes] = useState(0);
+  const [cron, setCron] = useState("");
   const [maxRetries, setMaxRetries] = useState(2);
   const [retryBackoffMinutes, setRetryBackoffMinutes] = useState(5);
   const dialogRef = useDialogFocus(onClose);
@@ -49,6 +50,7 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 roomId,
                 dueAt: dueAt ? new Date(dueAt).toISOString() : null,
                 intervalMinutes: Math.max(0, Number(intervalMinutes) || 0),
+                cron: cron.trim() || null,
                 maxRetries: Math.max(0, Number(maxRetries) || 0),
                 retryBackoffMinutes: Math.max(1, Number(retryBackoffMinutes) || 1),
               });
@@ -121,6 +123,17 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 />
               </label>
             </div>
+            <label className="field">
+              <span>Cron（5 段，本地时区；留空用间隔）</span>
+              <input
+                name="cron"
+                autoComplete="off"
+                spellCheck={false}
+                value={cron}
+                onChange={(e) => setCron(e.target.value)}
+                placeholder="0 9 * * 1-5 = 工作日 09:00"
+              />
+            </label>
             <div className="field-row">
               <label className="field">
                 <span>失败重试次数</span>

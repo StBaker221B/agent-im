@@ -113,7 +113,11 @@ export default function TasksView({ data, onNew, onOpenRoom, onBack }) {
               <p className="task-meta">
                 负责人：{owner}
                 {task.roomName ? ` · 房间：${task.roomName}` : " · 未绑定房间"}
-                {task.intervalMinutes > 0 ? ` · 每 ${task.intervalMinutes} 分钟` : " · 一次性"}
+                {task.cron
+                  ? ` · cron ${task.cron}`
+                  : task.intervalMinutes > 0
+                    ? ` · 每 ${task.intervalMinutes} 分钟`
+                    : " · 一次性"}
                 {task.maxRetries > 0
                   ? ` · 重试 ${task.retryCount}/${task.maxRetries}（退避 ${task.retryBackoffMinutes} 分钟）`
                   : " · 不重试"}

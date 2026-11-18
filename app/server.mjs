@@ -821,6 +821,7 @@ async function createTask(body) {
       roomId: body.roomId,
       dueAt: body.dueAt,
       intervalMinutes: body.intervalMinutes,
+      cron: body.cron,
       maxRetries: body.maxRetries,
       retryBackoffMinutes: body.retryBackoffMinutes,
       priority: body.priority,

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TaskStore } from "../../app/tasks.mjs";
+import { TaskStore, nextCronAfter } from "../../app/tasks.mjs";
 
 function tempStore() {
   const dir = mkdtempSync(join(tmpdir(), "agentim-tasks-"));
@@ -56,6 +56,26 @@ test("recurring tasks schedule the next run after dispatch", () => {
     assert.equal(store.due().length, 0);
     assert.match(next.checkpoints.at(-1).text, /next/);
     assert.throws(() => store.update(task.id, { intervalMinutes: -1 }), /bad intervalMinutes/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("cron computes the next local minute and dispatches to the next run", () => {
+  const from = new Date(2026, 10, 18, 8, 0, 0); // local time
+  const next = new Date(nextCronAfter("0 9 * * 1-5", from.getTime()));
+  assert.equal(next.getDate(), 18);
+  assert.equal(next.getHours(), 9);
+  assert.equal(next.getMinutes(), 0);
+
+  const { dir, store } = tempStore();
+  try {
+    const task = store.create({ title: "早报", cron: "0 9 * * 1-5" });
+    assert.equal(task.cron, "0 9 * * 1-5");
+    assert.ok(task.dueAt);
+    store.dispatch(task.id);
+    assert.ok(Date.parse(store.get(task.id).dueAt) > Date.now());
+    assert.throws(() => store.create({ title: "bad", intervalMinutes: 5, cron: "* * * * *" }), /not both/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

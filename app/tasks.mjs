@@ -35,6 +35,78 @@ function normalizeCount(value, min, max) {
   return n;
 }
 
+function parseCronField(field, min, max, { weekday = false } = {}) {
+  const values = new Set();
+  let wildcard = field === "*";
+  for (const part of String(field).split(",")) {
+    const [range, stepText] = part.split("/");
+    const step = stepText === undefined ? 1 : Number(stepText);
+    if (!Number.isInteger(step) || step <= 0) throw new Error("bad cron step");
+    let start;
+    let end;
+    if (range === "*") {
+      start = min;
+      end = max;
+    } else if (range.includes("-")) {
+      const [a, b] = range.split("-").map(Number);
+      start = a;
+      end = b;
+    } else {
+      start = Number(range);
+      end = start;
+    }
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start > end || start < min || end > max) {
+      throw new Error("bad cron range");
+    }
+    for (let value = start; value <= end; value += step) {
+      values.add(weekday && value === 7 ? 0 : value);
+    }
+  }
+  if (!values.size) throw new Error("bad cron field");
+  return { values, wildcard };
+}
+
+/** Next local-time occurrence of a standard 5-field cron expression. */
+export function nextCronAfter(expression, from = Date.now()) {
+  const fields = String(expression ?? "")
+    .trim()
+    .split(/\s+/);
+  if (fields.length !== 5) throw new Error("cron needs 5 fields");
+  const minute = parseCronField(fields[0], 0, 59);
+  const hour = parseCronField(fields[1], 0, 23);
+  const dom = parseCronField(fields[2], 1, 31);
+  const month = parseCronField(fields[3], 1, 12);
+  const dow = parseCronField(fields[4], 0, 7, { weekday: true });
+  const start = new Date(from);
+  start.setSeconds(0, 0);
+  start.setMinutes(start.getMinutes() + 1);
+  const limit = 366 * 24 * 60;
+  for (let i = 0; i < limit; i += 1) {
+    const date = new Date(start.getTime() + i * 60_000);
+    const domOk = dom.values.has(date.getDate());
+    const dowOk = dow.values.has(date.getDay());
+    const dayOk =
+      dom.wildcard && dow.wildcard ? true : dom.wildcard ? dowOk : dow.wildcard ? domOk : domOk || dowOk;
+    if (
+      dayOk &&
+      month.values.has(date.getMonth() + 1) &&
+      hour.values.has(date.getHours()) &&
+      minute.values.has(date.getMinutes())
+    ) {
+      return date.toISOString();
+    }
+  }
+  return null;
+}
+
+function normalizeCron(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const expression = String(value).trim();
+  const next = nextCronAfter(expression);
+  if (!next) throw new Error("cron never matches");
+  return expression;
+}
+
 export class TaskStore {
   constructor(path) {
     this.path = path;
@@ -91,6 +163,7 @@ export class TaskStore {
     roomId = null,
     dueAt = null,
     intervalMinutes = 0,
+    cron = null,
     maxRetries = 2,
     retryBackoffMinutes = 5,
     priority = 0,
@@ -98,14 +171,18 @@ export class TaskStore {
   }) {
     const cleanTitle = String(title ?? "").trim();
     if (!cleanTitle) throw new Error("title required");
+    const normalizedInterval = normalizeInterval(intervalMinutes);
+    const normalizedCron = normalizeCron(cron);
+    if (normalizedInterval > 0 && normalizedCron) throw new Error("use intervalMinutes or cron, not both");
     const task = {
       id: `task-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`,
       title: cleanTitle.slice(0, 200),
       description: String(description ?? "").slice(0, 8000),
       owner: owner || null,
       roomId: roomId || null,
-      dueAt: normalizeDueAt(dueAt),
-      intervalMinutes: normalizeInterval(intervalMinutes),
+      dueAt: normalizeDueAt(dueAt) ?? (normalizedCron ? nextCronAfter(normalizedCron) : null),
+      intervalMinutes: normalizedInterval,
+      cron: normalizedCron,
       maxRetries: normalizeCount(maxRetries, 0, 20),
       retryCount: 0,
       retryBackoffMinutes: normalizeCount(retryBackoffMinutes, 1, 10_080),
@@ -137,6 +214,12 @@ export class TaskStore {
     if (patch.roomId !== undefined) task.roomId = patch.roomId || null;
     if (patch.dueAt !== undefined) task.dueAt = normalizeDueAt(patch.dueAt);
     if (patch.intervalMinutes !== undefined) task.intervalMinutes = normalizeInterval(patch.intervalMinutes);
+    if (patch.cron !== undefined) {
+      task.cron = normalizeCron(patch.cron);
+      if (task.cron && task.intervalMinutes > 0) throw new Error("use intervalMinutes or cron, not both");
+      if (task.cron && !task.dueAt) task.dueAt = nextCronAfter(task.cron);
+    }
+    if (task.cron && task.intervalMinutes > 0) throw new Error("use intervalMinutes or cron, not both");
     if (patch.maxRetries !== undefined) task.maxRetries = normalizeCount(patch.maxRetries, 0, 20);
     if (patch.retryBackoffMinutes !== undefined)
       task.retryBackoffMinutes = normalizeCount(patch.retryBackoffMinutes, 1, 10_080);
@@ -170,7 +253,11 @@ export class TaskStore {
     task.lastDispatchedAt = now;
     task.lastError = null;
     task.needsAttention = false;
-    if (task.intervalMinutes > 0) {
+    if (task.cron) {
+      task.dueAt = nextCronAfter(task.cron, Date.now());
+      task.status = "pending";
+      task.checkpoints.push({ ts: now, by, text: `cron dispatch; next ${task.dueAt}` });
+    } else if (task.intervalMinutes > 0) {
       task.dueAt = new Date(Date.now() + task.intervalMinutes * 60_000).toISOString();
       task.status = "pending";
       task.checkpoints.push({

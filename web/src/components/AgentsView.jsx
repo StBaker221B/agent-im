@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
 
@@ -18,6 +19,18 @@ export default function AgentsView({
   onProfile,
   onBack,
 }) {
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return agents;
+    return agents.filter((agent) =>
+      [agent.name, agent.displayName, agent.templateName, agent.mission, agent.role, ...(agent.roles ?? [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle),
+    );
+  }, [agents, query]);
+
   return (
     <section className="agents-view">
       <header className="view-head">
@@ -47,8 +60,20 @@ export default function AgentsView({
         时回复，用来验证协议。
       </p>
 
+      <div className="search agent-search">
+        <Icon name="search" size={16} />
+        <input
+          name="agent-search"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="按名字/角色/模板/职责筛选 agent"
+          aria-label="筛选 agent"
+        />
+      </div>
+
       <div className="agent-list">
-        {agents.map((agent) => (
+        {filtered.map((agent) => (
           <article className="agent-card" key={agent.id}>
             <button
               type="button"
@@ -92,12 +117,14 @@ export default function AgentsView({
           </article>
         ))}
 
-        {!agents.length && (
+        {!filtered.length && (
           <div className="agents-empty">
-            <p>还没有 agent。</p>
-            <button type="button" className="primary" onClick={onNew}>
-              创建第一个
-            </button>
+            <p>{query ? "没有匹配的 agent。" : "还没有 agent。"}</p>
+            {!query && (
+              <button type="button" className="primary" onClick={onNew}>
+                创建第一个
+              </button>
+            )}
           </div>
         )}
       </div>

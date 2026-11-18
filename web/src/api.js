@@ -38,6 +38,8 @@ export const api = {
     }),
   usage: () => request("/api/usage"),
   alerts: () => request("/api/alerts"),
+  agentCard: (agentId) => request(`/api/agents/${encodeURIComponent(agentId)}/card`),
+  directory: (q = "") => request(`/api/directory?q=${encodeURIComponent(q)}`),
   audit: ({ limit = 200, kind = "", agentId = "" } = {}) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (kind) params.set("kind", kind);

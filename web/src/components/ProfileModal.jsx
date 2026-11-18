@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+import { api } from "../api";
 import { useDialogFocus } from "../useDialogFocus";
 
 const STATUS = { idle: "空闲", working: "思考中", paused: "已暂停", offline: "离线" };
@@ -13,6 +15,22 @@ const WAKE = {
 
 export default function ProfileModal({ profile, onClose, onDm, onConfigure }) {
   const dialogRef = useDialogFocus(onClose);
+  const [card, setCard] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setCard(null);
+    if (!profile?.id || profile.kind !== "agent") return () => {};
+    api
+      .agentCard(profile.id)
+      .then((res) => {
+        if (alive) setCard(res.card);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [profile?.id, profile?.kind]);
 
   if (!profile) return null;
   const isAgent = profile.kind === "agent";
@@ -85,6 +103,47 @@ export default function ProfileModal({ profile, onClose, onDm, onConfigure }) {
           {isAgent && profile.mission && <p className="profile-note">{profile.mission}</p>}
           {isAgent && (
             <p className="profile-note">这个 agent 在群聊和私聊共享同一份记忆，但会把私聊内容留在私聊。</p>
+          )}
+
+          {card && (
+            <div className="profile-card">
+              {[
+                ["职责", card.responsibilities],
+                ["边界", card.boundaries],
+                ["决策权", card.decisionRights],
+                ["思维风格", card.thinkingStyle],
+                ["沟通风格", card.communicationStyle],
+                ["交接", card.handoff],
+                ["成功标准", card.successCriteria],
+              ]
+                .filter(([, items]) => items?.length)
+                .map(([label, items]) => (
+                  <div className="profile-card-section" key={label}>
+                    <strong>{label}</strong>
+                    <ul>
+                      {items.slice(0, 5).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              {card.tools?.allow?.length > 0 && (
+                <div className="profile-card-section">
+                  <strong>工具</strong>
+                  <p>{card.tools.allow.join(" / ")}</p>
+                </div>
+              )}
+              {card.capabilities && (
+                <div className="profile-card-section">
+                  <strong>Runtime capabilities</strong>
+                  <p>
+                    {Object.entries(card.capabilities)
+                      .map(([key, value]) => `${key}=${value}`)
+                      .join(" · ")}
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           {isAgent && (onDm || onConfigure) && (

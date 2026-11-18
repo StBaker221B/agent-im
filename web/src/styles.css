@@ -1133,6 +1133,11 @@ button {
   line-height: 1.7;
 }
 
+.agent-search {
+  max-width: 820px;
+  margin: 0 auto 12px;
+}
+
 .agent-list {
   max-width: 820px;
   margin: 0 auto;
@@ -1588,6 +1593,36 @@ button {
 .profile-body h3 {
   margin: 12px 0 0;
   font-size: 18px;
+}
+
+.profile-card {
+  width: 100%;
+  text-align: left;
+  margin: 0 0 14px;
+  max-height: 260px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.profile-card-section {
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.profile-card-section strong {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.profile-card-section p,
+.profile-card-section ul {
+  margin: 0;
+  padding-left: 16px;
+  line-height: 1.5;
 }
 
 .profile-handle {

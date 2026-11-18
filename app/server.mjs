@@ -684,6 +684,61 @@ async function setAllPaused(paused) {
   return { ok: true, paused, count };
 }
 
+function agentCard(agent) {
+  const template = getTemplate(agent.templateId) ?? getTemplate(agent.role) ?? getTemplate("generic");
+  return {
+    id: agent.id,
+    name: agent.name,
+    displayName: agent.displayName,
+    runtime: agent.runtime,
+    role: agent.role,
+    roles: agent.roles ?? [],
+    domains: agent.domains ?? [],
+    templateId: template.id,
+    templateName: template.name,
+    mission: template.mission,
+    responsibilities: template.responsibilities ?? [],
+    boundaries: template.boundaries ?? [],
+    decisionRights: template.decisionRights ?? [],
+    thinkingStyle: template.thinkingStyle ?? [],
+    communicationStyle: template.communicationStyle ?? [],
+    tools: template.tools ?? null,
+    toolsMode: agent.toolsMode,
+    knowledgePacks: template.knowledgePacks ?? [],
+    handoff: template.handoff ?? [],
+    successCriteria: template.successCriteria ?? [],
+    status: host.agentStatus(agent.id),
+    capabilities: host.runtimes.get(agent.id)?.capabilities?.() ?? null,
+  };
+}
+
+function directory(searchParams) {
+  const q = String(searchParams.get("q") ?? "")
+    .trim()
+    .toLowerCase();
+  return store.agents
+    .filter((agent) => agent.status !== "deleted")
+    .map(agentCard)
+    .filter((card) => {
+      if (!q) return true;
+      return [
+        card.id,
+        card.name,
+        card.displayName,
+        card.role,
+        card.templateId,
+        card.templateName,
+        card.mission,
+        ...(card.roles ?? []),
+        ...(card.domains ?? []),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    })
+    .slice(0, 100);
+}
+
 async function alertsSummary() {
   const since = Date.now() - 24 * 60 * 60_000;
   const approvals = [];
@@ -1315,6 +1370,16 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/team-templates") {
     return json(res, 200, { teams: TEAM_LIST.map(publicTeam) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/directory") {
+    return json(res, 200, { agents: directory(url.searchParams) });
+  }
+
+  if (req.method === "GET" && parts[1] === "agents" && parts[3] === "card" && parts.length === 4) {
+    const agent = store.agent(decodeURIComponent(parts[2]));
+    if (!agent || agent.status === "deleted") return json(res, 404, { error: "agent not found" });
+    return json(res, 200, { card: agentCard(agent) });
   }
 
   if (req.method === "PATCH" && url.pathname === "/api/settings") {

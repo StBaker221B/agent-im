@@ -85,3 +85,17 @@ node bench/run.mjs --arms pair --runs 3 --timeout 300 --grace 15
 2. 把测试文件路径/任务 prompt 从 money 专有泛化成任务配置。
 3. 加 `diff` 大小、测试覆盖率、reviewer 发现的问题数等质量指标。
 4. 用 3 次重复跑出第一张正式的 single/pair/squad 对照表，再决定要不要继续加角色。
+
+## Soak / 长期运行
+
+```bash
+node bench/soak.mjs --minutes 5 --interval 1 --kill-every 2
+node bench/soak.mjs --minutes 4320 --interval 5 --kill-every 60   # 72h
+```
+
+- 创建/复用 `Soak` 群 + script-peer，建一个 interval recurring task；
+- 每 10s 检查任务存在、`task_dispatch` audit 次数、agent 消息；
+- `--kill-every` 分钟做一次硬 kill/resume；
+- 结果写 `app/data/soak/<runId>.json`；
+- 只验 gateway/runtime kill，不重启 app 进程；72h 全量还需要外部 supervisor/autostart。
+- 短测：2 分钟 + 2 次 kill，dispatches=2、duplicate=0、errors=[]、passed。

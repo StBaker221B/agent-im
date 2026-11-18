@@ -141,7 +141,7 @@
 
 **2 周**
 
-- W1（B）：retry/backoff、失败耗尽 needsAttention、autostart/watchdog、5 段 cron 已做；待时区/节假日、多次补跑、告警、72h soak。
+- W1（B）：retry/backoff、失败耗尽 needsAttention、autostart/watchdog、5 段 cron、soak harness 已做（2 分钟 + 2 次 kill 通过）；待时区/节假日、多次补跑、告警、真正 72h。
 - W2（A + 证明）：事件 schema、审批收件箱、task/thread 回放、预算/失败告警；benchmark 加“单 Claude+subagent”基线 + 2 个任务，N=3，写决策 memo。
 - 里程碑：72h/3 重启/0 重复/0 静默丢任务；kill-criterion 数据存在。
 

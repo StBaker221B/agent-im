@@ -68,7 +68,15 @@ powershell -ExecutionPolicy Bypass -File scripts\restore-data.ps1 -Zip D:\path\t
 - 返回 `application/x-ndjson`，文件名带时间戳；内容为 `audit.jsonl` 原始行。
 - 含工具命令/文件路径等本地敏感信息，导出后注意存放。
 
-## 5. 健康与排障
+## 5. Soak / 长期运行验证
+
+```powershell
+node bench\soak.mjs --minutes 5 --interval 1 --kill-every 2
+```
+
+72h 用 `--minutes 4320`。脚本只 kill gateway/runtime，不重启 app/Tuwunel；真正的进程守护用 autostart/watchdog 或外部 supervisor。结果写 `app/data/soak/`。
+
+## 6. 健康与排障
 
 - `GET /api/health`：app/gateway/房间列表；
 - `GET /api/events`：SSE 实时活动；

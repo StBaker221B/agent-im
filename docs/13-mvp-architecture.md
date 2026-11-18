@@ -42,6 +42,7 @@
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
 - Agents 页可按名字/角色/模板/职责筛选；资料弹窗显示职责/边界/决策权/工具/capabilities。
+- 消息可 👍；气泡下显示 reaction count；
 - 聊天顶部「加载更早的消息」用 Matrix from token 分页；
 - 消息悬浮「回复」→ composer 引用草稿 → 发送后气泡上方显示引用；
 - 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
@@ -137,6 +138,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `GET /api/bootstrap` | human、agents、rooms（含 members、lastMessage、unread、`activity.floor/queued`）、totalUnread |
 | `GET /api/health` | gateway 是否在跑、已 attach 的房间 |
 | `GET /api/rooms/:id/messages` | `limit=100&from=<token>`；main thread 分页，返回 `{messages,next}` |
+| `POST /api/rooms/:id/reactions` | `{messageId,key}`；人类发 m.reaction |
 | `POST /api/rooms/:id/messages` | `{text,replyTo}`；人类身份发送；解析 `@name` 为 `m.mentions`；可引用消息；返回 eventId |
 | `POST /api/rooms/:id/read` | `{ts}`；更新 human 的 lastReadTs |
 | `POST /api/rooms` | `{kind:"dm",agentId}` 或 `{kind:"group",name,agentIds[]}`；DM 幂等 |
@@ -293,6 +295,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - agent 通过 `REQUEST_ROOM` 建房；默认 open 自动建群，approval 时人工批准；所有房间人类可见。
 - 聊天历史已支持 main thread 分页；搜索仍只覆盖每房间最近 100 条，需要搜索分页/索引。
 - Agent card 是静态模板信息；domains/trust/allowlist 还没有可搜索治理字段，也没有 A2A card。
+- Reaction 只有 👍，不能撤销/切换；agent 没有 reaction 工具；reaction 事件占分页条数。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。

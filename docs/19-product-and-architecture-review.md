@@ -148,7 +148,7 @@
 **6 周**
 
 - W3（E）：worktree/branch 创建/移除、cwd 切换、人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
-- W4（C）：@未读 badge、聊天历史分页已做；待 thread 面板/深链、reaction、搜索分页；D 只做 agent card/disabled；多用户/auth/第二人类后置。
+- W4（C）：@未读 badge、聊天历史分页已做；待 thread 面板/深链、reaction 撤销/agent reaction、搜索分页；D 只做 agent card/disabled；多用户/auth/第二人类后置。
 - W5：一个第二 runtime conformance + onboarding/intake 一键（人类确认）+ workspace_id seam。
 - W6：7 天 soak、完整 benchmark matrix、go/no-go、打包/文档。
 - 顺序：B → A → E → C；D 中 agent card/disabled 穿插；auth/第二人类后置；F 持续穿插。

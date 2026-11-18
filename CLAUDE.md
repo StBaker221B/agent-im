@@ -116,7 +116,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 任务详情 | `GET /api/tasks/:id/events` + TaskDetailModal：checkpoints + taskId audit 时间线 |
 | 任务台账 | `app/tasks.mjs` + `GET/POST/PATCH /api/tasks` + `TasksView.jsx`；30s tick 到期派发 |
 | 媒体缓存（agent 读图） | `spike/src/gateway.mjs`（`mediaDir` / `#cacheMedia`） |
-| 历史搜索 | `app/server.mjs` `/api/search?pages=1..5` + `SearchView.jsx` 深搜；无结果 cursor |
+| 历史搜索 | `app/server.mjs` `/api/search?pages=1..5&offset&limit` + `SearchView.jsx` 深搜/加载更多；无 cursor |
 | 设置 | 全局 `web/src/components/SettingsView.jsx`；agent 独立页 `AgentSettingsView.jsx` + `AgentSettings.jsx`；API PATCH `/api/agents/:id` |
 | 记忆时间戳 | `spike/src/reply.mjs` `buildAgentPrompt`：Current time + 每条 recent message 时间 |
 | 成本来源 | `spike/src/claude-adapter.mjs` 读 CLI result `total_cost_usd`；`app/server.mjs` usageSummary 求和 |

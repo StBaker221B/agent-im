@@ -104,6 +104,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs`；agent 软删除 `DELETE /api/agents/:id` + `gateway.removeAgent`；群移除 `DELETE /api/rooms/:id/members/:agentId` |
 | 消息回复 | 前端 replyTo 草稿/引用；API body.replyTo；Matrix m.in_reply_to；transport 解析主线程 reply |
 | 历史分页 | `GET /messages?from=<token>&limit`，Matrix end token；UI「加载更早」 |
+| Agent Card | `GET /api/agents/:id/card` + `/api/directory?q=`；ProfileModal 详情；AgentsView 本地筛选 |
 | @未读 | `roomSummary.mentionUnread/totalMentions`；@/ask_human/tool_request/room_request 计入；侧栏 badge/title |
 | 桌面通知 | `App.jsx` Notification + SettingsView；只在 `document.hidden`、有未读时；localStorage 存偏好 |
 | 待办/告警 | `GET /api/alerts` + `AlertsView.jsx`；聚合 24h 请求、needsAttention/failed/blocked、超预算、系统；页内可批准工具/建房/重开任务 |

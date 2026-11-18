@@ -67,3 +67,4 @@
 | 41 | [2026-11-18 @/请求未读](2026-11-18-37-mention-unread.md) | mentionUnread、侧栏 @ badge、tab title/通知前缀 |
 | 42 | [2026-11-18 Worktree 合并](2026-11-18-38-worktree-merge.md) | 人工确认 merge、dirty/detached 检查、分支测试 |
 | 43 | [2026-11-18 聊天历史分页](2026-11-18-39-history-pagination.md) | Matrix from token、limit/next、加载更早 |
+| 44 | [2026-11-18 Agent Card/Directory](2026-11-18-40-agent-card-directory.md) | card API、Profile 详情、Agents 筛选 |

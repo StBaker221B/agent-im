@@ -41,6 +41,7 @@
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
 - 点击头像看资料（聊天消息、DM 头部、Agents 页、侧栏自己）。
+- Agents 页可按名字/角色/模板/职责筛选；资料弹窗显示职责/边界/决策权/工具/capabilities。
 - 聊天顶部「加载更早的消息」用 Matrix from token 分页；
 - 消息悬浮「回复」→ composer 引用草稿 → 发送后气泡上方显示引用；
 - 顶部搜索框回车搜历史消息；侧栏「活动」看最近 audit 事件（消息/工具/成本/跳过/错误），可按 agent/类型筛选。
@@ -150,6 +151,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/team-templates/:id/create` | `{prefix,groupName}`；注册 N 个用户、创建 agent、建群 |
 | `POST /api/intake` | `{problem}`；确保 `@intake` 顾问、打开 DM、发送评估 prompt |
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
+| `GET /api/agents/:id/card` | 角色卡/职责/边界/工具/capabilities |
+| `GET /api/directory?q=` | 按名字/角色/模板/mission/domains 搜索 agent |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`；template/工具/提示/cwd 变更会重建 runtime；status/triage 即时生效 |
 | `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
 | `POST/DELETE /api/agents/:id/worktree` | 创建/移除独立 git worktree，切换 agent cwd |
@@ -289,6 +292,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 删除运行中的 agent 会 409；需要等空闲或先暂停。
 - agent 通过 `REQUEST_ROOM` 建房；默认 open 自动建群，approval 时人工批准；所有房间人类可见。
 - 聊天历史已支持 main thread 分页；搜索仍只覆盖每房间最近 100 条，需要搜索分页/索引。
+- Agent card 是静态模板信息；domains/trust/allowlist 还没有可搜索治理字段，也没有 A2A card。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。

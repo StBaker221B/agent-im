@@ -142,6 +142,7 @@
 | 角色模板库 + 创建向导 | ✅ 已实现 13 个 + UI | 自定义/团队模板、O*NET 导入 | 1–2d |
 | 成本控制 | ⚠️ v2 已做 | 规则 triage + 参数 UI、用量视图、每日 USD 预算；全局预算、per-thread 预算待做 | 1d |
 | 工具审批/沙箱/流式 | ⚠️ v1 已做 | text_delta/SSE、REQUEST_TOOL + 单工具持久 grant、off `--tools ""` 硬拒绝；执行前审批、按 thread/过期授权、容器/OS 只读待做；worktree 目录隔离已做 | 2–4d |
+| Agent Card/Directory | ⚠️ 部分 | card API + Profile 详情 + Agents 筛选已做；domains/trust/allowlist/A2A、独立 Directory 页码待做 | 1–2d |
 | Agent/房间生命周期 | ⚠️ 部分 | 暂停、软删除、改显示名、移除群成员已完成；硬删除/undelete、邀请第二个人类、批量操作待做 | 1–2d |
 | 团队 benchmark | ⚠️ v2 已做 | fixture + runner、single/pair、squad、外部 baseline；更多任务/N≥3/隔离 baseline/质量指标待做 | 2–3d |
 | 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；时区/节假日/多次补跑、turn 恢复、告警、72h soak 待做 | 3–4d |

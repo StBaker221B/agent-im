@@ -28,7 +28,7 @@
 3. **E（W3）**：worktree/branch 创建/移除已做；人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
 4. **C（W4）**：@未读 badge、聊天历史分页已做；待 thread 面板/深链、reaction、搜索分页。
 - benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
-5. **D（W4+）**：API auth/roles/ACL（若决定多用户）、agent card/能力目录、disabled/multi-instance。
+5. **D（W4+）**：agent card/Agents 筛选已做；待 disabled/独立 Directory、API auth/roles/ACL（第二人类后置）。
 6. **F**：onboarding、intake 一键确认、任务详情/停止状态恢复、PWA/mobile/a11y。
 
 ## 改前必做

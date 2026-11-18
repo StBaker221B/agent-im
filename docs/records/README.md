@@ -70,3 +70,4 @@
 | 44 | [2026-11-18 Agent Card/Directory](2026-11-18-40-agent-card-directory.md) | card API、Profile 详情、Agents 筛选 |
 | 45 | [2026-11-18 Reaction](2026-11-18-41-reactions.md) | m.reaction、👍 chip、目标消息校验 |
 | 46 | [2026-11-18 Thread 面板](2026-11-18-42-thread-panel.md) | thread API、relations fallback、右侧面板、thread 回复 |
+| 47 | [2026-11-18 PWA/引导/a11y](2026-11-18-43-pwa-onboarding.md) | manifest/sw/icon、首次步骤、aria-live/减动效 |

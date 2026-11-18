@@ -1,7 +1,7 @@
 # 14 角色模板与开发计划
 
 - 状态矩阵与剩余计划以 [19](19-product-and-architecture-review.md) 为准。
-- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱 + worktree 工作区 + @未读 badge + 聊天历史分页 + reaction + thread 面板**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱 + worktree 工作区 + @未读 badge + 聊天历史分页 + reaction + thread 面板 + PWA/空态引导**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 
@@ -148,6 +148,7 @@
 | 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；时区/节假日/多次补跑、turn 恢复、告警、72h soak 待做 | 3–4d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v2 已做 | 活动/审计导出、用量、全局暂停/硬 kill、待办收件箱；回放/直接审批/告警推送/会话检索待做 | 2–3d |
+| 产品化 UX | ⚠️ 部分 | PWA manifest/sw/icon、空态 4 步引导、aria-live/减动效已做；移动真机/Lighthouse/交互式 onboarding 待做 | 2–3d |
 | 第二 runtime / worktree | ⚠️ 部分 | worktree/branch 创建/移除 + 人工确认 merge 已做；OS 只读/容器、第二 runtime 待做 | 3–5d |
 | 搜索分页/索引 | ⚠️ 部分 | 现在每房间最近 100 条；分页/索引 | 1–2d |
 | 运维/部署 | ⚠️ 部分 | start/backup/restore 脚本、audit 导出已做；守护进程/定时备份/异地备份/打包待做 | 1–2d |

@@ -101,7 +101,7 @@
 - C IM：thread 面板、@未读+深链、agent 房间策略、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
 - E 隔离：worktree/branch、OS 只读 reviewer、merge 审批、一个非 Claude adapter。
-- F UX：onboarding、intake 确认/一键、任务详情、停止状态恢复、搜索分页。
+- F UX：空态引导、PWA shell、aria-live/减动效已做；待交互式 onboarding、intake 一键、任务详情、停止状态恢复、搜索分页、真机/Lighthouse。
 
 ## 5. 代码架构：现状与改进
 

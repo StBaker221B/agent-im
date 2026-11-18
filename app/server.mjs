@@ -21,6 +21,7 @@ import { TaskStore } from "./tasks.mjs";
 import { TEMPLATE_IDS, TEMPLATE_LIST, getTemplate, publicTemplate } from "./role-templates.mjs";
 import { TEAM_LIST, getTeamTemplate, publicTeam, shortRoleName } from "./team-templates.mjs";
 import { normalizeApprovedTools, toolArgsFor } from "./tool-policy.mjs";
+import { createWorktree, removeWorktree } from "./worktrees.mjs";
 import { createMatrixAdmin } from "./matrix-admin.mjs";
 import { createHost } from "./gateway-host.mjs";
 import { MatrixClient } from "../spike/src/matrix-transport.mjs";
@@ -787,6 +788,52 @@ async function roomRequestedByAgent({ agentId, roomKind, roomName, targets }) {
   }
 }
 
+async function createAgentWorktree(agentId, body) {
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (agent.worktree) throw Object.assign(new Error("agent 已有 worktree，先移除"), { status: 409 });
+  if (host.agentStatus(agent.id) === "working")
+    throw Object.assign(new Error("agent 正在运行，等空闲或先暂停"), { status: 409 });
+  const repoPath = String(body.repoPath ?? "").trim();
+  if (!repoPath) throw Object.assign(new Error("repoPath required"), { status: 400 });
+  try {
+    const wt = createWorktree({
+      repoPath,
+      agentName: agent.name,
+      base: String(body.base ?? "HEAD"),
+      rootDir: join(dataDir, "worktrees"),
+    });
+    agent.cwd = wt.path;
+    agent.worktree = wt;
+    store.save();
+    await host.updateAgent(agent);
+    log(`[app] agent ${agent.id} worktree ${wt.branch} -> ${wt.path}`);
+    return { ok: true, ...wt };
+  } catch (err) {
+    throw Object.assign(new Error(`worktree: ${err.message}`), { status: 400 });
+  }
+}
+
+async function removeAgentWorktree(agentId) {
+  const agent = store.agent(agentId);
+  if (!agent || agent.status === "deleted")
+    throw Object.assign(new Error("agent not found"), { status: 404 });
+  if (!agent.worktree) throw Object.assign(new Error("agent has no worktree"), { status: 404 });
+  if (host.agentStatus(agent.id) === "working")
+    throw Object.assign(new Error("agent 正在运行，等空闲或先暂停"), { status: 409 });
+  try {
+    removeWorktree(agent.worktree);
+  } catch (err) {
+    log(`[app] remove worktree failed: ${err.message}`);
+  }
+  agent.cwd = null;
+  delete agent.worktree;
+  store.save();
+  await host.updateAgent(agent);
+  return { ok: true };
+}
+
 async function taskCreatedByAgent({ agentId, roomId, title }) {
   taskAgent(agentId);
   taskRoom(roomId);
@@ -1483,6 +1530,16 @@ async function handleApi(req, res, url) {
     const agentId = decodeURIComponent(parts[2]);
     const body = await readBody(req);
     return json(res, 200, await approveTool(agentId, body));
+  }
+
+  if (req.method === "POST" && parts[1] === "agents" && parts[3] === "worktree" && parts.length === 4) {
+    const agentId = decodeURIComponent(parts[2]);
+    const body = await readBody(req);
+    return json(res, 200, await createAgentWorktree(agentId, body));
+  }
+
+  if (req.method === "DELETE" && parts[1] === "agents" && parts[3] === "worktree" && parts.length === 4) {
+    return json(res, 200, await removeAgentWorktree(decodeURIComponent(parts[2])));
   }
 
   return json(res, 404, { error: "not found" });

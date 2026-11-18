@@ -436,6 +436,26 @@ export default function App() {
     }
   }
 
+  async function createWorktree(agentId, repoPath) {
+    try {
+      await api.createWorktree(agentId, repoPath);
+      await loadBootstrap();
+      notify("worktree 已创建");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
+  async function removeWorktree(agentId) {
+    try {
+      await api.removeWorktree(agentId);
+      await loadBootstrap();
+      notify("worktree 已移除");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function updateTaskFromAlert(taskId, status) {
     try {
       await api.updateTask(taskId, { status });
@@ -683,6 +703,8 @@ export default function App() {
             agent={settingsAgentId ? agentsById.get(settingsAgentId) : null}
             templates={templates}
             onSave={saveAgent}
+            onCreateWorktree={createWorktree}
+            onRemoveWorktree={removeWorktree}
             onDelete={deleteAgentById}
             onBack={backToAgents}
           />

@@ -328,6 +328,7 @@ export class Store {
         triage: a.triage ?? {},
         approvedTools: a.approvedTools ?? [],
         cwd: a.cwd ?? null,
+        worktree: a.worktree ?? null,
         status: a.status,
       };
     });

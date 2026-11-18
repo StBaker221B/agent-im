@@ -62,6 +62,13 @@ export const api = {
   updateAgent: (agentId, payload) =>
     request(`/api/agents/${encodeURIComponent(agentId)}`, { method: "PATCH", body: payload }),
   deleteAgent: (agentId) => request(`/api/agents/${encodeURIComponent(agentId)}`, { method: "DELETE" }),
+  createWorktree: (agentId, repoPath, base = "HEAD") =>
+    request(`/api/agents/${encodeURIComponent(agentId)}/worktree`, {
+      method: "POST",
+      body: { repoPath, base },
+    }),
+  removeWorktree: (agentId) =>
+    request(`/api/agents/${encodeURIComponent(agentId)}/worktree`, { method: "DELETE" }),
   approveTool: (agentId, tool, roomId) =>
     request(`/api/agents/${encodeURIComponent(agentId)}/approve-tool`, {
       method: "POST",

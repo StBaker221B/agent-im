@@ -1,6 +1,6 @@
 // Small network-first shell cache. Never caches the API, token-bearing media,
 // or non-GET requests; the app still requires the local server for data.
-const CACHE = "agent-im-v1";
+const CACHE = "agent-im-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -21,14 +21,13 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(request);
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) cache.put(request, response.clone());
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
+      try {
+        const response = await fetch(request);
+        if (response.ok) cache.put(request, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(request)) ?? Response.error();
+      }
     }),
   );
 });

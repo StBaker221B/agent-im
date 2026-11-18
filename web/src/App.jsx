@@ -534,6 +534,29 @@ export default function App() {
     }
   }
 
+  async function denyTool(message, roomId = activeRoomId) {
+    if (!roomId) return;
+    const tool = message.tool ?? "这个工具";
+    try {
+      await api.send(roomId, `@${message.senderName} 拒绝 ${tool}，先用现有工具继续。`, null);
+      notify("已拒绝工具请求");
+      await loadBootstrap();
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
+  async function denyRoom(message, roomId = activeRoomId) {
+    if (!roomId) return;
+    try {
+      await api.send(roomId, `@${message.senderName} 拒绝创建房间，先不要建。`, null);
+      notify("已拒绝房间请求");
+      await loadBootstrap();
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function updateTaskFromAlert(taskId, status) {
     try {
       await api.updateTask(taskId, { status });
@@ -836,6 +859,8 @@ export default function App() {
             onTasks={openTasks}
             onApproveTool={approveTool}
             onApproveRoom={approveRoom}
+            onDenyTool={denyTool}
+            onDenyRoom={denyRoom}
             onUpdateTask={updateTaskFromAlert}
             onBack={() => setMobilePane("list")}
           />
@@ -899,6 +924,8 @@ export default function App() {
               onInvite={() => openModal("invite")}
               onApproveTool={approveTool}
               onApproveRoom={approveRoom}
+              onDenyTool={denyTool}
+              onDenyRoom={denyRoom}
               onDelete={() => deleteRoomById(activeRoom.id)}
               onProfile={openProfile}
               onBack={() => setMobilePane("list")}

@@ -19,6 +19,8 @@ export default function AlertsView({
   onTasks,
   onApproveTool,
   onApproveRoom,
+  onDenyTool,
+  onDenyRoom,
   onUpdateTask,
   onBack,
 }) {
@@ -117,6 +119,30 @@ export default function AlertsView({
                     }}
                   >
                     创建房间
+                  </button>
+                )}
+                {item.message.intent === "room_request" && onDenyRoom && (
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={async () => {
+                      await onDenyRoom(item.message, item.room.id);
+                      await load();
+                    }}
+                  >
+                    拒绝
+                  </button>
+                )}
+                {item.message.intent === "tool_request" && onDenyTool && (
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={async () => {
+                      await onDenyTool(item.message, item.room.id);
+                      await load();
+                    }}
+                  >
+                    拒绝
                   </button>
                 )}
                 <button type="button" className="ghost" onClick={() => onOpenRoom(item.room.id)}>

@@ -950,6 +950,13 @@ button {
   overflow-wrap: anywhere;
 }
 
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 .approve-tool {
   margin-top: 6px;
   align-self: flex-start;
@@ -960,6 +967,20 @@ button {
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.approval-actions .approve-tool {
+  margin-top: 0;
+}
+
+.approve-tool.deny {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.approve-tool.deny:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
 .approve-tool:hover {

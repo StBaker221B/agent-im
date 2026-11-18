@@ -95,6 +95,8 @@ export default function ChatView({
   onInvite,
   onApproveTool,
   onApproveRoom,
+  onDenyTool,
+  onDenyRoom,
   onDelete,
   onProfile,
   onBack,
@@ -462,11 +464,22 @@ export default function ChatView({
                       </div>
                     )}
                     {!mine && message.intent === "room_request" && message.room && (
-                      <button type="button" className="approve-tool" onClick={() => onApproveRoom(message)}>
-                        {message.room.kind === "dm"
-                          ? "创建私聊（人类可见）"
-                          : `创建群「${message.room.name}」`}
-                      </button>
+                      <div className="approval-actions">
+                        <button type="button" className="approve-tool" onClick={() => onApproveRoom(message)}>
+                          {message.room.kind === "dm"
+                            ? "创建私聊（人类可见）"
+                            : `创建群「${message.room.name}」`}
+                        </button>
+                        {onDenyRoom && (
+                          <button
+                            type="button"
+                            className="approve-tool deny"
+                            onClick={() => onDenyRoom(message)}
+                          >
+                            拒绝
+                          </button>
+                        )}
+                      </div>
                     )}
                     {!mine &&
                       message.intent === "tool_request" &&
@@ -474,15 +487,26 @@ export default function ChatView({
                       !(agentsById.get(message.sender)?.approvedTools ?? []).includes(
                         message.tool ?? toolFromRequest(message.text),
                       ) && (
-                        <button
-                          type="button"
-                          className="approve-tool"
-                          onClick={() =>
-                            onApproveTool(message.sender, message.tool ?? toolFromRequest(message.text))
-                          }
-                        >
-                          批准 {message.tool ?? toolFromRequest(message.text)}（只开这个工具）
-                        </button>
+                        <div className="approval-actions">
+                          <button
+                            type="button"
+                            className="approve-tool"
+                            onClick={() =>
+                              onApproveTool(message.sender, message.tool ?? toolFromRequest(message.text))
+                            }
+                          >
+                            批准 {message.tool ?? toolFromRequest(message.text)}（只开这个工具）
+                          </button>
+                          {onDenyTool && (
+                            <button
+                              type="button"
+                              className="approve-tool deny"
+                              onClick={() => onDenyTool(message)}
+                            >
+                              拒绝
+                            </button>
+                          )}
+                        </div>
                       )}
                   </div>
                 </div>

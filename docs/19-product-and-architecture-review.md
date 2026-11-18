@@ -96,7 +96,7 @@
 
 **A–F 最小切片**（详见 §7）：
 
-- A 治理：待办收件箱已做；待统一事件、task/thread 回放、后台告警推送（桌面 alert 推送已做）。
+- A 治理：待办收件箱已做；待统一事件、task/thread 回放、后台告警推送（桌面 alert 推送/显式拒绝已做）。
 - B 长期：cron/补跑、retry/backoff/升级、turn “需关注”、守护进程、72h soak。
 - C IM：thread 面板、@未读、深链、深搜已做；待搜索 cursor/索引、thread 分页/未读、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。

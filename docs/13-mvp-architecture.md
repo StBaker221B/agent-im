@@ -175,7 +175,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/admin/pause-all` | `{paused}`；所有非 deleted agent 全局暂停/恢复（当前轮跑完） |
 | `POST /api/admin/kill` | `{kill}`；硬 kill 停 sync/关闭 runtime；恢复重建并补消费 |
 | `PATCH /api/settings` | `{policy:{agentRooms:"open"\|"approval",agentContact:...}}`；自治策略，默认 open |
-| `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
+| `GET /api/search?q=&pages=` | `pages` 1–5；每房间最多 500 条子串匹配，结果上限 100 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
 
@@ -297,7 +297,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，也能软删除 agent（离开房间、删 DM、隐藏、停 sync；账号不回收、不能 undelete）。
 - 删除运行中的 agent 会 409；需要等空闲或先暂停。
 - agent 通过 `REQUEST_ROOM` 建房；默认 open 自动建群，approval 时人工批准；所有房间人类可见。
-- 聊天历史已支持 main thread 分页；搜索仍只覆盖每房间最近 100 条，需要搜索分页/索引。
+- 聊天历史已支持 main thread 分页；搜索默认每房间 100 条，可深搜到 500 条，但没有结果分页/cursor/索引。
 - Agent card 是静态模板信息；domains/trust/allowlist 还没有可搜索治理字段，也没有 A2A card。
 - Reaction 只有 👍，不能撤销/切换；agent 没有 reaction 工具；reaction 事件占分页条数。
 - Thread 依赖 Tuwunel relations（当前不支持）→ 只扫最近约 1000 条房间消息；无 thread 分页/未读/reaction UI。

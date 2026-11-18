@@ -28,7 +28,7 @@ npm run build     # 输出 dist/，由 app/server.mjs 直接托管
 | `src/components/NewAgentModal.jsx` | 新建 agent：角色模板选择、角色卡预览、工具开关、个人补充 |
 | `src/components/InviteModal.jsx` | 群聊邀请 agent |
 | `src/components/ProfileModal.jsx` | 点击头像看 agent/人类资料 |
-| `src/components/SearchView.jsx` | 历史消息搜索与结果跳转 |
+| `src/components/SearchView.jsx` | 历史消息搜索（可深搜 500 条）与结果跳转 |
 | `src/components/SettingsView.jsx` | 系统信息 + agent 参数/模板/工具编辑 |
 | `src/components/Avatar.jsx` | 身份色 + 首字头像 |
 | `src/format.js` | 颜色、时间、预览、消息分组 |

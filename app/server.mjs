@@ -1538,6 +1538,8 @@ async function handleApi(req, res, url) {
     if (!q) return json(res, 200, { query: "", results: [], pages: 0 });
     const needle = q.toLowerCase();
     const pages = Math.min(5, Math.max(1, Number(url.searchParams.get("pages")) || 1));
+    const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
+    const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit")) || 50));
     const results = [];
     for (const room of store.rooms) {
       let from = null;
@@ -1560,7 +1562,16 @@ async function handleApi(req, res, url) {
       }
     }
     results.sort((a, b) => (b.message.createdAt ?? 0) - (a.message.createdAt ?? 0));
-    return json(res, 200, { query: q, results: results.slice(0, 100), pages });
+    const total = results.length;
+    return json(res, 200, {
+      query: q,
+      results: results.slice(offset, offset + limit),
+      total,
+      offset,
+      limit,
+      hasMore: offset + limit < total,
+      pages,
+    });
   }
 
   if (req.method === "POST" && parts[1] === "rooms" && parts[3] === "reactions" && parts.length === 4) {

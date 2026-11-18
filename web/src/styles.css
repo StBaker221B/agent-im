@@ -1943,6 +1943,12 @@ button.reaction-chip {
   accent-color: var(--own);
 }
 
+.search-more {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 4px;
+}
+
 .search-hit {
   background: var(--mention-bg);
   color: var(--mention-ink);

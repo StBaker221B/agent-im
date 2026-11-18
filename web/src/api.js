@@ -102,8 +102,8 @@ export const api = {
       method: "POST",
       body: { tool, roomId },
     }),
-  search: (q, { deep = false } = {}) =>
-    request(`/api/search?q=${encodeURIComponent(q)}&pages=${deep ? 5 : 1}`),
+  search: (q, { deep = false, offset = 0, limit = 50 } = {}) =>
+    request(`/api/search?q=${encodeURIComponent(q)}&pages=${deep ? 5 : 1}&offset=${offset}&limit=${limit}`),
   invite: (roomId, agentIds) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/members`, {
       method: "POST",

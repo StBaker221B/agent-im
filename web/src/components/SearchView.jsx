@@ -32,6 +32,9 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
   const [error, setError] = useState("");
   const [deep, setDeep] = useState(false);
   const [scannedPages, setScannedPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     setValue(query);
@@ -40,6 +43,8 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
   useEffect(() => {
     if (!query) {
       setResults([]);
+      setTotal(0);
+      setHasMore(false);
       return;
     }
     let alive = true;
@@ -51,6 +56,8 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
         if (alive) {
           setResults(res.results ?? []);
           setScannedPages(res.pages ?? (deep ? 5 : 1));
+          setTotal(res.total ?? res.results?.length ?? 0);
+          setHasMore(Boolean(res.hasMore));
         }
       })
       .catch((err) => {
@@ -63,6 +70,27 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
       alive = false;
     };
   }, [query, deep]);
+
+  async function loadMore() {
+    if (!query || !hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await api.search(query, { deep, offset: results.length, limit: 50 });
+      setResults((prev) => {
+        const seen = new Set(prev.map((item) => `${item.room.id}-${item.message.id}`));
+        return [
+          ...prev,
+          ...(res.results ?? []).filter((item) => !seen.has(`${item.room.id}-${item.message.id}`)),
+        ];
+      });
+      setTotal(res.total ?? total);
+      setHasMore(Boolean(res.hasMore));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <section className="search-view">
@@ -104,6 +132,7 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
       </form>
       <p className="muted search-state">
         搜索每个房间最近 {scannedPages * 100} 条消息{deep ? "（深搜最多 500 条）" : "，勾选深搜可到 500 条"}。
+        {query && ` 共 ${total} 条命中，已显示 ${results.length} 条。`}
       </p>
 
       {error && <p className="form-error">{error}</p>}
@@ -134,6 +163,14 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
           </button>
         ))}
       </div>
+
+      {hasMore && (
+        <div className="search-more">
+          <button type="button" className="ghost" disabled={loadingMore} onClick={loadMore}>
+            {loadingMore ? "加载中…" : "加载更多"}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

@@ -32,6 +32,12 @@ function EmptyChat({ onNew }) {
       <div className="empty-mark" aria-hidden="true" />
       <h2>选择或新建一个会话</h2>
       <p>和 agent 私聊，或者拉几个 agent 建个群。每条人类消息都会被 agent 读到。</p>
+      <ol className="empty-steps">
+        <li>在 Agents 页创建 agent，或在新建会话里一键创建</li>
+        <li>私聊直接说；群聊里 @ 谁，谁会被点名</li>
+        <li>agent 会自己判断是否回复；没补充时会安静 PASS</li>
+        <li>不确定怎么分工？点「需求顾问」让 intake 推荐单 agent 或小队</li>
+      </ol>
       <button type="button" className="primary" onClick={onNew}>
         <Icon name="plus" size={16} />
         新建会话
@@ -979,7 +985,7 @@ export default function App() {
       )}
 
       {toast && (
-        <div className="toast" role="status">
+        <div className="toast" role="status" aria-live="polite">
           {toast}
         </div>
       )}

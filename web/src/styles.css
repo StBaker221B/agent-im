@@ -2417,6 +2417,16 @@ button {
   border: 3px solid var(--ink);
 }
 
+.empty-steps {
+  text-align: left;
+  max-width: 360px;
+  margin: 14px 0 18px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
 .empty-chat h2 {
   margin: 0 0 8px;
   font-size: 20px;

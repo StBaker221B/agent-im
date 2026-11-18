@@ -14,6 +14,8 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
   const [dueAt, setDueAt] = useState(defaultDueInput());
   const [intervalMinutes, setIntervalMinutes] = useState(0);
+  const [maxRetries, setMaxRetries] = useState(2);
+  const [retryBackoffMinutes, setRetryBackoffMinutes] = useState(5);
   const dialogRef = useDialogFocus(onClose);
   const canSubmit = title.trim() && roomId && !busy;
 
@@ -47,6 +49,8 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 roomId,
                 dueAt: dueAt ? new Date(dueAt).toISOString() : null,
                 intervalMinutes: Math.max(0, Number(intervalMinutes) || 0),
+                maxRetries: Math.max(0, Number(maxRetries) || 0),
+                retryBackoffMinutes: Math.max(1, Number(retryBackoffMinutes) || 1),
               });
             }}
           >
@@ -117,9 +121,34 @@ export default function TaskModal({ agents, rooms, busy, error, onClose, onCreat
                 />
               </label>
             </div>
+            <div className="field-row">
+              <label className="field">
+                <span>失败重试次数</span>
+                <input
+                  type="number"
+                  name="maxRetries"
+                  min="0"
+                  step="1"
+                  value={maxRetries}
+                  onChange={(e) => setMaxRetries(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>重试退避基数（分钟）</span>
+                <input
+                  type="number"
+                  name="retryBackoffMinutes"
+                  min="1"
+                  step="1"
+                  value={retryBackoffMinutes}
+                  onChange={(e) => setRetryBackoffMinutes(e.target.value)}
+                />
+              </label>
+            </div>
             <p className="form-note">
               任务会持久化到 app/data/tasks.json。一次性任务派发后变“进行中”；重复任务派发后按间隔排下一次，
-              重启不会重复派发。当前不做 turn 级恢复。
+              重启不会重复派发。失败按 5/10/20… 分钟退避重试，耗尽后置 failed 并标记需关注；当前不做 turn
+              级恢复。
             </p>
             <button type="submit" className="primary wide" disabled={!canSubmit}>
               {busy ? "创建中…" : "创建任务"}

@@ -34,6 +34,10 @@ const log = (...args) => console.log(...args);
 
 const store = new Store();
 const tasks = new TaskStore(join(dataDir, "tasks.json"));
+{
+  const stale = tasks.markStale();
+  if (stale) log(`[app] ${stale} active task(s) marked needsAttention after startup`);
+}
 const admin = createMatrixAdmin({
   homeserver: store.homeserver,
   registrationToken: store.registrationToken,
@@ -793,8 +797,17 @@ async function taskBlockedByAgent(payload) {
   return setTaskStatusByAgent({ ...payload, status: "blocked" });
 }
 
-async function taskFailedByAgent(payload) {
-  return setTaskStatusByAgent({ ...payload, status: "failed" });
+async function taskFailedByAgent({ taskId, agentId, summary }) {
+  const task = tasks.get(taskId);
+  if (!task) return null;
+  if (task.owner && task.owner !== agentId) {
+    tasks.addCheckpoint(task.id, `FAIL ignored: ${agentId} is not owner`, agentId);
+    return null;
+  }
+  if (task.status === "done" || task.status === "cancelled") return null;
+  tasks.addCheckpoint(task.id, `agent FAIL: ${summary}`, agentId);
+  const updated = tasks.scheduleRetry(task.id, summary);
+  return updated ? taskView(updated) : null;
 }
 
 async function createTask(body) {
@@ -808,6 +821,8 @@ async function createTask(body) {
       roomId: body.roomId,
       dueAt: body.dueAt,
       intervalMinutes: body.intervalMinutes,
+      maxRetries: body.maxRetries,
+      retryBackoffMinutes: body.retryBackoffMinutes,
       priority: body.priority,
       createdBy: store.human.id,
     });
@@ -863,7 +878,7 @@ async function dispatchTask(task, by = "human") {
     log(`[app] task dispatched ${task.id} room=${room.id}`);
     return { task: taskView(tasks.get(task.id)), eventId: sent.eventId };
   } catch (err) {
-    tasks.update(task.id, { status: "blocked", lastError: err.message });
+    tasks.scheduleRetry(task.id, `dispatch failed: ${err.message}`);
     throw Object.assign(new Error(`task dispatch failed: ${err.message}`), { status: 502 });
   }
 }

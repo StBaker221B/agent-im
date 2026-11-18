@@ -61,6 +61,46 @@ test("recurring tasks schedule the next run after dispatch", () => {
   }
 });
 
+test("failed tasks retry with backoff then escalate", () => {
+  const { dir, store } = tempStore();
+  try {
+    const task = store.create({
+      title: "重试任务",
+      dueAt: new Date(Date.now() - 1000).toISOString(),
+      maxRetries: 2,
+      retryBackoffMinutes: 1,
+    });
+    store.dispatch(task.id);
+    store.scheduleRetry(task.id, "boom");
+    let current = store.get(task.id);
+    assert.equal(current.status, "pending");
+    assert.equal(current.retryCount, 1);
+    assert.ok(Date.parse(current.dueAt) > Date.now());
+    store.scheduleRetry(task.id, "boom again");
+    current = store.get(task.id);
+    assert.equal(current.retryCount, 2);
+    store.scheduleRetry(task.id, "last failure");
+    current = store.get(task.id);
+    assert.equal(current.status, "failed");
+    assert.equal(current.needsAttention, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("markStale flags active tasks after a restart threshold", () => {
+  const { dir, store } = tempStore();
+  try {
+    const task = store.create({ title: "长任务", dueAt: new Date().toISOString() });
+    store.dispatch(task.id);
+    assert.equal(store.markStale(Date.now()), 0);
+    assert.equal(store.markStale(Date.now() + 31 * 60_000), 1);
+    assert.equal(store.get(task.id).needsAttention, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("checkpoints append and invalid updates are rejected", () => {
   const { dir, store } = tempStore();
   try {

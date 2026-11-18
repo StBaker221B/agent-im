@@ -58,6 +58,7 @@ export default function App() {
   const [modalError, setModalError] = useState("");
   const [toast, setToast] = useState("");
   const [mobilePane, setMobilePane] = useState("list");
+  const [alertCount, setAlertCount] = useState(0);
   const [notifications, setNotifications] = useState(
     () =>
       localStorage.getItem("agentim.notifications") === "1" &&
@@ -175,6 +176,26 @@ export default function App() {
     const timer = setTimeout(() => setToast(""), 6000);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await api.alerts();
+        if (alive) {
+          setAlertCount((res.approvals?.length ?? 0) + (res.tasks?.length ?? 0) + (res.budget?.length ?? 0));
+        }
+      } catch {
+        // alerts are advisory
+      }
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!notifications || !data || !document.hidden) return;
@@ -405,10 +426,19 @@ export default function App() {
     }
   }
 
-  async function approveTool(agentId, tool) {
-    if (!activeRoomId) return;
+  async function approveTool(agentId, tool, roomId = activeRoomId) {
+    if (!roomId) return;
     try {
-      await api.approveTool(agentId, tool, activeRoomId);
+      await api.approveTool(agentId, tool, roomId);
+      await loadBootstrap();
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
+  async function updateTaskFromAlert(taskId, status) {
+    try {
+      await api.updateTask(taskId, { status });
       await loadBootstrap();
     } catch (err) {
       notify(err.message);
@@ -641,6 +671,7 @@ export default function App() {
         onActivity={openActivity}
         onTasks={openTasks}
         onAlerts={openAlerts}
+        alertCount={alertCount}
         onSearch={openSearch}
         onProfile={openProfile}
         onDeleteRoom={deleteRoomFromList}
@@ -658,7 +689,14 @@ export default function App() {
         ) : view === "activity" ? (
           <ActivityView data={data} onBack={() => setMobilePane("list")} />
         ) : view === "alerts" ? (
-          <AlertsView onOpenRoom={openRoom} onTasks={openTasks} onBack={() => setMobilePane("list")} />
+          <AlertsView
+            onOpenRoom={openRoom}
+            onTasks={openTasks}
+            onApproveTool={approveTool}
+            onApproveRoom={approveRoom}
+            onUpdateTask={updateTaskFromAlert}
+            onBack={() => setMobilePane("list")}
+          />
         ) : view === "tasks" ? (
           <TasksView
             data={data}

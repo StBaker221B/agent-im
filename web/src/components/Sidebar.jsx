@@ -21,6 +21,7 @@ export default function Sidebar({
   onActivity,
   onTasks,
   onAlerts,
+  alertCount = 0,
   onSearch,
   onProfile,
   onDeleteRoom,
@@ -184,6 +185,9 @@ export default function Sidebar({
         <button type="button" className={`foot-item${view === "alerts" ? " active" : ""}`} onClick={onAlerts}>
           <Icon name="alert" size={17} />
           <span>待办</span>
+          {alertCount > 0 && (
+            <span className="foot-count alert-count">{alertCount > 99 ? "99+" : alertCount}</span>
+          )}
         </button>
         <button
           type="button"

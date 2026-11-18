@@ -14,13 +14,30 @@ function timeOf(ts) {
   return Number.isNaN(date.getTime()) ? ts : date.toLocaleString("zh-CN", { hour12: false });
 }
 
-export default function AlertsView({ onOpenRoom, onTasks, onBack }) {
+export default function AlertsView({
+  onOpenRoom,
+  onTasks,
+  onApproveTool,
+  onApproveRoom,
+  onUpdateTask,
+  onBack,
+}) {
   const [alerts, setAlerts] = useState(null);
   const [error, setError] = useState("");
 
+  const load = async () => {
+    try {
+      const data = await api.alerts();
+      setAlerts(data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   useEffect(() => {
     let alive = true;
-    const load = async () => {
+    const tick = async () => {
       try {
         const data = await api.alerts();
         if (alive) {
@@ -31,8 +48,8 @@ export default function AlertsView({ onOpenRoom, onTasks, onBack }) {
         if (alive) setError(err.message);
       }
     };
-    load();
-    const timer = setInterval(load, 5000);
+    tick();
+    const timer = setInterval(tick, 5000);
     return () => {
       alive = false;
       clearInterval(timer);
@@ -78,6 +95,30 @@ export default function AlertsView({ onOpenRoom, onTasks, onBack }) {
               <p>{String(item.message.text ?? "").slice(0, 220)}</p>
               <div className="alert-actions">
                 <span className="alert-room">{item.room.name}</span>
+                {item.message.intent === "tool_request" && onApproveTool && (
+                  <button
+                    type="button"
+                    className="primary small"
+                    onClick={async () => {
+                      await onApproveTool(item.message.sender, item.message.tool ?? "工具", item.room.id);
+                      await load();
+                    }}
+                  >
+                    批准工具
+                  </button>
+                )}
+                {item.message.intent === "room_request" && onApproveRoom && (
+                  <button
+                    type="button"
+                    className="primary small"
+                    onClick={async () => {
+                      await onApproveRoom(item.message);
+                      await load();
+                    }}
+                  >
+                    创建房间
+                  </button>
+                )}
                 <button type="button" className="ghost" onClick={() => onOpenRoom(item.room.id)}>
                   打开房间
                 </button>
@@ -100,6 +141,30 @@ export default function AlertsView({ onOpenRoom, onTasks, onBack }) {
                 {task.retryCount > 0 ? ` · 重试 ${task.retryCount}/${task.maxRetries}` : ""}
               </p>
               <div className="alert-actions">
+                {onUpdateTask && ["failed", "blocked"].includes(task.status) && (
+                  <button
+                    type="button"
+                    className="primary small"
+                    onClick={async () => {
+                      await onUpdateTask(task.id, "pending");
+                      await load();
+                    }}
+                  >
+                    重开
+                  </button>
+                )}
+                {onUpdateTask && task.status === "active" && (
+                  <button
+                    type="button"
+                    className="primary small"
+                    onClick={async () => {
+                      await onUpdateTask(task.id, "done");
+                      await load();
+                    }}
+                  >
+                    标记完成
+                  </button>
+                )}
                 <button type="button" className="ghost" onClick={onTasks}>
                   打开任务
                 </button>

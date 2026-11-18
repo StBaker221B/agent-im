@@ -71,3 +71,4 @@
 | 45 | [2026-11-18 Reaction](2026-11-18-41-reactions.md) | m.reaction、👍 chip、目标消息校验 |
 | 46 | [2026-11-18 Thread 面板](2026-11-18-42-thread-panel.md) | thread API、relations fallback、右侧面板、thread 回复 |
 | 47 | [2026-11-18 PWA/引导/a11y](2026-11-18-43-pwa-onboarding.md) | manifest/sw/icon、首次步骤、aria-live/减动效 |
+| 48 | [2026-11-18 消息深链](2026-11-18-44-message-deeplinks.md) | `#/room/:id/message/:eventId`、复制链接、focus |

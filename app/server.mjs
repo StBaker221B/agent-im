@@ -1493,26 +1493,32 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/search") {
     const q = String(url.searchParams.get("q") ?? "").trim();
-    if (!q) return json(res, 200, { query: "", results: [] });
+    if (!q) return json(res, 200, { query: "", results: [], pages: 0 });
     const needle = q.toLowerCase();
+    const pages = Math.min(5, Math.max(1, Number(url.searchParams.get("pages")) || 1));
     const results = [];
     for (const room of store.rooms) {
-      let messages = [];
-      try {
-        messages = await roomMessages(room.id, 100);
-      } catch {
-        // a room may be unreadable; skip it
-      }
-      for (const m of messages) {
-        if (!m.text?.toLowerCase().includes(needle)) continue;
-        results.push({
-          room: { id: room.id, kind: room.kind, name: room.name },
-          message: messageView(m),
-        });
+      let from = null;
+      for (let page = 0; page < pages; page++) {
+        let chunk;
+        try {
+          chunk = await roomMessagesPage(room.id, { limit: 100, from });
+        } catch {
+          break;
+        }
+        for (const m of chunk.messages) {
+          if (!m.text?.toLowerCase().includes(needle)) continue;
+          results.push({
+            room: { id: room.id, kind: room.kind, name: room.name },
+            message: messageView(m),
+          });
+        }
+        if (!chunk.next) break;
+        from = chunk.next;
       }
     }
     results.sort((a, b) => (b.message.createdAt ?? 0) - (a.message.createdAt ?? 0));
-    return json(res, 200, { query: q, results: results.slice(0, 60) });
+    return json(res, 200, { query: q, results: results.slice(0, 100), pages });
   }
 
   if (req.method === "POST" && parts[1] === "rooms" && parts[3] === "reactions" && parts.length === 4) {

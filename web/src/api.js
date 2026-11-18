@@ -97,7 +97,8 @@ export const api = {
       method: "POST",
       body: { tool, roomId },
     }),
-  search: (q) => request(`/api/search?q=${encodeURIComponent(q)}`),
+  search: (q, { deep = false } = {}) =>
+    request(`/api/search?q=${encodeURIComponent(q)}&pages=${deep ? 5 : 1}`),
   invite: (roomId, agentIds) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/members`, {
       method: "POST",

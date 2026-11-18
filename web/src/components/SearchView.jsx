@@ -30,6 +30,8 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deep, setDeep] = useState(false);
+  const [scannedPages, setScannedPages] = useState(1);
 
   useEffect(() => {
     setValue(query);
@@ -44,9 +46,12 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
     setLoading(true);
     setError("");
     api
-      .search(query)
+      .search(query, { deep })
       .then((res) => {
-        if (alive) setResults(res.results ?? []);
+        if (alive) {
+          setResults(res.results ?? []);
+          setScannedPages(res.pages ?? (deep ? 5 : 1));
+        }
       })
       .catch((err) => {
         if (alive) setError(err.message);
@@ -57,7 +62,7 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
     return () => {
       alive = false;
     };
-  }, [query]);
+  }, [query, deep]);
 
   return (
     <section className="search-view">
@@ -89,10 +94,17 @@ export default function SearchView({ query, onSearch, onOpenResult, onBack }) {
           autoFocus
           aria-label="搜索消息"
         />
+        <label className="search-depth">
+          <input type="checkbox" checked={deep} onChange={(e) => setDeep(e.target.checked)} />
+          深搜历史
+        </label>
         <button type="submit" className="primary" disabled={!value.trim()}>
           搜索
         </button>
       </form>
+      <p className="muted search-state">
+        搜索每个房间最近 {scannedPages * 100} 条消息{deep ? "（深搜最多 500 条）" : "，勾选深搜可到 500 条"}。
+      </p>
 
       {error && <p className="form-error">{error}</p>}
       {loading && <p className="muted search-state">搜索中…</p>}

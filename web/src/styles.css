@@ -1898,6 +1898,20 @@ button {
   -webkit-box-orient: vertical;
 }
 
+.search-depth {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.search-depth input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
 .search-hit {
   background: var(--mention-bg);
   color: var(--mention-ink);

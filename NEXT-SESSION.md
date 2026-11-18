@@ -19,6 +19,7 @@
 - 活动/审计、全局软暂停、硬 kill、桌面通知、回复引用、成员移除、agent 申请房间。
 - 可重复 benchmark：single/pair 各两次、squad 一次；脚本与 fixture 在 `bench/`。
 - 运维脚本：`scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`。
+- 自治默认开放（`agentRooms=open`，可配置 approval）；决策见 19 §8。
 
 ## 下一批（按 19 §7）
 

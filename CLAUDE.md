@@ -100,7 +100,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | Claude 调用/session | `spike/src/claude-adapter.mjs` |
 | 控制面 API / 上传 / 媒体代理 | `app/server.mjs` |
 | 运维/备份 | `scripts/start-agent-im.ps1`、`backup-data.ps1`、`restore-data.ps1`；audit 导出 `GET /api/audit/export` |
-| Agent 申请房间 | 回复 `REQUEST_ROOM`；Gateway 发 intent=room_request + `com.agentim.room`；人类批准后 createGroup（人类+发起者+目标），同名同成员幂等 |
+| 自治/建房 | `state.policy.agentRooms=open|approval`，默认 open；open 时 `REQUEST_ROOM` 直接 createGroup（人类+发起者+目标），approval 时发 room_request 由 UI 批准；`PATCH /api/settings` |
 | 邀请/删除/建房/leave | `app/matrix-admin.mjs` + `app/server.mjs`；agent 软删除 `DELETE /api/agents/:id` + `gateway.removeAgent`；群移除 `DELETE /api/rooms/:id/members/:agentId` |
 | 消息回复 | 前端 replyTo 草稿/引用；API body.replyTo；Matrix m.in_reply_to；transport 解析主线程 reply |
 | 桌面通知 | `App.jsx` Notification + SettingsView；只在 `document.hidden`、有未读时；localStorage 存偏好 |

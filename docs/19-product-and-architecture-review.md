@@ -148,24 +148,25 @@
 **6 周**
 
 - W3（E）：worktree/branch + merge 审批 + OS 只读；coding pilot。
-- W4（C+D）：thread 面板、@未读/深链、agent 房间策略；API auth/roles（若决定多用户）。
+- W4（C）：thread 面板、@未读/深链、reaction、搜索分页；D 只做 agent card/disabled；多用户/auth/第二人类后置。
 - W5：一个第二 runtime conformance + onboarding/intake 一键（人类确认）+ workspace_id seam。
 - W6：7 天 soak、完整 benchmark matrix、go/no-go、打包/文档。
-- 顺序：B → A → E → C → D；F 持续穿插。
+- 顺序：B → A → E → C；D 中 agent card/disabled 穿插；auth/第二人类后置；F 持续穿插。
 
-## 8. 需要你定夺的 5 件事
+## 8. 已确认的决策（2026-11-18）
 
-1. **六周租户模型**：单人类本机（D 后置），还是第二人类/远程（D 提前，auth/ACL/workspace_id 变阻塞）？
-2. **人类离线自治**：哪些动作可无人值守、每日/任务预算上限、审批超时是暂停还是等待？
-3. **agent 主动联系**：allowlist、审批-only、能否 DM 非 owner 人类？（当前实现是审批-only）
-4. **隔离底线**：prompt 只读是否够，还是 resident coding 前必须 worktree/OS 沙箱？M6 是否也适用于非编码业务流？
-5. **kill criterion 数字**：基线、任务集、质量 delta、成本倍数、人类干预阈值、soak 时长。
+1. **六周租户模型**：单人类本机；**第二人类目前不重要**，D 后置。
+2. **人类离线自治**：做成配置项；**默认全部允许、不设每日/任务上限、不需审批、完全放开**，需要时自己收紧。
+3. **agent 主动联系**：**默认无需审批**，加配置项；可以收紧为 approval-only。仍保留人类可见（不建人类不可见的 agent-only DM）。
+4. **隔离底线**：在 agent 指定工作目录内可自由操作；工作目录外看工具权限模式；非编码业务流同理。当前仍是弱沙箱/worktree 未做。
+5. **kill criterion 数字**：暂时给不出；**先有对照**（单 Claude+subagent 基线、更多任务、重复跑），再定质量 delta/成本倍数/干预阈值/soak 时长。
 
-在回答前，默认按：单人类本机、审批-only、prompt 只读先标注为弱隔离、成本 >2× 且无质量优势即不扩团队。
+实现默认值：`dailyBudgetUsd=0`（不限）、自治审批默认开放、agent 可主动建房；配置项可收紧。安全边界仍要标注：这是“默认开放 + 可治理”，不是强隔离。
 
 ## 9. 下一步（本次审视后）
 
-1. 先修 Phase 0 关键 bug（本次已修 timeout/manual dispatch/kill snapshot/atomic/Origin）。
-2. 按 W1 做 B 的 scheduler v2 + 72h soak；同时补 API 测试 harness。
-3. W2 做 A 的审批/告警/回放 + benchmark 基线。
-4. 再按 E → C → D，F 穿插。
+1. Phase 0 关键 bug 已修（timeout 派发、manual dispatch、kill snapshot、atomic、Origin）；并补了硬 kill 的 stale floor/queue/generation 清理。
+2. 已按决策实现自治默认开放：`agentRooms=open` 自动建房、可配 approval；`dailyBudgetUsd=0`、第二人类后置。
+3. 按 W1 做 B 的 scheduler v2（cron/补跑、retry/backoff、失败升级、crash-turn needs attention、守护进程）+ 72h soak；同时补 API 测试 harness。
+4. W2 做 A 的审批/告警/回放，并补“单 Claude+subagent”基线；有对照后再定 kill criterion 数字。
+5. 再按 E → C → D（D 仅 agent card/disabled；auth/第二人类后置），F 穿插。

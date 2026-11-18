@@ -34,7 +34,7 @@
 - Agents 页可「创建小队」：software-squad（PM/BA/架构/工程/评审/测试）、review-squad（架构/评审/安全）、research-squad（研究/写作），一次创建一组角色 + 群。
 - Agents 页「评估需求」→ 输入问题 → `@intake` 需求顾问在 DM 里重述目标/约束，推荐单点/小队，输出成本、风险、最小验证和 `RECOMMEND` 标签；不自动建团队。
 - 侧栏「任务」：持久任务台账；新建任务（owner/房间/到期/重复间隔），到期派发到房间，可标记完成/阻塞/取消/重开。
-- agent 可申请侧房间：`REQUEST_ROOM: dm @agent` 或 `group "名称" @a @b`；UI 人工批准后建群，人类始终在房间内。
+- agent 可申请侧房间：`REQUEST_ROOM: dm @agent` 或 `group "名称" @a @b`；默认策略 open 直接建群（人类始终在房间内），可配置为 approval 走 UI 批准。
 - 群聊里 agent 没有回复也算正常：它在自己的 turn 里输出了 `PASS`。
 - 群聊可以继续邀请 agent；会话可以删除（聊天头部垃圾桶，或列表右键/⋯菜单）。
 - 支持图片/文件消息（≤8MB）：图片内联显示，文件可下载；agent 会拿到本地缓存路径并用 Read 查看内容。
@@ -158,6 +158,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/tasks/:id/dispatch` | 立即派发一次到任务房间 |
 | `POST /api/admin/pause-all` | `{paused}`；所有非 deleted agent 全局暂停/恢复（当前轮跑完） |
 | `POST /api/admin/kill` | `{kill}`；硬 kill 停 sync/关闭 runtime；恢复重建并补消费 |
+| `PATCH /api/settings` | `{policy:{agentRooms:"open"\|"approval",agentContact:...}}`；自治策略，默认 open |
 | `GET /api/search?q=` | 每个房间最近 100 条消息里做子串匹配，返回房间/发送者/时间 |
 
 `GET /api/bootstrap` 每次会为每个房间读最近 50 条消息来算预览/未读；房间多了要换成缓存或 `/sync` 聚合。
@@ -221,7 +222,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **规则 triage（成本护栏）**：完整 turn 前做零成本判断。直接 @ / 回复 / task owner 一定跑；人类纯 ack/emoji 跳过 ambient；默认同一 agent 15s 冷却、每 agent 每小时最多 30 turn；跳过写 `audit.triage_skip`。Agent 设置页可按 agent 调 `triage.cooldownMs / maxTurnsPerHour / skipAcks`。它是分诊/初筛，不是“剪枝”，也不调用模型。
 - **暂停**：`status=paused` 的 agent 在 turn 前直接 PASS 并写 `paused_skip`，不调模型；agent 设置页/Agents 页可见。
 - **全局暂停**：设置页可暂停/恢复所有非 deleted agent；当前正在跑的 turn 会跑完，下一轮起跳过。不是硬 kill，不会停 gateway 或中断当前 turn。
-- **Agent 申请房间**：agent 输出 `REQUEST_ROOM`，Gateway 解析目标并发送 `intent=room_request` + `com.agentim.room`；人类在消息下批准后调用 createGroup（含人类+发起者+目标）；同名同成员幂等复用。没有 agent-only 私聊。
+- **Agent 申请房间**：agent 输出 `REQUEST_ROOM`，Gateway 解析目标并发送 `intent=room_request` + `com.agentim.room`；默认 open 直接 createGroup（含人类+发起者+目标）；approval 才显示批准按钮；同名同成员幂等复用。没有 agent-only 私聊。
 - **任务台账**：`app/data/tasks.json` 持久化 status/owner/room/dueAt/intervalMinutes/checkpoints；启动 5s 后和每 30s 检查 pending+到期，派发到房间（人类消息 + @ owner + taskId/taskOwner）。一次性先置 active 再发送；`intervalMinutes>0` 派发后回到 pending 并排下一次。重启不重发 active，pending 到期补发；owner 暂停/发送失败 → blocked。
 - **Agent 任务标记**：agent 可回复 `TASK: <title>` 创建 pending 任务（owner=自己、dueAt=null）；任务派发消息带 taskId，owner 回复 `DONE:` 自动把一次性任务置 done；`BLOCK:`/`FAIL:` 置 blocked/failed 并写 lastError；重复任务 DONE 只追加 checkpoint。
 - **工具权限三档**：`agent.toolsMode = template | full | off`。template 按角色推荐；full 放开 Read/Glob/Grep/PowerShell/Edit/Write；off 关闭。角色定义职责，权限是护栏；reviewer/security 默认只读，但 full 时可写。
@@ -263,6 +264,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 ## 8. 安全边界
 
 - Tuwunel 只绑 `127.0.0.1:8008`；MVP 服务只绑 `127.0.0.1:8790`；不要 bind `0.0.0.0`。
+- 自治默认开放：`agentRooms=open`、`dailyBudgetUsd=0`（不限）、不强制审批；可用 `PATCH /api/settings` 收紧为 approval。
 - `/api` 增加 Host/Origin 允许列表（127.0.0.1/localhost/5173，`AGENT_IM_ALLOWED_ORIGINS` 可扩展），拒绝 DNS rebinding/跨站网页调用；但**没有登录/ACL**，本机进程仍被信任。
 - `state.json`/`tasks.json`/gateway-state 用 temp+rename 原子写，降低崩溃截断风险；仍无 schema 版本迁移。
 - Matrix token 只在 `app/data/state.json` 和服务端内存；浏览器拿不到。
@@ -278,7 +280,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 消息仍是 1.5s 轮询；SSE 只推实时活动，不替代消息落库。
 - 房间可以删除（所有成员 leave），但 Matrix 服务器上的历史仍留；agent 设置页能改显示名/模板/工具权限/预算/triage/暂停/系统提示，也能软删除 agent（离开房间、删 DM、隐藏、停 sync；账号不回收、不能 undelete）。
 - 删除运行中的 agent 会 409；需要等空闲或先暂停。
-- agent 不能自己建群或找 agent 私聊；只能发 `REQUEST_ROOM`，人类批准后由控制面建群；所有房间人类可见。
+- agent 通过 `REQUEST_ROOM` 建房；默认 open 自动建群，approval 时人工批准；所有房间人类可见。
 - 历史搜索只覆盖每个房间最近 100 条；更早需要分页或索引。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
@@ -323,6 +325,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - **跨房间记忆 PASS**：私聊说暗号 → 群里问，它记得但按隐私规则拒绝在群里复述；群里说发布代号 `海豚-7` → 私聊问，直接答出。
 - **邀请成员 PASS**：`POST /api/rooms/:id/members` 把 researcher 加进群，成员表更新。
 - **移除成员 PASS（2026-11-17）**：临时群 human+script-peer+intake，DELETE script-peer 返回 200；bootstrap 成员变为 human+intake；engine 成员同步；随后删除房间。第一次 `syncRoom` 用已离开 client 导致 403，改为 `removeRoomMember` 后复测通过。
+- **自治默认开放 PASS（2026-11-18）**：policy=`agentRooms:open`，PM `REQUEST_ROOM: dm @intake` 直接创建 `私聊-需求顾问` 群（human+PM+intake）；PATCH 可切 approval/open；测试房已清理。
 - **Agent 申请房间 PASS（2026-11-17）**：PM 输出 `REQUEST_ROOM: dm @intake` → 消息 intent=room_request，room={kind:dm,name:私聊-需求顾问,agentIds:[intake]}；模拟批准建群，成员 human+PM+intake；重复批准返回同一房间；删除测试房间。
 - **图片消息 PASS**：SVG 上传 → `m.image` → `/api/media` 返回 `image/svg+xml` 346 bytes。
 - **删除会话 PASS**：测试群删除后 `bootstrap` 不再出现。

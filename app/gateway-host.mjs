@@ -71,6 +71,7 @@ export async function createHost({
   onTaskDone = null,
   onTaskBlocked = null,
   onTaskFailed = null,
+  onRoomRequest = null,
   log = console.log,
 }) {
   const humanId = store.human.id;
@@ -164,6 +165,7 @@ export async function createHost({
     onTaskDone,
     onTaskBlocked,
     onTaskFailed,
+    onRoomRequest,
     log,
   });
 
@@ -202,6 +204,7 @@ export async function createHost({
         }
       }
       runtimes.clear();
+      gateway.resetAfterKill();
       log("[gateway] hard killed: sync stopped, runtimes closed");
     },
 

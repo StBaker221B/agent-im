@@ -58,6 +58,7 @@ export class Gateway {
     onTaskDone = null,
     onTaskBlocked = null,
     onTaskFailed = null,
+    onRoomRequest = null,
     now = () => Date.now(),
     log = console.log,
   }) {
@@ -84,6 +85,7 @@ export class Gateway {
     this.onTaskDone = onTaskDone;
     this.onTaskBlocked = onTaskBlocked;
     this.onTaskFailed = onTaskFailed;
+    this.onRoomRequest = onRoomRequest;
     this.lastTurnAt = new Map();
     this.turnTimes = new Map();
 
@@ -94,6 +96,7 @@ export class Gateway {
     this.roomClients = new Map();
     this.queue = Promise.resolve();
     this.loops = [];
+    this.runGeneration = 0;
     this.tickTimer = null;
     this.saveTimer = null;
     this.running = false;
@@ -136,6 +139,8 @@ export class Gateway {
   async start() {
     if (this.running) return;
     this.running = true;
+    this.runGeneration += 1;
+    this.loops = [];
     for (const [agentId, client] of this.clients) {
       try {
         await client.connect?.();
@@ -159,6 +164,7 @@ export class Gateway {
   async stop({ timeoutMs = 2000 } = {}) {
     if (!this.running) return;
     this.running = false;
+    this.runGeneration += 1;
     if (this.tickTimer) clearInterval(this.tickTimer);
     this.tickTimer = null;
     if (this.saveTimer) {
@@ -227,6 +233,26 @@ export class Gateway {
     return Boolean(client);
   }
 
+  /** Drop stale turn/floor state after a hard kill; call before resume. */
+  resetAfterKill() {
+    for (const thread of this.engine.threads.values()) {
+      if (thread.floor?.holder) thread.states.set(thread.floor.holder, "error");
+      if (thread.floor) {
+        thread.floor.holder = null;
+        thread.floor.human = false;
+        thread.floor.expiresAt = null;
+        thread.floor.queue = [];
+        thread.floor.version += 1;
+      }
+      thread.pendingApprovals?.clear();
+    }
+    this.queue = Promise.resolve();
+    this.sessions.clear();
+    this.lastTurnAt.clear();
+    this.turnTimes.clear();
+    this.log("[gateway] stale turn/floor state cleared after kill");
+  }
+
   /** Drop a member from an engine room after their Matrix leave succeeded. */
   removeRoomMember(roomId, agentId) {
     const room = this.engine.rooms.get(roomId);
@@ -281,11 +307,12 @@ export class Gateway {
   }
 
   async #syncLoop(agentId, client) {
-    while (this.running) {
+    const generation = this.runGeneration;
+    while (this.running && generation === this.runGeneration) {
       try {
         const since = this.since.get(agentId);
         const { events, nextToken } = await client.sync(since, { timeoutMs: this.syncTimeoutMs });
-        if (!this.running || !this.clients.has(agentId)) break;
+        if (!this.running || generation !== this.runGeneration || !this.clients.has(agentId)) break;
         for (const ev of events) {
           await this.#enqueue(() => this.#ingest(ev, client));
         }
@@ -624,15 +651,30 @@ export class Gateway {
       } else {
         const names = targets.map((id) => this.engine.agents.get(id)?.displayName ?? id);
         const name = kind === "group" ? action.roomName || `群聊-${names.join("-")}` : `私聊-${names[0]}`;
-        outbound = {
-          type: "room_request",
-          text:
-            kind === "dm"
-              ? `申请创建私聊：${names.map((n) => `@${n}`).join("、")}（人类可见）`
-              : `申请创建群「${name}」：${names.map((n) => `@${n}`).join("、")}`,
-          intent: "room_request",
-          room: { kind, name, agentIds: targets },
-        };
+        let created = null;
+        try {
+          created = await this.onRoomRequest?.({ agentId, roomId, roomKind: kind, roomName: name, targets });
+        } catch (err) {
+          this.audit.write({ kind: "room_create_error", agentId, error: String(err) });
+        }
+        if (created?.room) {
+          outbound = {
+            type: "room_created",
+            text: `已创建${kind === "dm" ? "私聊" : "群"}「${created.room.name}」`,
+            intent: "room_created",
+          };
+          this.audit.write({ kind: "room_created", agentId, roomId: created.room.id });
+        } else {
+          outbound = {
+            type: "room_request",
+            text:
+              kind === "dm"
+                ? `申请创建私聊：${names.map((n) => `@${n}`).join("、")}（人类可见）`
+                : `申请创建群「${name}」：${names.map((n) => `@${n}`).join("、")}`,
+            intent: "room_request",
+            room: { kind, name, agentIds: targets },
+          };
+        }
       }
     } else if (action.type === "block" || action.type === "fail") {
       const failed = action.type === "fail";

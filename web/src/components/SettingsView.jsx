@@ -9,6 +9,7 @@ export default function SettingsView({
   notifications,
   onToggleNotifications,
   onPauseAll,
+  onUpdatePolicy,
   onHardKill,
   onBack,
 }) {
@@ -65,6 +66,24 @@ export default function SettingsView({
             </dd>
           </div>
         </dl>
+      </div>
+
+      <div className="settings-section">
+        <h3>自治</h3>
+        <p className="settings-note">
+          默认完全开放：agent 可主动建房/联系，budget 0=不限，不强制审批。需要收紧时在这里改。
+          指定工作目录内可自由操作；目录外仍受 toolsMode 限制。
+        </p>
+        <label className="field compact">
+          <span>agent 主动建群/私聊</span>
+          <select
+            value={data?.policy?.agentRooms ?? "open"}
+            onChange={(e) => onUpdatePolicy?.({ agentRooms: e.target.value })}
+          >
+            <option value="open">开放（默认，无需审批）</option>
+            <option value="approval">需要人类批准</option>
+          </select>
+        </label>
       </div>
 
       <div className="settings-section">

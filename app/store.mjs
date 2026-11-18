@@ -212,6 +212,9 @@ export class Store {
     for (const room of this.state.rooms) {
       if (!room.mode) room.mode = "brief";
     }
+    if (!this.state.policy) {
+      this.state.policy = { agentRooms: "open", agentContact: "open" };
+    }
     this.save();
   }
 
@@ -242,6 +245,16 @@ export class Store {
 
   get rooms() {
     return this.state.rooms;
+  }
+
+  get policy() {
+    return this.state.policy;
+  }
+
+  updatePolicy(patch) {
+    this.state.policy = { ...this.state.policy, ...patch };
+    this.save();
+    return this.state.policy;
   }
 
   agent(idOrName) {

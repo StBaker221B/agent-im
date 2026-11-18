@@ -109,6 +109,7 @@ const host = await createHost({
   onTaskDone: taskDoneByAgent,
   onTaskBlocked: taskBlockedByAgent,
   onTaskFailed: taskFailedByAgent,
+  onRoomRequest: roomRequestedByAgent,
   log,
 });
 await host.start();
@@ -280,6 +281,7 @@ async function bootstrap() {
     serverName: store.serverName,
     agents,
     rooms,
+    policy: store.policy,
     totalUnread: rooms.reduce((n, r) => n + r.unread, 0),
     killed,
   };
@@ -716,6 +718,29 @@ function taskRoom(roomId) {
   return room;
 }
 
+async function roomRequestedByAgent({ agentId, roomKind, roomName, targets }) {
+  if (store.policy.agentRooms !== "open") return null;
+  const requester = store.agent(agentId);
+  if (!requester || requester.status === "deleted") return null;
+  const ids = [...new Set([agentId, ...(targets ?? [])])].filter((id) => {
+    const agent = store.agent(id);
+    return agent && agent.status !== "deleted";
+  });
+  if (ids.length < 2) return null;
+  const names = ids.map((id) => store.agent(id)?.displayName ?? localpart(id));
+  const name =
+    String(roomName || "").trim() ||
+    (roomKind === "dm" ? `私聊-${names[1]}` : `群聊-${names.slice(1).join("-")}`);
+  try {
+    const result = await createGroup({ name, agentIds: ids });
+    log(`[app] agent room request auto-created ${result.room.id} by ${agentId}`);
+    return { room: result.room, existing: result.existing };
+  } catch (err) {
+    log(`[app] agent room request failed: ${err.message}`);
+    return null;
+  }
+}
+
 async function taskCreatedByAgent({ agentId, roomId, title }) {
   taskAgent(agentId);
   taskRoom(roomId);
@@ -1130,6 +1155,19 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/team-templates") {
     return json(res, 200, { teams: TEAM_LIST.map(publicTeam) });
+  }
+
+  if (req.method === "PATCH" && url.pathname === "/api/settings") {
+    const body = await readBody(req);
+    const patch = {};
+    for (const key of ["agentRooms", "agentContact"]) {
+      if (body.policy?.[key] === undefined) continue;
+      if (!["open", "approval"].includes(body.policy[key])) {
+        throw Object.assign(new Error(`bad policy.${key}`), { status: 400 });
+      }
+      patch[key] = body.policy[key];
+    }
+    return json(res, 200, { policy: store.updatePolicy(patch) });
   }
 
   if (req.method === "POST" && parts[1] === "team-templates" && parts[3] === "create" && parts.length === 4) {

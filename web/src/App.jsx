@@ -421,6 +421,16 @@ export default function App() {
     }
   }
 
+  async function updatePolicy(policy) {
+    try {
+      await api.updateSettings(policy);
+      await loadBootstrap();
+      notify("自治策略已保存");
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
   async function hardKill(kill) {
     if (
       kill &&
@@ -667,6 +677,7 @@ export default function App() {
             notifications={notifications}
             onToggleNotifications={toggleNotifications}
             onPauseAll={pauseAll}
+            onUpdatePolicy={updatePolicy}
             onHardKill={hardKill}
             onBack={() => setMobilePane("list")}
           />

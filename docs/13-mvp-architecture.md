@@ -44,6 +44,7 @@
 - Agents 页可按名字/角色/模板/职责筛选；资料弹窗显示职责/边界/决策权/工具/capabilities。
 - PWA：manifest/SVG icon/service worker 真正 network-first shell cache（失败才回缓存）；空会话页有首次使用 4 步引导。
 - 消息可复制深链 `#/room/<id>/message/<eventId>`；搜索结果打开也写深链。
+- 任务卡片「详情」显示 checkpoints + audit 时间线；
 - 消息可 👍/撤销；气泡下显示 reaction count，自己的 chip 可点；
 - 消息悬浮「讨论 N」打开 thread 面板，可发送 thread 回复；N 是当前页内回复数；
 - 聊天顶部「加载更早的消息」用 Matrix from token 分页；
@@ -304,6 +305,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - PWA 只缓存 shell；离线无数据；只有 SVG icon；没有 Lighthouse/axe/真机验证。
 - Thread/深链已在 Chromium 深色主题实机验证；Firefox/Safari/移动端未测。
 - 深链只能定位已加载的最近 100 条/已翻页消息；不会自动翻页找更早消息。
+- 任务详情不是完整回放：usage/turn 审计无 taskId；没有任务详情的独立 URL。
 - 流式只流最终文本 delta，不流工具参数/思考；SSE 没有事件回放/断线补发。
 - 工具审批是 turn 后合作式：工具先被拒，模型再 `REQUEST_TOOL`；批准是单工具、agent 级持久 grant，不是执行前拦截，也没有按 thread/过期。支持图片/文件，但没有语音/视频、缩略图和断点续传。
 - 跨房间 transcript 会持续增长，token 成本更高；隐私靠系统提示约束，不是硬隔离。

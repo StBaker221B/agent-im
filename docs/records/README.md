@@ -74,3 +74,4 @@
 | 48 | [2026-11-18 消息深链](2026-11-18-44-message-deeplinks.md) | `#/room/:id/message/:eventId`、复制链接、focus |
 | 49 | [2026-11-18 深搜历史](2026-11-18-45-deep-search.md) | search pages=1..5、每房间最多 500 条、checkbox |
 | 50 | [2026-11-18 UI 实机检查](2026-11-18-46-ui-review-fixes.md) | CSS 变量、SW network-first、thread/深链实机验证 |
+| 51 | [2026-11-18 任务详情/审计时间线](2026-11-18-47-task-detail-replay.md) | `/api/tasks/:id/events`、checkpoints+audit modal |

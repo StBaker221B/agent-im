@@ -113,6 +113,7 @@ curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 | 待办/告警 | `GET /api/alerts` + `AlertsView.jsx`；聚合 24h 请求、needsAttention/failed/blocked、超预算、系统；页内可批准/拒绝工具或建房、重开任务；数量增加且页面隐藏时桌面通知 |
 | 活动/审计、全局暂停、硬 kill | `GET /api/audit` + `ActivityView.jsx`；`/api/admin/pause-all`、`/api/admin/kill` + SettingsView；硬 kill 会停 sync/关 runtime |
 | Worktree | `app/worktrees.mjs` + `POST/DELETE /api/agents/:id/worktree`；独立 branch/cwd；merge 需人类 API/UI 确认，dirty/detached 拒绝 |
+| 任务详情 | `GET /api/tasks/:id/events` + TaskDetailModal：checkpoints + taskId audit 时间线 |
 | 任务台账 | `app/tasks.mjs` + `GET/POST/PATCH /api/tasks` + `TasksView.jsx`；30s tick 到期派发 |
 | 媒体缓存（agent 读图） | `spike/src/gateway.mjs`（`mediaDir` / `#cacheMedia`） |
 | 历史搜索 | `app/server.mjs` `/api/search?pages=1..5` + `SearchView.jsx` 深搜；无结果 cursor |

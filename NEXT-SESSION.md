@@ -30,7 +30,7 @@
 4. **C（W4）**：@未读、分页、reaction、thread 面板、消息深链、深搜已做；待 agent reaction、thread 分页/未读、搜索结果分页/索引。
 - benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
 5. **D（W4+）**：agent card/Agents 筛选已做；待 disabled/独立 Directory、API auth/roles/ACL（第二人类后置）。
-6. **F**：PWA shell（network-first）/空态引导/Chromium 实机检查已做；待交互式 onboarding、intake 一键、任务详情/停止状态恢复、真机/Lighthouse/a11y。
+6. **F**：PWA shell（network-first）/空态引导/Chromium 实机检查已做；待交互式 onboarding、intake 一键、停止状态恢复、真机/Lighthouse/a11y；任务详情已做。
 
 ## 改前必做
 

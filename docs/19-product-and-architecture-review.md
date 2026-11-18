@@ -96,12 +96,12 @@
 
 **A–F 最小切片**（详见 §7）：
 
-- A 治理：待办收件箱已做；待统一事件、task/thread 回放、后台告警推送（桌面 alert 推送/显式拒绝已做）。
+- A 治理：待办收件箱已做；待统一事件、完整 task/thread 回放（任务详情/审计时间线已做）、后台告警推送（桌面 alert 推送/显式拒绝已做）。
 - B 长期：cron/补跑、retry/backoff/升级、turn “需关注”、守护进程、72h soak。
 - C IM：thread 面板、@未读、深链、深搜已做；待搜索 cursor/索引、thread 分页/未读、decision/proposal UI。
 - D 身份：API auth/roles/ACL、第二人类（如果决定）、actor on events。
 - E 隔离：worktree/branch + merge 审批已做；待 OS 只读 reviewer、容器、一个非 Claude adapter。
-- F UX：空态引导、PWA shell（network-first）、aria-live/减动效、Chromium 实机检查已做；待交互式 onboarding、intake 一键、任务详情、停止状态恢复、真机/Lighthouse。
+- F UX：空态引导、PWA shell（network-first）、aria-live/减动效、Chromium 实机检查已做；待交互式 onboarding、intake 一键、停止状态恢复、真机/Lighthouse；任务详情已做。
 
 ## 5. 代码架构：现状与改进
 

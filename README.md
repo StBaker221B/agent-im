@@ -73,7 +73,7 @@ npm run format       # 自动格式化
 
 > 完整功能/需求状态矩阵见 [docs/19 §2](docs/19-product-and-architecture-review.md#2-需求状态矩阵)；这里只放一句话摘要。
 
-- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、全局设置 + agent 独立设置页、活动/审计页、待办/告警收件箱、全局暂停、持久任务台账/agent TASK-DONE-BLOCK-FAIL/退避重试/needsAttention、运维脚本/审计导出/autostart、worktree 工作区/人工合并、PWA shell、邀请/移除群成员、agent 申请房间（人类批准）、头像资料、`human_all` 自行判断、自由讨论、**13 个角色模板 + 角色知识包 + 3 个团队模板 + 工具权限三档 + triage/用量/预算/暂停 + token 流 + 工具申请/批准 + 消息时间戳 + agent 软删除 + 可重复 benchmark + intake 需求评估**、**自主修测试实验（工具 + coder/reviewer 闭环）**。
+- 已通：真实 Matrix E2E、自建网页、创建 agent/DM/群、邀请成员、删除会话、图片/文件（agent 能读图）、历史搜索、全局设置 + agent 独立设置页、活动/审计页、待办/告警收件箱、全局暂停、持久任务台账/任务详情时间线/agent TASK-DONE-BLOCK-FAIL/退避重试/needsAttention、运维脚本/审计导出/autostart、worktree 工作区/人工合并、PWA shell、邀请/移除群成员、agent 申请房间（人类批准）、头像资料、`human_all` 自行判断、自由讨论、**13 个角色模板 + 角色知识包 + 3 个团队模板 + 工具权限三档 + triage/用量/预算/暂停 + token 流 + 工具申请/批准 + 消息时间戳 + agent 软删除 + 可重复 benchmark + intake 需求评估**、**自主修测试实验（工具 + coder/reviewer 闭环）**。
 - 长期驻守：agent/房间/session/成本记录 + 任务台账/到期派发/固定间隔重复/checkpoint/agent TASK-DONE 可重启恢复；无 cron/补跑、未完成 turn 恢复、进程守护。
 - 同一个 agent 跨房间共享记忆（一个 Claude session），但私聊内容不主动带到群聊，靠系统提示约束。
 - 限制：全局串行、执行前审批/强沙箱未做、不能硬删除/恢复 agent、不能邀请第二个人类、agent 只能申请房间（人类批准）、单人类、无 E2E 加密。

@@ -151,7 +151,8 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 | `POST /api/agents` | `{username,displayName,runtime,templateId,toolsMode,dailyBudgetUsd,cwd,roles,systemPrompt}`；注册 Matrix 用户并 attach |
 | `PATCH /api/agents/:id` | `{displayName,templateId,toolsMode,dailyBudgetUsd,status,triage,cwd,roles,wakePolicy,systemPrompt}`；template/工具/提示/cwd 变更会重建 runtime；status/triage 即时生效 |
 | `DELETE /api/agents/:id` | 软删除：离开群、删 DM、隐藏 agent、停 sync；账号/历史保留 |
-| `POST/DELETE /api/agents/:id/worktree` | 创建/移除独立 git worktree，切换 agent cwd；不自动 merge |
+| `POST/DELETE /api/agents/:id/worktree` | 创建/移除独立 git worktree，切换 agent cwd |
+| `POST /api/agents/:id/worktree/merge` | 人工确认后把 worktree branch merge 到当前分支；dirty/detached/self 拒绝 |
 | `POST /api/agents/:id/approve-tool` | `{tool,roomId}`；把工具加入 `approvedTools`（单工具）、重建 runtime，并以人类身份 @ agent 让它继续 |
 | `GET /api/events` | SSE；`turn_start/text_delta/tool_use/tool_result/turn_end/skip`，带 roomId/agentId |
 | `GET /api/usage` | 按 agent 汇总 audit 里的 today/累计 turns 和 USD |
@@ -293,7 +294,7 @@ Matrix homeserver（Tuwunel 2.0.0，WSL2，127.0.0.1:8008）
 - 链上限 10 仍可能产生多轮 agent 消息，成本相应更高；agent 不保证一定互相接话，仍由它们自己判断。
 - triage 参数可按 agent 配，但默认值写死在 Gateway；每日 USD 预算按 UTC 日、内存恢复，没有全局总额。
 - 工具权限仍是弱隔离；`full` 模式可写，reviewer 的只读靠 prompt，不是强沙箱。
-- worktree 隔离了工作目录，但没有 merge 审批、OS 只读、容器/凭据隔离；删除 agent 不自动清 worktree。
+- worktree 隔离了工作目录；merge 需人类确认，但没有冲突解决 UI/审批记录/CI 门禁/OS 只读/容器；删除 agent 不自动清 worktree。
 - 单人类；没有邀请第二个人类。
 - 没有 E2E 加密（透明房间）。
 - agent 的 cwd 默认是各自的空 workspace；可以按 API 指定 `cwd` 共享沙箱，但没有 worktree/容器隔离。

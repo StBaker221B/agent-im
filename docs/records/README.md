@@ -65,3 +65,4 @@
 | 39 | [2026-11-18 待办/告警收件箱](2026-11-18-35-alerts-inbox.md) | 审批/任务/预算/系统聚合，侧栏待办页，跳转房间/任务 |
 | 40 | [2026-11-18 Agent Worktree](2026-11-18-36-worktree-workspace.md) | 独立 git worktree/branch、cwd 切换、移除；无 merge 审批 |
 | 41 | [2026-11-18 @/请求未读](2026-11-18-37-mention-unread.md) | mentionUnread、侧栏 @ badge、tab title/通知前缀 |
+| 42 | [2026-11-18 Worktree 合并](2026-11-18-38-worktree-merge.md) | 人工确认 merge、dirty/detached 检查、分支测试 |

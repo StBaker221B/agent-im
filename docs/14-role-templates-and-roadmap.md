@@ -147,7 +147,7 @@
 | 长期驻守 / intake | ⚠️ v1 已做 | `@intake` 顾问、任务台账/到期派发/固定间隔+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；时区/节假日/多次补跑、turn 恢复、告警、72h soak 待做 | 3–4d |
 | 多用户/鉴权 | ⏳ 未做 | 登录、权限、房间 ACL、人类邀请 | 3–5d |
 | 数据平台/治理 | ⚠️ v2 已做 | 活动/审计导出、用量、全局暂停/硬 kill、待办收件箱；回放/直接审批/告警推送/会话检索待做 | 2–3d |
-| 第二 runtime / worktree | ⚠️ 部分 | worktree/branch 创建/移除已做；merge 审批、OS 只读/容器、第二 runtime 待做 | 3–5d |
+| 第二 runtime / worktree | ⚠️ 部分 | worktree/branch 创建/移除 + 人工确认 merge 已做；OS 只读/容器、第二 runtime 待做 | 3–5d |
 | 搜索分页/索引 | ⚠️ 部分 | 现在每房间最近 100 条；分页/索引 | 1–2d |
 | 运维/部署 | ⚠️ 部分 | start/backup/restore 脚本、audit 导出已做；守护进程/定时备份/异地备份/打包待做 | 1–2d |
 | App/Web 自动化测试 + CI | ⏳ 未做 | API/store/UI 测试、CI | 2–3d |
@@ -165,7 +165,7 @@
 
 **第 2 周：工具与治理**
 
-4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准、coder worktree 已做；执行前审批、按 thread/过期授权、reviewer OS 只读/容器待做。
+4. 工具审批 v1 + 沙箱：合作式 REQUEST_TOOL/单工具批准、coder worktree/merge 已做；执行前审批、按 thread/过期授权、reviewer OS 只读/容器待做。
 5. 流式输出：token delta + SSE + UI 实时气泡已做；tool_use 参数/思考流待做。
 6. Agent/房间生命周期：暂停（`paused_skip`）、软删除、移除群成员、agent 申请房间已完成；硬删除/undelete、邀请人类、批量操作待做。
 7. 长期驻守/intake：需求在 [16](16-long-running-and-intake.md)；v1 有 `@intake`、任务台账/到期派发/interval+cron/checkpoint/agent TASK-DONE/退避重试/needsAttention、重启不重发；待做时区/节假日/多次补跑、turn 恢复、告警、按 `RECOMMEND` 一键建队。

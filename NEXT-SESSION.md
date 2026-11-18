@@ -25,7 +25,7 @@
 
 1. **B（W1）**：已完成 retry/backoff、needsAttention、autostart/watchdog；待时区/节假日、多次补跑、告警、真正 72h soak（短 harness 已过）。
 2. **A（W2）**：待办收件箱已做（请求/任务/预算/系统，可页内批准/重开）；待事件 schema、回放、显式拒绝、告警推送。
-3. **E（W3）**：worktree/branch 创建/移除已做；待 merge 人类批准、OS 只读/容器；coding pilot。
+3. **E（W3）**：worktree/branch 创建/移除已做；人工确认 merge 已做；待冲突 UI/OS 只读/容器、coding pilot。
 4. **C（W4）**：@未读 badge 已做；待 thread 面板/深链、reaction、搜索分页。
 - benchmark 已加 baseline/baseline-subagent（单任务单次），待更多任务/N≥3/隔离配置。
 5. **D（W4+）**：API auth/roles/ACL（若决定多用户）、agent card/能力目录、disabled/multi-instance。

@@ -219,8 +219,14 @@ function mentionIdsIn(text, room) {
 
 async function roomMessagesPage(roomId, { limit = 100, from = null } = {}) {
   const page = await human.getMessagesPage(roomId, { limit, from });
+  const reactions = {};
+  for (const event of page.messages) {
+    if (event.kind !== "reaction" || !event.targetId) continue;
+    (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+  }
   return {
     messages: page.messages.filter((m) => m.text && m.threadId === "main"),
+    reactions,
     next: page.end ?? null,
   };
 }
@@ -1492,13 +1498,33 @@ async function handleApi(req, res, url) {
     return json(res, 200, { query: q, results: results.slice(0, 60) });
   }
 
+  if (req.method === "POST" && parts[1] === "rooms" && parts[3] === "reactions" && parts.length === 4) {
+    const roomId = decodeURIComponent(parts[2]);
+    const room = store.room(roomId);
+    if (!room) return json(res, 404, { error: "room not found" });
+    const body = await readBody(req);
+    const messageId = String(body.messageId ?? "").trim();
+    const key = String(body.key ?? "👍")
+      .trim()
+      .slice(0, 16);
+    if (!messageId || !key) return json(res, 400, { error: "messageId/key required" });
+    const target = await human.getEvent(roomId, messageId).catch(() => null);
+    if (!target?.text) return json(res, 404, { error: "message not found" });
+    await human.sendReaction(roomId, messageId, key);
+    return json(res, 200, { ok: true, messageId, key });
+  }
+
   if (req.method === "GET" && parts[1] === "rooms" && parts[3] === "messages" && parts.length === 4) {
     const roomId = decodeURIComponent(parts[2]);
     if (!store.room(roomId)) return json(res, 404, { error: "room not found" });
     const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit")) || 100));
     const from = url.searchParams.get("from") || null;
     const page = await roomMessagesPage(roomId, { limit, from });
-    return json(res, 200, { messages: page.messages.map(messageView), next: page.next });
+    return json(res, 200, {
+      messages: page.messages.map(messageView),
+      reactions: page.reactions,
+      next: page.next,
+    });
   }
 
   if (req.method === "POST" && parts[1] === "rooms" && parts[3] === "messages" && parts.length === 4) {

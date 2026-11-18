@@ -413,6 +413,10 @@ export class Gateway {
     // echoes. Restart hydration uses it to include past agent replies.
     if (ev?.createdAt) this.lastTs = Math.max(this.lastTs, ev.createdAt);
     if (!ev?.id || this.processed.has(ev.id)) return;
+    if (ev.kind === "reaction") {
+      this.processed.add(ev.id);
+      return;
+    }
     await this.#ensureRoom(ev.roomId, { beforeTs: ev.createdAt, client });
     const room = this.engine.rooms.get(ev.roomId);
     if (!room) return;

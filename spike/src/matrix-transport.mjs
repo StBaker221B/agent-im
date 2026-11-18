@@ -154,6 +154,24 @@ export class MatrixClient {
     return this.#normalize(roomId, ev);
   }
 
+  async sendReaction(roomId, eventId, key) {
+    const txnId = this.#nextTxnId();
+    await this.#request(
+      "PUT",
+      `/rooms/${encodeURIComponent(roomId)}/send/m.reaction/${encodeURIComponent(txnId)}`,
+      {
+        body: {
+          "m.relates_to": {
+            rel_type: "m.annotation",
+            event_id: eventId,
+            key: String(key ?? "👍").slice(0, 16),
+          },
+        },
+      },
+    );
+    return txnId;
+  }
+
   async send(roomId, payload = {}) {
     const txnId = payload.txnId ?? this.#nextTxnId();
     const content = {
@@ -230,6 +248,20 @@ export class MatrixClient {
   }
 
   #normalize(roomId, ev) {
+    if (ev?.type === "m.reaction") {
+      const rel = ev.content?.["m.relates_to"];
+      if (rel?.rel_type !== "m.annotation" || !rel.event_id || !rel.key) return null;
+      return {
+        kind: "reaction",
+        id: ev.event_id,
+        roomId,
+        sender: ev.sender,
+        senderKind: this.kinds.get(ev.sender) ?? "human",
+        targetId: rel.event_id,
+        key: String(rel.key).slice(0, 16),
+        createdAt: ev.origin_server_ts ?? Date.now(),
+      };
+    }
     if (!ev || ev.type !== "m.room.message") return null;
     const content = ev.content ?? {};
     const allowed = new Set(["m.text", "m.notice", "m.image", "m.file"]);

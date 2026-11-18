@@ -59,6 +59,11 @@ export const api = {
       method: "POST",
       body: { text, replyTo },
     }),
+  react: (roomId, messageId, key = "👍") =>
+    request(`/api/rooms/${encodeURIComponent(roomId)}/reactions`, {
+      method: "POST",
+      body: { messageId, key },
+    }),
   read: (roomId, ts) =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/read`, { method: "POST", body: { ts } }),
   createDm: (agentId) => request("/api/rooms", { method: "POST", body: { kind: "dm", agentId } }),

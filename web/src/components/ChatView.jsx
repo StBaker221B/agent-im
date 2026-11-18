@@ -80,9 +80,11 @@ export default function ChatView({
   agentsById,
   activity,
   live,
+  reactions,
   hasMore,
   loadingOlder,
   onLoadMore,
+  onReact,
   sending,
   uploading,
   focusId,
@@ -361,6 +363,12 @@ export default function ChatView({
             const mine = message.sender === human.id;
             const color = mine ? "var(--own)" : colorFor(member?.name ?? message.senderName);
             const parent = message.replyTo ? messageById.get(message.replyTo) : null;
+            const reactionList = reactions?.[message.id] ?? [];
+            const reactionCounts = reactionList.reduce((map, item) => {
+              map.set(item.key, (map.get(item.key) ?? 0) + 1);
+              return map;
+            }, new Map());
+            const liked = reactionList.some((item) => item.sender === human.id && item.key === "👍");
 
             return (
               <div key={message.id}>
@@ -394,6 +402,19 @@ export default function ChatView({
                         >
                           回复
                         </button>
+                        {onReact && (
+                          <button
+                            type="button"
+                            className="reply-action"
+                            title={liked ? "已点赞" : "点赞"}
+                            aria-label="点赞"
+                            aria-pressed={liked}
+                            disabled={liked}
+                            onClick={() => onReact(message.id, "👍")}
+                          >
+                            👍
+                          </button>
+                        )}
                       </div>
                     )}
                     {message.replyTo && (
@@ -410,6 +431,15 @@ export default function ChatView({
                     >
                       {renderContent(message, mentionPattern)}
                     </div>
+                    {reactionCounts.size > 0 && (
+                      <div className="reaction-row">
+                        {[...reactionCounts.entries()].map(([key, count]) => (
+                          <span className="reaction-chip" key={key}>
+                            {key} {count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {!mine && message.intent === "room_request" && message.room && (
                       <button type="button" className="approve-tool" onClick={() => onApproveRoom(message)}>
                         {message.room.kind === "dm"

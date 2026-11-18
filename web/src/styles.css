@@ -713,6 +713,23 @@ button {
   }
 }
 
+.reaction-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.reaction-chip {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 17px;
+}
+
 .reply-quote {
   max-width: min(560px, 100%);
   margin: 0 0 4px;

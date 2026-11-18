@@ -49,6 +49,7 @@ export default function App() {
   const [view, setView] = useState("chat");
   const [settingsAgentId, setSettingsAgentId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [reactions, setReactions] = useState({});
   const [historyNext, setHistoryNext] = useState(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [modal, setModal] = useState(null); // chat | agent | invite
@@ -252,12 +253,14 @@ export default function App() {
     let alive = true;
     let first = true;
     setMessages([]);
+    setReactions({});
     setHistoryNext(null);
     const load = async () => {
       try {
         const res = await api.messages(activeRoomId);
         if (alive) {
           setMessages((prev) => mergeMessages(prev, res.messages));
+          setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
           if (first) {
             setHistoryNext(res.next ?? null);
             first = false;
@@ -281,6 +284,7 @@ export default function App() {
     try {
       const res = await api.messages(activeRoomId, { from: historyNext, limit: 100 });
       setMessages((prev) => mergeMessages(prev, res.messages));
+      setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
       setHistoryNext(res.next ?? null);
     } catch (err) {
       notify(err.message);
@@ -353,6 +357,7 @@ export default function App() {
     setView("chat");
     setMobilePane("chat");
     setMessages([]);
+    setReactions({});
     setHistoryNext(null);
     setModal(null);
     setFocusMessageId(null);
@@ -505,6 +510,17 @@ export default function App() {
     try {
       await api.updateTask(taskId, { status });
       await loadBootstrap();
+    } catch (err) {
+      notify(err.message);
+    }
+  }
+
+  async function reactToMessage(messageId, key = "👍") {
+    if (!activeRoomId) return;
+    try {
+      await api.react(activeRoomId, messageId, key);
+      const res = await api.messages(activeRoomId);
+      setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
     } catch (err) {
       notify(err.message);
     }
@@ -809,9 +825,11 @@ export default function App() {
             agentsById={agentsById}
             activity={activeRoom.activity}
             live={live}
+            reactions={reactions}
             hasMore={Boolean(historyNext)}
             loadingOlder={loadingOlder}
             onLoadMore={loadOlder}
+            onReact={reactToMessage}
             sending={busy || uploading}
             uploading={uploading}
             focusId={focusMessageId}

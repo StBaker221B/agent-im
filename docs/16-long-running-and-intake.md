@@ -87,7 +87,7 @@ v0 已实现：`POST /api/intake` 确保一个 `@intake` 需求顾问、打开/�
 - `app/data/state.json` 保存 human/agents/rooms；重启恢复；
 - `gateway-state.json` 保存 sync since/processed；重启去重；
 - `app/data/tasks.json` 持久任务台账：status/owner/room/dueAt/intervalMinutes/checkpoints；
-- 任务调度：启动 5s 后 + 每 30s 派发 pending+到期任务；一次性 active，固定间隔重复回到 pending 排下一次；重启不重发 active；
+- 任务调度：启动 5s 后 + 每 30s 派发 pending+到期任务；一次性 active，固定间隔/cron 重复回到 pending 排下一次；重启不重发 active；
 - agent session 存在本地；已多次重启验证不重复回复。
 
 差距：

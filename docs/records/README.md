@@ -59,3 +59,4 @@
 | 33 | [2026-11-18 硬 kill](2026-11-18-29-hard-kill.md) | 停止 sync/runtime、killed 状态、恢复重建、消息补消费 |
 | 34 | [2026-11-18 自治默认开放](2026-11-18-30-autonomy-open.md) | agentRooms open/approval、自动建房、policy 设置、kill reset |
 | 35 | [2026-11-18 任务重试/需关注/自启](2026-11-18-31-task-retry-autostart.md) | 指数退避重试、耗尽升级、markStale、install-autostart |
+| 36 | [2026-11-18 任务 Cron](2026-11-18-32-cron-schedule.md) | 5 段 cron、本地时区、DOM/DOW OR、下一次计算 |

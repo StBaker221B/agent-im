@@ -27,6 +27,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
   "roomId": "!room:localhost",
   "dueAt": "2026-11-17T10:29:14.476Z",
   "intervalMinutes": 0,
+  "cron": null,
   "maxRetries": 2,
   "retryCount": 0,
   "retryBackoffMinutes": 5,
@@ -43,7 +44,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 ```
 
 - `dueAt` 为空 = 不自动派发，可手动“派发”。
-- `intervalMinutes > 0` = 重复任务：派发后按间隔排下一次，status 回到 pending；`0` 为一次性任务（派发后 active）。
+- `intervalMinutes > 0` = 固定间隔重复；`cron` = 5 段 cron（本地时区），两者互斥。重复任务派发后 status 回到 pending 并排下一次；都为空为一次性任务（派发后 active）。
 - 状态由人/UI 或 owner `DONE/BLOCK/FAIL` 更新；`FAIL` 会按退避重试，耗尽置 failed/blocked 并标记 needsAttention。
 
 ## 3. API
@@ -51,8 +52,8 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 | API | 行为 |
 |---|---|
 | `GET /api/tasks` | 列出任务（附 owner/room 显示名） |
-| `POST /api/tasks` | `{title,description,owner,roomId,dueAt,intervalMinutes,maxRetries,retryBackoffMinutes,priority}`；创建 pending |
-| `PATCH /api/tasks/:id` | 改 title/description/owner/roomId/dueAt/intervalMinutes/maxRetries/retryBackoffMinutes/status/priority |
+| `POST /api/tasks` | `{title,description,owner,roomId,dueAt,intervalMinutes,cron,maxRetries,retryBackoffMinutes,priority}`；创建 pending |
+| `PATCH /api/tasks/:id` | 改 title/description/owner/roomId/dueAt/intervalMinutes/cron/maxRetries/retryBackoffMinutes/status/priority |
 | `POST /api/tasks/:id/checkpoints` | `{text}` 追加检查点 |
 | `POST /api/tasks/:id/dispatch` | 立即派发（人工触发） |
 
@@ -67,7 +68,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
   - 发送失败：按退避重试；耗尽后 failed/blocked，`lastError` 记录；
   - owner 已暂停：直接 blocked，不发送；
 - 重启后 active/blocked 不会被重新派发；pending 且到期的会在启动 tick 补发一次。
-- 重复任务不做错过补跑：如果服务停机跨过多个周期，恢复后只按新的下一次 dueAt 执行一次。
+- 重复任务（interval 或 cron）不做多次补跑：停机跨过多个周期，恢复后只按下一次执行一次。cron 支持 `*`/`*/n`/`a-b`/列表，本地时区，DOM/DOW 同时受限按 OR。
 - 不恢复进行中的 agent turn；只恢复任务状态。
 - 启动时 active 且 lastDispatchedAt 超过 30 分钟（或无记录）→ `needsAttention=true`，UI 显示「需关注」。
 
@@ -107,11 +108,11 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 - 重试测试 `task-...` maxRetries=1/backoff=1：PM `FAIL: 故意失败` → pending、retry 1/1、dueAt +1min、lastError/checkpoint 正确；随后取消。
 - Agent 全链路 `task-mwktqtce-4b6c34`：PM 输出 `TASK:` → 任务创建（owner=PM, dueAt=null）→ 手动派发 active → PM 输出 `DONE:` → 任务自动 done，checkpoint 记录 `agent DONE`。
 - 阻塞测试：PM 回 `BLOCK: 缺少信息` → 任务 blocked、lastError=缺少信息、checkpoint `agent BLOCK`、消息 intent=blocked。
-- 新增 6 个 TaskStore 单测：持久化、due/dispatch、recurring next、retry/耗尽、markStale、checkpoint/非法更新；spike 共 **41 tests**。
+- 新增 7 个 TaskStore 单测：持久化、due/dispatch、recurring next、cron next、retry/耗尽、markStale、checkpoint/非法更新；spike 共 **42 tests**。
 
 ## 7. 边界
 
-- 只有固定分钟间隔，没有 cron 表达式、工作日/时区规则；停机跨周期不补跑。
+- 有 5 段 cron（本地时区），但没有时区参数、节假日日历、秒级/单次 cron；停机跨周期只补一次。
 - Agent 只能创建 `TASK:`、完成/阻塞/失败 owner 的任务；不能改 owner/due/interval，不能重试。
 - 没有自动检测完成；需要人类或 UI 标记。
 - 退避重试是任务级；没有 jitter/最大延迟/错误类型区分，不恢复 turn。
@@ -120,7 +121,7 @@ v1 先做“人类创建任务 → 到期派发到房间 → 人类/agent 做完
 
 ## 8. 下一步
 
-1. 固定间隔重复已完成；待做 cron/工作日/时区、错过补跑策略。
+1. 固定间隔 + 5 段 cron 已完成；待做时区/节假日、多次补跑策略、下次时间预览。
 2. Agent `TASK:`/`DONE:`/`BLOCK:`/`FAIL:` 与失败退避重试已完成；待做耗尽通知/告警。
 3. 自动完成/失败：owner DONE 已完成；待做超时、连续失败升级、证据校验。
 4. 通知/告警：到期、失败、预算、审批。

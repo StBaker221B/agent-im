@@ -1,7 +1,7 @@
 # 14 角色模板与开发计划
 
 - 状态矩阵与剩余计划以 [19](19-product-and-architecture-review.md) 为准。
-- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱 + worktree 工作区 + @未读 badge + 聊天历史分页 + reaction**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
+- 状态：2026-11-17 **已实现 13 个内置角色模板 + 角色知识包 + 创建/设置 UI + 工具权限三档 + 规则 triage/用量/每日 USD 预算 + 3 个团队模板 + token 流 + 合作式工具审批 + agent 时间戳记忆 + 软删除 + 可重复 benchmark + intake v0 + 活动/审计 + 全局暂停 + 持久任务台账 v1（含固定间隔重复、agent TASK-DONE）+ 运维脚本/audit 导出 + 群成员移除 + agent 申请房间 + BLOCK/FAIL 标记 + 桌面通知 + 消息回复引用 + 全局硬 kill + 自治默认开放可配置 + 任务退避重试/needsAttention/cron + autostart 脚本 + 待办收件箱 + worktree 工作区 + @未读 badge + 聊天历史分页 + reaction + thread 面板**；自定义角色/团队模板、O*NET/ESCO 导入、执行前审批/强沙箱、recurring/长任务 turn 恢复待做。
 - 关联：[13 MVP 架构](13-mvp-architecture.md) · [09 协议](09-agent-protocol.md) · [记录 10 自主修测试](records/2026-11-16-10-autonomy-bugfix.md) · [记录 11 角色模板决策](records/2026-11-16-11-role-template-decisions.md)
 - 过程批注已移入记录 11；本文只保留项目状态和决策。
 

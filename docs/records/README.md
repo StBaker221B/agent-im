@@ -69,3 +69,4 @@
 | 43 | [2026-11-18 聊天历史分页](2026-11-18-39-history-pagination.md) | Matrix from token、limit/next、加载更早 |
 | 44 | [2026-11-18 Agent Card/Directory](2026-11-18-40-agent-card-directory.md) | card API、Profile 详情、Agents 筛选 |
 | 45 | [2026-11-18 Reaction](2026-11-18-41-reactions.md) | m.reaction、👍 chip、目标消息校验 |
+| 46 | [2026-11-18 Thread 面板](2026-11-18-42-thread-panel.md) | thread API、relations fallback、右侧面板、thread 回复 |

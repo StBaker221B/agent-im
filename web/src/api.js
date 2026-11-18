@@ -54,11 +54,18 @@ export const api = {
     if (from) params.set("from", from);
     return request(`/api/rooms/${encodeURIComponent(roomId)}/messages?${params}`);
   },
-  send: (roomId, text, replyTo = null) =>
+  send: (roomId, text, replyTo = null, threadId = "main") =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/messages`, {
       method: "POST",
-      body: { text, replyTo },
+      body: { text, replyTo, threadId },
     }),
+  thread: (roomId, rootId, { from = null, limit = 100 } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (from) params.set("from", from);
+    return request(
+      `/api/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(rootId)}?${params}`,
+    );
+  },
   react: (roomId, messageId, key = "👍") =>
     request(`/api/rooms/${encodeURIComponent(roomId)}/reactions`, {
       method: "POST",

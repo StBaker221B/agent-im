@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import Sidebar from "./components/Sidebar";
 import ChatView from "./components/ChatView";
+import ThreadPanel from "./components/ThreadPanel";
 import AgentsView from "./components/AgentsView";
 import AgentSettingsView from "./components/AgentSettingsView";
 import ActivityView from "./components/ActivityView";
@@ -49,6 +50,7 @@ export default function App() {
   const [view, setView] = useState("chat");
   const [settingsAgentId, setSettingsAgentId] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [threadRoot, setThreadRoot] = useState(null);
   const [reactions, setReactions] = useState({});
   const [historyNext, setHistoryNext] = useState(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -357,6 +359,7 @@ export default function App() {
     setView("chat");
     setMobilePane("chat");
     setMessages([]);
+    setThreadRoot(null);
     setReactions({});
     setHistoryNext(null);
     setModal(null);
@@ -523,6 +526,22 @@ export default function App() {
       setReactions((prev) => ({ ...prev, ...(res.reactions ?? {}) }));
     } catch (err) {
       notify(err.message);
+    }
+  }
+
+  function openThread(message) {
+    setThreadRoot(message);
+  }
+
+  async function sendThreadMessage(text) {
+    if (!activeRoomId || !threadRoot) return false;
+    try {
+      await api.send(activeRoomId, text, null, threadRoot.id);
+      loadBootstrap();
+      return true;
+    } catch (err) {
+      notify(err.message);
+      return false;
     }
   }
 
@@ -817,31 +836,43 @@ export default function App() {
             onBack={() => setMobilePane("list")}
           />
         ) : activeRoom ? (
-          <ChatView
-            key={activeRoom.id}
-            room={activeRoom}
-            messages={messages}
-            human={data.human}
-            agentsById={agentsById}
-            activity={activeRoom.activity}
-            live={live}
-            reactions={reactions}
-            hasMore={Boolean(historyNext)}
-            loadingOlder={loadingOlder}
-            onLoadMore={loadOlder}
-            onReact={reactToMessage}
-            sending={busy || uploading}
-            uploading={uploading}
-            focusId={focusMessageId}
-            onSend={handleSend}
-            onUpload={handleUpload}
-            onInvite={() => openModal("invite")}
-            onApproveTool={approveTool}
-            onApproveRoom={approveRoom}
-            onDelete={() => deleteRoomById(activeRoom.id)}
-            onProfile={openProfile}
-            onBack={() => setMobilePane("list")}
-          />
+          <div className={`chat-wrap${threadRoot ? " has-thread" : ""}`}>
+            <ChatView
+              key={activeRoom.id}
+              room={activeRoom}
+              messages={messages}
+              human={data.human}
+              agentsById={agentsById}
+              activity={activeRoom.activity}
+              live={live}
+              reactions={reactions}
+              hasMore={Boolean(historyNext)}
+              loadingOlder={loadingOlder}
+              onLoadMore={loadOlder}
+              onReact={reactToMessage}
+              onOpenThread={openThread}
+              sending={busy || uploading}
+              uploading={uploading}
+              focusId={focusMessageId}
+              onSend={handleSend}
+              onUpload={handleUpload}
+              onInvite={() => openModal("invite")}
+              onApproveTool={approveTool}
+              onApproveRoom={approveRoom}
+              onDelete={() => deleteRoomById(activeRoom.id)}
+              onProfile={openProfile}
+              onBack={() => setMobilePane("list")}
+            />
+            {threadRoot && (
+              <ThreadPanel
+                room={activeRoom}
+                root={threadRoot}
+                human={data.human}
+                onClose={() => setThreadRoot(null)}
+                onSend={sendThreadMessage}
+              />
+            )}
+          </div>
         ) : (
           <EmptyChat onNew={() => openModal("chat")} />
         )}

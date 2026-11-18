@@ -235,6 +235,23 @@ async function roomMessages(roomId, limit = 100) {
   return (await roomMessagesPage(roomId, { limit })).messages;
 }
 
+async function roomThreadPage(roomId, rootId, { limit = 100, from = null } = {}) {
+  const root = await human.getEvent(roomId, rootId);
+  if (!root?.text) throw Object.assign(new Error("thread root not found"), { status: 404 });
+  const page = await human.getThread(roomId, rootId, { limit, from });
+  const reactions = {};
+  for (const event of page.messages) {
+    if (event.kind !== "reaction" || !event.targetId) continue;
+    (reactions[event.targetId] ??= []).push({ key: event.key, sender: event.sender });
+  }
+  return {
+    root: messageView(root),
+    messages: page.messages.filter((m) => m.text),
+    reactions,
+    next: page.next ?? null,
+  };
+}
+
 function messageView(m) {
   return {
     id: m.id,
@@ -1514,6 +1531,15 @@ async function handleApi(req, res, url) {
     return json(res, 200, { ok: true, messageId, key });
   }
 
+  if (req.method === "GET" && parts[1] === "rooms" && parts[3] === "threads" && parts.length === 5) {
+    const roomId = decodeURIComponent(parts[2]);
+    const rootId = decodeURIComponent(parts[4]);
+    if (!store.room(roomId)) return json(res, 404, { error: "room not found" });
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit")) || 100));
+    const from = url.searchParams.get("from") || null;
+    return json(res, 200, await roomThreadPage(roomId, rootId, { limit, from }));
+  }
+
   if (req.method === "GET" && parts[1] === "rooms" && parts[3] === "messages" && parts.length === 4) {
     const roomId = decodeURIComponent(parts[2]);
     if (!store.room(roomId)) return json(res, 404, { error: "room not found" });
@@ -1536,7 +1562,13 @@ async function handleApi(req, res, url) {
     if (!text) return json(res, 400, { error: "消息不能为空" });
     const mentions = mentionIdsIn(text, room);
     const replyTo = typeof body.replyTo === "string" && body.replyTo ? body.replyTo : null;
-    const sent = await human.send(roomId, { threadId: "main", text, mentions, replyTo });
+    const threadId =
+      typeof body.threadId === "string" && body.threadId && body.threadId !== "main" ? body.threadId : "main";
+    if (threadId !== "main") {
+      const root = await human.getEvent(roomId, threadId).catch(() => null);
+      if (!root?.text) return json(res, 404, { error: "thread root not found" });
+    }
+    const sent = await human.send(roomId, { threadId, text, mentions, replyTo });
     store.markRead(roomId, Date.now());
     return json(res, 200, {
       eventId: sent.eventId,
@@ -1550,7 +1582,7 @@ async function handleApi(req, res, url) {
         text,
         mentions,
         replyTo,
-        threadId: "main",
+        threadId,
         createdAt: Date.now(),
       },
     });

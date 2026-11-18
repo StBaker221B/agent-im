@@ -493,11 +493,128 @@ button {
   display: grid;
 }
 
+.chat-wrap {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chat-wrap.has-thread {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+}
+
 .chat {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   background: var(--panel);
+}
+
+.thread-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+}
+
+.thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.thread-head strong {
+  display: block;
+  font-size: 13px;
+}
+
+.thread-root-label {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.thread-list {
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.thread-message {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 8px 10px;
+}
+
+.thread-message.mine {
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+.thread-root-message {
+  border-left: 3px solid var(--accent);
+}
+
+.thread-message-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.thread-message-top time {
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+.thread-message p {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.thread-empty {
+  font-size: 12px;
+  text-align: center;
+  margin: 18px 0;
+}
+
+.thread-composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.thread-composer input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .chat-wrap.has-thread {
+    grid-template-columns: minmax(0, 1fr);
+    position: relative;
+  }
+
+  .thread-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    width: 100%;
+    border-left: 0;
+  }
 }
 
 .chat-head {

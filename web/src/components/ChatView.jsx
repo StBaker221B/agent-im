@@ -85,6 +85,7 @@ export default function ChatView({
   loadingOlder,
   onLoadMore,
   onReact,
+  onOpenThread,
   sending,
   uploading,
   focusId,
@@ -413,6 +414,15 @@ export default function ChatView({
                             onClick={() => onReact(message.id, "👍")}
                           >
                             👍
+                          </button>
+                        )}
+                        {onOpenThread && (
+                          <button
+                            type="button"
+                            className="reply-action"
+                            onClick={() => onOpenThread(message)}
+                          >
+                            讨论
                           </button>
                         )}
                       </div>

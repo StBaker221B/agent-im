@@ -146,6 +146,39 @@ export class MatrixClient {
     return (await this.getMessagesPage(roomId, options)).messages;
   }
 
+  async getThread(roomId, rootId, { limit = 100, from } = {}) {
+    const query = { dir: "b", limit };
+    if (from) query.from = from;
+    try {
+      const res = await this.#request(
+        "GET",
+        `/rooms/${encodeURIComponent(roomId)}/relations/${encodeURIComponent(rootId)}/m.thread`,
+        { query },
+      );
+      const messages = [];
+      for (const ev of [...(res.chunk ?? [])].reverse()) {
+        const norm = this.#normalize(roomId, ev);
+        if (norm) messages.push(norm);
+      }
+      return { messages, next: res.next_batch ?? res.end ?? null };
+    } catch (err) {
+      if (!(err instanceof MatrixError) || ![404, 400].includes(err.status)) throw err;
+      // Tuwunel 2.0 does not expose /relations; scan recent room history instead.
+      const hits = [];
+      let cursor = from ?? null;
+      for (let page = 0; page < 5; page++) {
+        const res = await this.getMessagesPage(roomId, { limit: 200, from: cursor });
+        for (const message of res.messages) {
+          if (message.text && message.threadId === rootId) hits.push(message);
+        }
+        if (hits.length >= limit || !res.end) break;
+        cursor = res.end;
+      }
+      hits.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+      return { messages: hits.slice(-limit), next: null };
+    }
+  }
+
   async getEvent(roomId, eventId) {
     const ev = await this.#request(
       "GET",

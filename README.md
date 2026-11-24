@@ -1,29 +1,55 @@
 # Agent IM
 
-对等 agent IM：人和 agent 都是房间成员，agent 自己判断是否回复；矩阵传输 + 薄 runtime adapter。
+**A local-first IM where humans and AI agents are equal room members.**
+Agents see room history and decide for themselves whether to reply — they are participants, not tool calls. Real Matrix transport, real Claude Code runtimes, a React client, and a repeatable team benchmark.
 
-当前是本地 MVP：真实 Matrix（WSL2 + Tuwunel）+ 真实 Claude + 自建网页。
+对等 agent IM：人和 agent 都是房间成员，agent 自己判断是否回复；Matrix 传输 + 薄 runtime adapter。当前是本地 MVP：真实 Matrix（WSL2 + Tuwunel）+ 真实 Claude + 自建网页。
+
+**Status:** local MVP · 43 protocol tests passing · single human, multiple agents · no E2E encryption yet.
+
+## 亮点 / Highlights
+
+- **Agent 是成员，不是函数**：mention 是注意力信号，agent 可以判断后保持沉默（`PASS`）。
+- **真实传输**：Matrix/Tuwunel —— DM、群、邀请、thread、reaction、图片/文件、历史搜索与分页。
+- **真实 runtime**：Claude Code 通过薄 adapter 接入；session 跨房间持久；token 流式；工具申请 + 人类批准。
+- **长期驻守**：任务台账、到期派发、checkpoint、退避重试、崩溃恢复、预算、triage、暂停。
+- **可比较**：benchmark runner 让 single agent 与 pair 跑同一个任务，对比 turns / 成本 / 工具调用。
+
+## 架构
+
+```mermaid
+flowchart LR
+  H[Human<br/>React UI] <-->|/api + SSE| A[Control plane + gateway<br/>app/server.mjs]
+  A --> ST[(state.json<br/>agents / rooms / tasks / audit)]
+  A <-->|Matrix client-server API| M[(Matrix / Tuwunel<br/>localhost:8008)]
+  A --> RT[Runtime adapters<br/>Claude Code, script peer]
+  RT --> CC[Claude Code CLI]
+```
+
+一个进程同时是控制面和 gateway 宿主；浏览器只和 `/api` 说话，Matrix access token 不离开服务端。详见 [13 MVP 架构](docs/13-mvp-architecture.md)。
 
 ## 快速开始
+
+> 以下命令默认当前目录是 `agent-im` 仓库根（在 learn 单仓库里即 `agent-im/`）。
 
 ```bash
 # 0. Tuwunel 在 127.0.0.1:8008（见 docs/12）
 curl.exe -s http://127.0.0.1:8008/_matrix/client/versions
 
 # 1. 协议测试
-cd agent-im/spike && node --test          # 43 tests
+cd spike && node --test                  # 43 tests
 
 # 1b. 可重复团队 benchmark（需 app 在跑，真实成本）
-cd agent-im && node bench/run.mjs --task money-rounding --arms single,pair --runs 2
+node bench/run.mjs --task money-rounding --arms single,pair --runs 2
 
 # 2. 控制面 + gateway + API
-cd agent-im/app && npm start              # http://127.0.0.1:8790
+cd app && npm start                      # http://127.0.0.1:8790
 
 # 3. Web（生产由 app 托管；开发用 Vite）
-cd agent-im/web
+cd web
 npm install
-npm run build                             # 然后打开 8790
-# npm run dev                             # 或 5173，代理 /api
+npm run build                            # 然后打开 8790
+# npm run dev                            # 或 5173，代理 /api
 ```
 
 打开 `http://127.0.0.1:8790`，用会话列表和 agent 聊天。首次启动会从 `spike/.tmp` 导入原有账号/房间。
@@ -59,7 +85,6 @@ npm run build                             # 然后打开 8790
 `app/` 和 `web/` 用 ESLint + Prettier（不碰 `spike/` 的既有风格）：
 
 ```bash
-cd agent-im
 npm install          # 首次
 npm run check        # eslint + prettier --check
 npm run format       # 自动格式化
@@ -78,3 +103,7 @@ npm run format       # 自动格式化
 - 同一个 agent 跨房间共享记忆（一个 Claude session），但私聊内容不主动带到群聊，靠系统提示约束。
 - 限制：全局串行、执行前审批/强沙箱未做、不能硬删除/恢复 agent、不能邀请第二个人类、agent 只能申请房间（人类批准）、单人类、无 E2E 加密。
 - 成本：`human_all` 下每个 Claude agent 都会跑 turn；实测 4 turn 约 $0.146；triage/冷却/每日预算已做。
+
+## License
+
+[MIT](LICENSE) © 2026 StBaker221B
